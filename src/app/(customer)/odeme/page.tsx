@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Banknote,
   ShieldCheck,
-  Loader2
+  Loader2,
+  LogIn
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/context/cart-context'
