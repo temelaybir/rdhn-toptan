@@ -38,10 +38,16 @@ const defaultPaymentMethods: PaymentMethod[] = [
   { id: '3', type: 'bank_transfer', label: 'Havale/EFT', icon: 'Banknote' }
 ]
 
-// Turkish cities (simplified)
+// Turkish cities - Türkiye'nin 81 ili (Alfabetik sıra)
 const cities = [
-  'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 
-  'Gaziantep', 'Kayseri', 'Eskişehir', 'Samsun', 'Diyarbakır'
+  'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Aksaray', 'Amasya', 'Ankara', 'Antalya', 'Ardahan', 'Artvin',
+  'Aydın', 'Balıkesir', 'Bartın', 'Batman', 'Bayburt', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur',
+  'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Düzce', 'Edirne', 'Elazığ', 'Erzincan',
+  'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkari', 'Hatay', 'Iğdır', 'Isparta', 'İstanbul',
+  'İzmir', 'Kahramanmaraş', 'Karabük', 'Karaman', 'Kars', 'Kastamonu', 'Kayseri', 'Kırıkkale', 'Kırklareli', 'Kırşehir',
+  'Kilis', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Mardin', 'Mersin', 'Muğla', 'Muş',
+  'Nevşehir', 'Niğde', 'Ordu', 'Osmaniye', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop', 'Sivas',
+  'Şanlıurfa', 'Şırnak', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova', 'Yozgat', 'Zonguldak'
 ]
 
 // Global function declaration for TypeScript
@@ -2183,6 +2189,72 @@ export default function CheckoutPage() {
         </div>
       )}
       
+      {/* Login Status Banner */}
+      {!currentCustomer && (
+        <Card className="mb-6 bg-blue-50 border-blue-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <LogIn className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    Üye değil misiniz?
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    Giriş yaparak kayıtlı adreslerinizi kullanabilir ve siparişlerinizi takip edebilirsiniz
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                onClick={() => router.push(`/auth/login?redirect=${encodeURIComponent('/odeme')}`)}
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Giriş Yap / Üye Ol
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Current Customer Info */}
+      {currentCustomer && (
+        <Card className="mb-6 bg-green-50 border-green-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900">
+                    Hoş geldiniz, {currentCustomer.first_name || currentCustomer.email}!
+                  </p>
+                  <p className="text-xs text-green-700">
+                    Kayıtlı adres bilgileriniz otomatik olarak gelecektir
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-green-700 hover:bg-green-100"
+                onClick={() => {
+                  sessionStorage.removeItem('customer')
+                  setCurrentCustomer(null)
+                  toast.info('Çıkış yapıldı')
+                }}
+              >
+                Çıkış Yap
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress Steps */}
       <div className="max-w-3xl mx-auto mb-8">
         <div className="flex items-center justify-between">
@@ -2556,18 +2628,31 @@ export default function CheckoutPage() {
                 {/* Bank Transfer Info */}
                 {formData.paymentMethod === 'bank_transfer' && (
                   <div className="space-y-4">
+                    {/* 24 Saat Uyarısı - Belirgin */}
+                    <div className="bg-gradient-to-r from-orange-50 to-red-50 p-5 rounded-lg border-2 border-orange-400 shadow-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-6 w-6 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold text-orange-900 text-lg mb-2">ÖNEMLİ UYARI</p>
+                          <p className="text-orange-800 font-semibold text-base">
+                            ⏰ Ödemenizi <span className="underline decoration-2 underline-offset-2">{bankTransferSettings?.payment_deadline_hours || 24} saat içinde</span> yapmanız gerekmektedir.
+                          </p>
+                          <p className="text-orange-700 text-sm mt-2">
+                            Belirtilen süre içinde ödeme yapılmayan siparişler otomatik olarak iptal edilecektir.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Genel Bilgi */}
-                    <div className="bg-muted p-4 rounded-lg">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                        <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                         <div className="text-sm">
-                          <p className="font-medium mb-2">Havale/EFT Bilgileri</p>
-                          <p>
+                          <p className="font-medium mb-2 text-blue-900">Havale/EFT Bilgileri</p>
+                          <p className="text-blue-800">
                             {bankTransferSettings?.customer_message || 
                              'Sipariş onayından sonra banka hesap bilgilerimiz e-posta adresinize gönderilecektir.'}
-                          </p>
-                          <p className="mt-2">
-                            Ödemenizi {bankTransferSettings?.payment_deadline_hours || 24} saat içinde yapmanız gerekmektedir.
                           </p>
                         </div>
                       </div>
@@ -2591,10 +2676,15 @@ export default function CheckoutPage() {
                             <p className="font-medium">{bankTransferSettings.account_holder}</p>
                           </div>
                           <div className="md:col-span-2">
-                            <p className="text-gray-600">IBAN:</p>
-                            <p className="font-mono font-medium text-lg text-blue-800">
-                              {bankTransferSettings.iban}
-                            </p>
+                            <p className="text-gray-600 font-semibold mb-1">IBAN Numarası:</p>
+                            <div className="bg-white p-4 rounded-lg border-2 border-blue-400 shadow-md">
+                              <p className="font-mono font-bold text-xl md:text-2xl text-blue-900 tracking-wider break-all select-text">
+                                {bankTransferSettings.iban}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                💡 IBAN numarasını seçerek kopyalayabilirsiniz
+                              </p>
+                            </div>
                           </div>
                           <div>
                             <p className="text-gray-600">Hesap No:</p>

@@ -144,24 +144,25 @@ export default function CategoriesPage() {
                 userSelect: 'none'
               }}
             >
-              <Card className="h-full hover:shadow-lg transition-all duration-300 group-hover:scale-[1.02] touch-manipulation">
+              <Card className="h-full hover:shadow-lg transition-all duration-300 group-hover:scale-[1.02] group-hover:border-primary/50 touch-manipulation">
                 <div className="aspect-video relative overflow-hidden rounded-t-lg">
                   <img
                     src={category.image_url || getCategoryImage(category.slug)}
                     alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  {/* Hover overlay - primary renkte hafif */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <Sparkles className="h-5 w-5 text-primary drop-shadow-lg" />
                   </div>
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-4 bg-background group-hover:bg-primary/5 transition-colors duration-300">
                   <div className="space-y-2 pointer-events-none">
-                    <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors">
                       {category.description}
                     </p>
                   </div>

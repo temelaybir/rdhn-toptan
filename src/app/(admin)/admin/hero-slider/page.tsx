@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Image as ImageIcon } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Image as ImageIcon, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { SafeImage } from '@/components/ui/safe-image'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { uploadHeroSliderImage } from '@/app/actions/admin/upload-actions'
 
 interface HeroSlide {
   id: string
@@ -53,6 +54,16 @@ export default function HeroSliderAdminPage() {
     is_active: true,
     is_raw_image: false
   })
+  
+  // Upload state'leri
+  const [uploading, setUploading] = useState({
+    desktop: false,
+    mobile: false
+  })
+  
+  // File input ref'leri
+  const desktopFileInputRef = useRef<HTMLInputElement>(null)
+  const mobileFileInputRef = useRef<HTMLInputElement>(null)
 
   // Slide'ları getir
   const fetchSlides = async () => {
@@ -103,6 +114,62 @@ export default function HeroSliderAdminPage() {
       is_raw_image: false
     })
     setEditingSlide(null)
+  }
+  
+  // Görsel yükleme fonksiyonu
+  const handleImageUpload = async (file: File, imageType: 'desktop' | 'mobile') => {
+    setUploading(prev => ({ ...prev, [imageType]: true }))
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('imageType', imageType)
+
+      const result = await uploadHeroSliderImage(formDataUpload)
+
+      if (result.success && result.result) {
+        // URL'i form data'ya kaydet
+        if (imageType === 'desktop') {
+          setFormData(prev => ({ ...prev, image_url: result.result!.url }))
+          toast.success('Desktop görseli başarıyla yüklendi')
+        } else {
+          setFormData(prev => ({ ...prev, mobile_image_url: result.result!.url }))
+          toast.success('Mobil görseli başarıyla yüklendi')
+        }
+      } else {
+        toast.error(result.error || 'Yükleme başarısız')
+      }
+    } catch (error) {
+      console.error('Image upload exception:', error)
+      toast.error(`Yükleme sırasında hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`)
+    } finally {
+      setUploading(prev => ({ ...prev, [imageType]: false }))
+    }
+  }
+
+  // Dosya seçme handler'ı
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, imageType: 'desktop' | 'mobile') => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    // Dosya doğrulama
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen bir görsel dosyası seçin')
+      return
+    }
+
+    // Boyut kontrolü
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      toast.error('Dosya boyutu 5MB\'dan büyük olamaz')
+      return
+    }
+
+    handleImageUpload(file, imageType)
+    
+    // Input'u temizle
+    e.target.value = ''
   }
 
   // Dialog aç
@@ -340,34 +407,113 @@ export default function HeroSliderAdminPage() {
               </div>
               
               <div>
-                <Label htmlFor="image_url">Görsel URL *</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                  placeholder="/images/hero/hero-01.jpg"
-                />
-                {formData.image_url && (
-                  <div className="mt-2">
-                    <SafeImage
-                      src={formData.image_url}
-                      alt="Önizleme"
-                      width={300}
-                      height={120}
-                      className="rounded-md object-cover"
+                <Label htmlFor="image_url">Görsel (Desktop) *</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="image_url"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                      placeholder="/images/hero/hero-01.jpg"
+                      className="flex-1"
                     />
+                    <input
+                      ref={desktopFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, 'desktop')}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => desktopFileInputRef.current?.click()}
+                      disabled={uploading.desktop}
+                      className="min-w-[120px]"
+                    >
+                      {uploading.desktop ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Yükleniyor...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Dosya Seç
+                        </>
+                      )}
+                    </Button>
                   </div>
-                )}
+                  <p className="text-xs text-muted-foreground">
+                    Görsel yükle veya URL gir (Max 5MB)
+                  </p>
+                  {formData.image_url && (
+                    <div className="mt-2">
+                      <SafeImage
+                        src={formData.image_url}
+                        alt="Önizleme"
+                        width={300}
+                        height={120}
+                        className="rounded-md object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div>
-                <Label htmlFor="mobile_image_url">Mobil Görsel URL</Label>
-                <Input
-                  id="mobile_image_url"
-                  value={formData.mobile_image_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, mobile_image_url: e.target.value }))}
-                  placeholder="/images/hero/hero-01-mobile.jpg"
-                />
+                <Label htmlFor="mobile_image_url">Görsel (Mobil)</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="mobile_image_url"
+                      value={formData.mobile_image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, mobile_image_url: e.target.value }))}
+                      placeholder="/images/hero/hero-01-mobile.jpg"
+                      className="flex-1"
+                    />
+                    <input
+                      ref={mobileFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, 'mobile')}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => mobileFileInputRef.current?.click()}
+                      disabled={uploading.mobile}
+                      className="min-w-[120px]"
+                    >
+                      {uploading.mobile ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Yükleniyor...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Dosya Seç
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Mobil görsel yükle veya URL gir (Opsiyonel, Max 5MB)
+                  </p>
+                  {formData.mobile_image_url && (
+                    <div className="mt-2">
+                      <SafeImage
+                        src={formData.mobile_image_url}
+                        alt="Mobil Önizleme"
+                        width={200}
+                        height={100}
+                        className="rounded-md object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div>

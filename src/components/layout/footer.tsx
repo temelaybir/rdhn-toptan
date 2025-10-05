@@ -26,6 +26,10 @@ interface FooterSettings {
   copyright_text: string
   custom_css: string | null
   is_active: boolean
+  google_maps_embed_url: string | null
+  show_google_maps: boolean
+  google_maps_width: string
+  google_maps_height: string
 }
 
 interface FooterLinkGroup {
@@ -273,6 +277,21 @@ export function Footer() {
                 </div>
               )}
             </div>
+
+            {/* Google Maps */}
+            {footerSettings?.show_google_maps && footerSettings?.google_maps_embed_url && (
+              <div className="mt-6">
+                <div 
+                  className="rounded-lg overflow-hidden border border-secondary-foreground/20"
+                  dangerouslySetInnerHTML={{ 
+                    __html: footerSettings.google_maps_embed_url
+                      .replace(/width="[^"]*"/, `width="${footerSettings.google_maps_width}"`)
+                      .replace(/height="[^"]*"/, `height="${footerSettings.google_maps_height}"`)
+                      .replace(/<iframe/, '<iframe style="border:0; display:block; width:100%;"')
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Dinamik Link Grupları */}

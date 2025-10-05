@@ -259,4 +259,120 @@ export async function deleteSiteLogo(path: string) {
       error: error instanceof Error ? error.message : 'Logo silme sırasında hata oluştu' 
     }
   }
+}
+
+// Hero slider için görsel yükleme fonksiyonu
+export async function uploadHeroSliderImage(formData: FormData) {
+  try {
+    console.log('uploadHeroSliderImage server action başladı')
+    
+    const file = formData.get('file') as File
+    const imageType = formData.get('imageType') as string // 'desktop' veya 'mobile'
+
+    console.log('FormData parse edildi:', { 
+      hasFile: !!file, 
+      fileName: file?.name, 
+      fileSize: file?.size, 
+      imageType 
+    })
+
+    // Dosya doğrulama
+    if (!file || !(file instanceof File)) {
+      console.error('Dosya bulunamadı')
+      return { success: false, error: 'Dosya bulunamadı' }
+    }
+
+    if (!file.type.startsWith('image/')) {
+      console.error('Geçersiz dosya tipi:', file.type)
+      return { success: false, error: 'Sadece görsel dosyaları yüklenebilir' }
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      console.error('Dosya çok büyük:', file.size)
+      return { success: false, error: 'Dosya boyutu 5MB\'dan büyük olamaz' }
+    }
+
+    console.log('Dosya validasyonu geçti, Supabase client oluşturuluyor...')
+
+    // Dosya adı oluştur
+    const fileExt = file.name.split('.').pop()
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).substring(2)
+    const fileName = `hero-${imageType}_${timestamp}_${randomId}.${fileExt}`
+    const filePath = `hero-slider/${fileName}`
+
+    console.log('Dosya yolu oluşturuldu:', { fileName, filePath })
+
+    const supabase = await createAdminSupabaseClient()
+
+    console.log('Supabase storage upload başlatılıyor...')
+
+    // Dosyayı Supabase Storage'a yükle
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    console.log('Storage upload sonucu:', { data, error })
+
+    if (error) {
+      console.error('Storage upload hatası:', error)
+      return { success: false, error: `Dosya yükleme hatası: ${error.message}` }
+    }
+
+    console.log('Upload başarılı, public URL alınıyor...')
+
+    // Public URL al
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(data.path)
+
+    console.log('Public URL alındı:', publicUrl)
+
+    const result = {
+      url: publicUrl,
+      path: data.path,
+      size: file.size,
+      type: file.type,
+      imageType
+    }
+
+    console.log('Upload tamamlandı:', result)
+
+    return {
+      success: true,
+      result
+    }
+  } catch (error) {
+    console.error('Upload exception:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Hero slider görseli yükleme sırasında hata oluştu' 
+    }
+  }
+}
+
+// Hero slider görseli silme fonksiyonu
+export async function deleteHeroSliderImage(path: string) {
+  try {
+    const supabase = await createAdminSupabaseClient()
+    
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([path])
+
+    if (error) {
+      return { success: false, error: `Görsel silme hatası: ${error.message}` }
+    }
+
+    return { success: true, message: 'Görsel başarıyla silindi' }
+  } catch (error) {
+    console.error('Hero slider image delete error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Görsel silme sırasında hata oluştu' 
+    }
+  }
 } 

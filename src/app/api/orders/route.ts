@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { sendOrderNotification, sendOrderConfirmationToCustomer } from '@/services/email-notification-service'
 import { findCustomerByEmail, createCustomer } from '@/services/customer-auth-service'
-import { getBizimHesapInvoiceService } from '@/services/invoice/bizimhesap-invoice-service'
-import { InvoiceType } from '@catkapinda/bizimhesap-integration'
+import { getBizimHesapInvoiceService, InvoiceType } from '@/services/invoice/bizimhesap-invoice-service'
 
 /**
  * BizimHesap otomatik fatura oluşturma
@@ -169,6 +168,7 @@ export async function POST(request: NextRequest) {
 
     // Müşteri oluştur veya bul (magic link sistemi için)
     let customerId = null
+    let isNewCustomer = false
     try {
       let customer = await findCustomerByEmail(email)
       
@@ -186,6 +186,7 @@ export async function POST(request: NextRequest) {
         
         customer = await createCustomer(customerData)
         console.log('✅ New customer created:', customer?.id)
+        isNewCustomer = true
       } else {
         console.log('✅ Existing customer found:', customer.id)
       }
@@ -333,6 +334,13 @@ export async function POST(request: NextRequest) {
       createBizimHesapInvoice(orderNumber).catch(error => {
         console.error('BizimHesap fatura oluşturulamadı:', error)
       })
+    }
+
+    // Yeni müşteri oluşturuldu - magic login linki gönderilmez
+    // Magic link sadece mevcut üyelere ve sipariş vermiş olanlara gönderilir
+    if (isNewCustomer && customerId) {
+      console.log('✅ Yeni müşteri kaydı oluşturuldu:', email)
+      console.log('ℹ️ Magic login linki sadece mevcut üyelere gönderilir')
     }
 
     return NextResponse.json({

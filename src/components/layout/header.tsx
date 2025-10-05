@@ -322,7 +322,7 @@ export function Header() {
                         <NavigationMenuLink
                           key={category.name}
                           href={category.href}
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-all hover:bg-primary/5 hover:text-primary hover:border-primary/20 border border-transparent focus:bg-primary/5 focus:text-primary"
                         >
                           <div className="text-sm font-medium leading-none">
                             {category.name}

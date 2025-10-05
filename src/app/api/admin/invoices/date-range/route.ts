@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBizimHesapInvoiceService } from '@/services/invoice/bizimhesap-invoice-service'
-import { InvoiceType } from '@catkapinda/bizimhesap-integration'
+import { getBizimHesapInvoiceService, InvoiceType } from '@/services/invoice/bizimhesap-invoice-service'
 
 // POST: Tarih aralığındaki siparişler için fatura oluştur
 export async function POST(request: NextRequest) {

@@ -83,6 +83,10 @@ interface FooterSettings {
   copyright_text: string
   custom_css: string | null
   is_active: boolean
+  google_maps_embed_url: string | null
+  show_google_maps: boolean
+  google_maps_width: string
+  google_maps_height: string
 }
 
 interface FooterLinkGroup {
@@ -295,6 +299,10 @@ export default function HeaderFooterPage() {
         linkedin_url: footerSettings.linkedin_url?.trim() || null,
         copyright_text: footerSettings.copyright_text.trim(),
         custom_css: footerSettings.custom_css?.trim() || null,
+        google_maps_embed_url: footerSettings.google_maps_embed_url?.trim() || null,
+        show_google_maps: footerSettings.show_google_maps,
+        google_maps_width: footerSettings.google_maps_width.trim(),
+        google_maps_height: footerSettings.google_maps_height.trim(),
         updated_at: new Date().toISOString()
       }
       
@@ -1035,6 +1043,82 @@ export default function HeaderFooterPage() {
                             placeholder="https://linkedin.com/..."
                           />
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Google Maps */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="show_google_maps"
+                        checked={footerSettings.show_google_maps}
+                        onCheckedChange={(checked) => updateFooterSetting('show_google_maps', checked)}
+                      />
+                      <Label htmlFor="show_google_maps">Google Maps Göster</Label>
+                    </div>
+
+                    {footerSettings.show_google_maps && (
+                      <div className="space-y-4 ml-6">
+                        <div>
+                          <Label htmlFor="google_maps_embed_url">Google Maps Embed URL</Label>
+                          <Textarea
+                            id="google_maps_embed_url"
+                            value={footerSettings.google_maps_embed_url || ''}
+                            onChange={(e) => updateFooterSetting('google_maps_embed_url', e.target.value)}
+                            placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." width="600" height="450"...></iframe>'
+                            rows={4}
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Google Maps'ten "Embed a map" seçeneğini kullanarak iframe kodunu buraya yapıştırın.
+                            <br />
+                            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              Google Maps'i aç →
+                            </a>
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="google_maps_width">Genişlik</Label>
+                            <Input
+                              id="google_maps_width"
+                              value={footerSettings.google_maps_width}
+                              onChange={(e) => updateFooterSetting('google_maps_width', e.target.value)}
+                              placeholder="100%"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Örnek: 100%, 400px, 50vw
+                            </p>
+                          </div>
+                          <div>
+                            <Label htmlFor="google_maps_height">Yükseklik</Label>
+                            <Input
+                              id="google_maps_height"
+                              value={footerSettings.google_maps_height}
+                              onChange={(e) => updateFooterSetting('google_maps_height', e.target.value)}
+                              placeholder="300px"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Örnek: 300px, 400px, 20vh
+                            </p>
+                          </div>
+                        </div>
+                        {/* Preview */}
+                        {footerSettings.google_maps_embed_url && (
+                          <div className="mt-4">
+                            <Label>Önizleme</Label>
+                            <div 
+                              className="mt-2 border rounded-lg overflow-hidden"
+                              dangerouslySetInnerHTML={{ 
+                                __html: footerSettings.google_maps_embed_url
+                                  .replace(/width="[^"]*"/, `width="${footerSettings.google_maps_width}"`)
+                                  .replace(/height="[^"]*"/, `height="${footerSettings.google_maps_height}"`)
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

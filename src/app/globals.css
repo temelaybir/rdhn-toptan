@@ -640,26 +640,68 @@
   }
 }
 
-/* Mobil Touch Optimizations - Aggressive FastClick Alternative */
+/* Mobil Touch Optimizations - Smart Selection */
 @layer base {
-  /* Universal touch optimization - iOS Safari 300ms delay killer */
-  *,
-  *::before,
-  *::after {
+  /* Default: Everything gets normal cursor, no forced selection */
+  * {
     -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    cursor: default;
+  }
+  
+  /* Text elements are selectable with default cursor */
+  p, span:not(button span):not(a span), td, th, 
+  h1, h2, h3, h4, h5, h6, li, label, code, pre, strong, em,
+  div:not([role="button"]):not([onclick]),
+  [class*="font-medium"]:not(button *):not(a *), 
+  [class*="font-mono"]:not(button *):not(a *),
+  [class*="tracking"]:not(button *), 
+  [class*="order"]:not(button *), 
+  [class*="phone"]:not(button *), 
+  [class*="address"]:not(button *) {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    cursor: default;
+  }
+  
+  /* Inputs and editable fields with text cursor */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
+  }
+  
+  /* Buttons: NOT selectable + pointer cursor */
+  button, [role="button"], [type="button"], [type="submit"], [type="reset"],
+  button *, [role="button"] *, [type="button"] *, [type="submit"] *, [type="reset"] * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
+  }
+  
+  /* Links: pointer cursor + selectable text */
+  a {
+    cursor: pointer !important;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+  
+  /* Images and media: not selectable */
+  img, video, svg, canvas {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-  }
-  
-  /* Allow text selection for inputs and content */
-  input, textarea, [contenteditable], p, span, div:not([role]), td, th {
-    -webkit-user-select: auto;
-    -moz-user-select: auto;
-    -ms-user-select: auto;
-    user-select: auto;
+    cursor: default;
   }
 }
 
@@ -668,15 +710,11 @@
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
   }
   
-  /* Universal clickable elements - NO 300ms delay */
-  a, button, [role="button"], [onclick], 
-  .clickable, .btn, [type="button"], [type="submit"], [type="reset"],
-  [tabindex]:not([tabindex="-1"]), details, summary {
+  /* Clickable elements - fast response */
+  button, [role="button"], .clickable, .btn, 
+  [type="button"], [type="submit"], [type="reset"] {
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
     -webkit-touch-callout: none !important;
@@ -684,31 +722,46 @@
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
-    
-    /* iOS Safari specific - disable double tap zoom */
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-    
-    /* Prevent iOS Safari hover states */
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    cursor: pointer !important;
   }
   
-  /* Remove touch delay on mobile */
-  a, button, [role="button"], [onclick] {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  /* All children of buttons are also not selectable */
+  button *, [role="button"] *, .btn *, 
+  [type="button"] *, [type="submit"] *, [type="reset"] * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
   }
   
-  /* Prevent text selection on touch elements */
-  .no-select {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  /* Links keep pointer cursor */
+  a, a * {
+    cursor: pointer !important;
+  }
+  
+  /* Interactive elements */
+  [onclick], [tabindex]:not([tabindex="-1"]), details, summary {
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+  
+  /* Prevent text selection ONLY on specific no-select class */
+  .no-select, .no-select * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* Force text selection on specific elements */
+  .text-selectable {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: default !important;
   }
   
   /* Scrollbar utilities */
@@ -756,8 +809,11 @@
   
   /* iOS Safari specific touch fixes */
   @supports (-webkit-touch-callout: none) {
-    /* iOS only rules */
-    a, button, [role="button"], [onclick] {
+    /* iOS - Buttons not selectable */
+    button, button *, [role="button"], [role="button"] *, 
+    [type="button"], [type="button"] *, 
+    [type="submit"], [type="submit"] *, 
+    [type="reset"], [type="reset"] * {
       cursor: pointer !important;
       -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
       -webkit-touch-callout: none !important;
@@ -766,28 +822,45 @@
     }
   }
   
-  /* Ultimate touch fix - nuclear option */
+  /* Touch devices optimization */
   @media (pointer: coarse) {
-    /* Touch devices only */
-    * {
-      -webkit-tap-highlight-color: transparent !important;
-      -webkit-touch-callout: none !important;
-    }
-    
-    a, button, [role="button"], [onclick], [tabindex] {
+    /* Buttons and their children - not selectable + pointer */
+    button, button *, 
+    [role="button"], [role="button"] *, 
+    [type="button"], [type="button"] *,
+    [type="submit"], [type="submit"] *,
+    [type="reset"], [type="reset"] * {
       touch-action: manipulation !important;
       -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
       -webkit-touch-callout: none !important;
       -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
       user-select: none !important;
       cursor: pointer !important;
     }
     
-    /* Force immediate response */
-    a:active, button:active, [role="button"]:active {
+    /* Links and their children - pointer cursor */
+    a, a *, [onclick] {
+      cursor: pointer !important;
+    }
+    
+    /* Inputs keep text cursor */
+    input, textarea, [contenteditable] {
+      cursor: text !important;
+    }
+    
+    /* Force immediate response on buttons */
+    button:active, [role="button"]:active {
       background-color: rgba(0,0,0,0.05) !important;
       transform: scale(0.98) !important;
       transition: all 0ms !important;
+    }
+    
+    /* Minimum touch target size */
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
     }
   }
 }

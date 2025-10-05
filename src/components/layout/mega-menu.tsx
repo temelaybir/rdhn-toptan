@@ -216,7 +216,7 @@ export function MegaMenu({ className }: MegaMenuProps) {
       >
         {/* Trigger Button */}
         <button
-          className="flex items-center gap-2 h-10 px-4 py-2 text-base font-semibold uppercase transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none rounded-md"
+          className="flex items-center gap-2 h-10 px-4 py-2 text-base font-semibold uppercase transition-colors hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary focus:outline-none rounded-md"
           onClick={() => setIsOpen(!isOpen)}
         >
           Kategoriler
@@ -261,7 +261,7 @@ export function MegaMenu({ className }: MegaMenuProps) {
                           <div key={category.id} className="group">
                             <Link
                               href={`/kategoriler/${category.slug}`}
-                              className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
+                              className="flex items-center gap-3 p-2 rounded-md hover:bg-primary/5 hover:border-primary/20 border border-transparent transition-all"
                             >
                               {category.image && (
                                 <SafeImage
@@ -300,7 +300,7 @@ export function MegaMenu({ className }: MegaMenuProps) {
                                   <Link
                                     key={subCategory.id}
                                     href={`/kategoriler/${subCategory.slug}`}
-                                    className="flex items-center justify-between text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+                                    className="flex items-center justify-between text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all py-1 px-2 rounded-md"
                                   >
                                     <span className="truncate">{subCategory.name}</span>
                                     {subCategory.productCount > 0 && (

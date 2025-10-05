@@ -285,7 +285,7 @@ export function NewHeader() {
                               <Link
                                 key={category.id}
                                 href={`/kategoriler/${category.slug}`}
-                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
+                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/10 hover:text-primary transition-all"
                                 onClick={() => setIsMobileMenuOpen(false)}
                               >
                                 <span className="text-2xl">{category.icon}</span>

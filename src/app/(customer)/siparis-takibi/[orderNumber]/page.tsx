@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -79,7 +79,20 @@ const estimatedDeliveryHours = {
 export default function OrderTrackingPage() {
   const params = useParams()
   const router = useRouter()
-  const orderNumber = params.orderNumber as string
+  const searchParams = useSearchParams()
+  
+  // Query parameter veya URL path'inden sipariş numarasını al
+  const orderNumberFromUrl = params.orderNumber as string
+  const orderNumberFromQuery = searchParams.get('orderNumber')
+  const orderNumber = orderNumberFromQuery || orderNumberFromUrl
+  
+  // Eğer query parameter ile gelindiyse, URL'i düzenle
+  useEffect(() => {
+    if (orderNumberFromQuery && !orderNumberFromUrl) {
+      // Query parameter ile gelindi, URL'i path parametresine dönüştür
+      router.replace(`/siparis-takibi/${orderNumberFromQuery}`)
+    }
+  }, [orderNumberFromQuery, orderNumberFromUrl, router])
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   

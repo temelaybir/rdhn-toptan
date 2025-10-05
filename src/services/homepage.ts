@@ -72,46 +72,6 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
   }
 }
 
-// Mock data for campaign banners
-const mockCampaignBanners: CampaignBanner[] = [
-  {
-    id: 1,
-    title: 'Yılbaşı Alışverişi',
-    subtitle: 'Hediyeler %60\'a varan indirimlerle',
-    image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop',
-    mobile_image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop',
-    link_url: '/kampanyalar/yilbasi',
-    color_theme: 'from-red-600 to-red-800',
-    size: 'large',
-    order_position: 1,
-    is_raw_image: false
-  },
-  {
-    id: 2,
-    title: 'Teknoloji Haftası',
-    subtitle: 'Laptop ve telefonda süper fiyatlar',
-    image_url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&h=400&fit=crop',
-    mobile_image_url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop',
-    link_url: '/kampanyalar/teknoloji',
-    color_theme: 'from-blue-600 to-blue-800',
-    size: 'medium',
-    order_position: 2,
-    is_raw_image: false
-  },
-  {
-    id: 3,
-    title: 'Moda Festivali',
-    subtitle: '3 Al 2 Öde',
-    image_url: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop',
-    mobile_image_url: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop',
-    link_url: '/kampanyalar/moda',
-    color_theme: 'from-purple-600 to-purple-800',
-    size: 'medium',
-    order_position: 3,
-    is_raw_image: false
-  }
-]
-
 export async function getCampaignBanners() {
   try {
     const supabase = await createClient()
@@ -123,68 +83,16 @@ export async function getCampaignBanners() {
       .order('order_position', { ascending: true })
 
     if (error) {
-      console.error('Error fetching campaign banners:', error)
-      return mockCampaignBanners
+      console.error('Campaign banners getirilemedi:', error)
+      return []
     }
 
-    return data && data.length > 0 ? data as CampaignBanner[] : mockCampaignBanners
+    return (data || []) as CampaignBanner[]
   } catch (error) {
-    console.error('Database connection error, using mock data:', error)
-    return mockCampaignBanners
+    console.error('Campaign banners servis hatası:', error)
+    return []
   }
 }
-
-// Mock data for featured brands
-const mockFeaturedBrands: FeaturedBrand[] = [
-  {
-    id: 1,
-    name: 'Nike',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/200px-Logo_NIKE.svg.png',
-    link_url: '/markalar/nike',
-    campaign_text: '%30 İndirim',
-    order_position: 1
-  },
-  {
-    id: 2,
-    name: 'Adidas',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/200px-Adidas_Logo.svg.png',
-    link_url: '/markalar/adidas',
-    campaign_text: null,
-    order_position: 2
-  },
-  {
-    id: 3,
-    name: 'Apple',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/200px-Apple_logo_black.svg.png',
-    link_url: '/markalar/apple',
-    campaign_text: 'Ücretsiz Kargo',
-    order_position: 3
-  },
-  {
-    id: 4,
-    name: 'Samsung',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/200px-Samsung_Logo.svg.png',
-    link_url: '/markalar/samsung',
-    campaign_text: null,
-    order_position: 4
-  },
-  {
-    id: 5,
-    name: 'Sony',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Sony_logo.svg/200px-Sony_logo.svg.png',
-    link_url: '/markalar/sony',
-    campaign_text: '2 Al 1 Öde',
-    order_position: 5
-  },
-  {
-    id: 6,
-    name: 'LG',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/LG_symbol.svg/200px-LG_symbol.svg.png',
-    link_url: '/markalar/lg',
-    campaign_text: null,
-    order_position: 6
-  }
-]
 
 export async function getFeaturedBrands() {
   try {
@@ -197,14 +105,14 @@ export async function getFeaturedBrands() {
       .order('order_position', { ascending: true })
 
     if (error) {
-      console.error('Error fetching featured brands:', error)
-      return mockFeaturedBrands
+      console.error('Featured brands getirilemedi:', error)
+      return []
     }
 
-    return data && data.length > 0 ? data as FeaturedBrand[] : mockFeaturedBrands
+    return (data || []) as FeaturedBrand[]
   } catch (error) {
-    console.error('Database connection error, using mock data:', error)
-    return mockFeaturedBrands
+    console.error('Featured brands servis hatası:', error)
+    return []
   }
 }
 

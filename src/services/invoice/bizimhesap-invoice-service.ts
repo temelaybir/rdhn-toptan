@@ -1,13 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { 
-  BizimHesapService,
-  createBizimHesapService,
-  convertSupabaseOrderToBizimHesap,
-  validateInvoiceData,
-  InvoiceType,
-  BizimHesapInvoiceResult,
-  ECommerceOrder
-} from '@catkapinda/bizimhesap-integration'
+
+// BizimHesap Integration Types
+export enum InvoiceType {
+  SALES = 'SALES',
+  PURCHASE = 'PURCHASE'
+}
 
 export interface InvoiceCreationResult {
   success: boolean
@@ -23,11 +20,28 @@ export interface InvoiceCreationOptions {
   invoiceType?: InvoiceType
 }
 
+interface BizimHesapService {
+  createInvoiceFromOrder: (order: any, options?: any) => Promise<any>
+}
+
+interface ECommerceOrder {
+  orderNumber: string
+  customer: any
+  items: any[]
+  totals: any
+}
+
 export class BizimHesapInvoiceService {
-  private bizimHesapService: BizimHesapService
+  private bizimHesapService: BizimHesapService | null = null
 
   constructor() {
-    this.bizimHesapService = createBizimHesapService()
+    // BizimHesap service'i lazy load ediyoruz
+    try {
+      const { createBizimHesapService } = require('@catkapinda/bizimhesap-integration')
+      this.bizimHesapService = createBizimHesapService()
+    } catch (error) {
+      console.warn('⚠️ BizimHesap integration yüklenemedi:', error)
+    }
   }
 
   /**
@@ -38,6 +52,15 @@ export class BizimHesapInvoiceService {
     options: InvoiceCreationOptions = {}
   ): Promise<InvoiceCreationResult> {
     try {
+      if (!this.bizimHesapService) {
+        console.warn('⚠️ BizimHesap servisi yüklenmedi, fatura oluşturulamıyor')
+        return {
+          success: false,
+          error: 'BizimHesap servisi kullanılamıyor',
+          orderId
+        }
+      }
+
       console.log(`🧾 Sipariş ${orderId} için fatura oluşturuluyor...`)
 
       // Supabase'den sipariş bilgilerini al
@@ -51,6 +74,7 @@ export class BizimHesapInvoiceService {
       }
 
       // Sipariş formatını dönüştür
+      const { convertSupabaseOrderToBizimHesap } = require('@catkapinda/bizimhesap-integration')
       const ecommerceOrder = convertSupabaseOrderToBizimHesap(order)
 
       // Faturayı oluştur

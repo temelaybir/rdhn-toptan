@@ -2,6 +2,7 @@ import { NewHeader } from '@/components/layout/new-header'
 import { Footer } from '@/components/layout/footer'
 import { MiniCart } from '@/components/cart/mini-cart'
 import { SocialMediaWidget } from '@/components/layout/social-media-widget'
+import { ScrollToTopButton } from '@/components/layout/scroll-to-top-button'
 import { CartProvider } from '@/context/cart-context'
 import { UserProvider } from '@/context/user-context'
 import { WishlistProvider } from '@/context/wishlist-context'
@@ -27,6 +28,7 @@ export default function CustomerLayout({
             </div>
             <MiniCart />
             <SocialMediaWidget />
+            <ScrollToTopButton />
             <CookieBanner />
           </CartProvider>
         </WishlistProvider>
