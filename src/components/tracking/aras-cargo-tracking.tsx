@@ -6,7 +6,20 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ExternalLink, Package, Search, Truck } from 'lucide-react'
-import { getArasTrackingUrls, ArasTrackingUrls } from '../../../packages/aras-cargo-integration/src/aras-cargo-tracking-urls'
+// TEMPORARY FIX: aras-cargo-integration package not available
+// import { getArasTrackingUrls, ArasTrackingUrls } from '../../../packages/aras-cargo-integration/src/aras-cargo-tracking-urls'
+
+interface ArasTrackingUrls {
+  web: string
+  mobile: string
+  api: string
+}
+
+const getArasTrackingUrls = (trackingNumber: string): ArasTrackingUrls => ({
+  web: `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${trackingNumber}`,
+  mobile: `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${trackingNumber}`,
+  api: `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${trackingNumber}`
+})
 
 interface ArasCargoTrackingProps {
   initialTrackingNumber?: string

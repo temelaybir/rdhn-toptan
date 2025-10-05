@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ArasCargoService } from '../../../../../../../packages/aras-cargo-integration/src/aras-cargo-service'
+// TEMPORARY FIX: aras-cargo-integration package not available
+// import { ArasCargoService } from '../../../../../../../packages/aras-cargo-integration/src/aras-cargo-service'
 
 export async function POST(request: NextRequest) {
+  // TEMPORARY: Service disabled until aras-cargo-integration is available
+  return NextResponse.json({ 
+    success: false, 
+    error: 'Aras Cargo integration temporarily disabled' 
+  }, { status: 503 })
+  
+  /* Original code - commented out
   try {
     console.log('🔍 Request details:', {
       method: request.method,
@@ -126,4 +134,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+  */
 } 
