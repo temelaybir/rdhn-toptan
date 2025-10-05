@@ -1,0 +1,26 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "catkapinda.com.tr"
+        }
+      ],
+      "destination": "https://www.catkapinda.com.tr/$1",
+      "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/sync-cargo",
+      "schedule": "0 9 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/sync-cargo/route.ts": {
+      "maxDuration": 60
+    }
+  }
+} 

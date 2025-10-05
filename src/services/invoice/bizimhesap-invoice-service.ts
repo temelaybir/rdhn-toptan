@@ -1,0 +1,310 @@
+import { createClient } from '@/lib/supabase/server'
+import { 
+  BizimHesapService,
+  createBizimHesapService,
+  convertSupabaseOrderToBizimHesap,
+  validateInvoiceData,
+  InvoiceType,
+  BizimHesapInvoiceResult,
+  ECommerceOrder
+} from '@catkapinda/bizimhesap-integration'
+
+export interface InvoiceCreationResult {
+  success: boolean
+  invoiceGuid?: string
+  invoiceUrl?: string
+  error?: string
+  orderId: string
+}
+
+export interface InvoiceCreationOptions {
+  createInvoiceRecord?: boolean
+  sendNotification?: boolean
+  invoiceType?: InvoiceType
+}
+
+export class BizimHesapInvoiceService {
+  private bizimHesapService: BizimHesapService
+
+  constructor() {
+    this.bizimHesapService = createBizimHesapService()
+  }
+
+  /**
+   * Sipariş ID'si ile fatura oluştur
+   */
+  async createInvoiceFromOrderId(
+    orderId: string,
+    options: InvoiceCreationOptions = {}
+  ): Promise<InvoiceCreationResult> {
+    try {
+      console.log(`🧾 Sipariş ${orderId} için fatura oluşturuluyor...`)
+
+      // Supabase'den sipariş bilgilerini al
+      const order = await this.getOrderFromDatabase(orderId)
+      if (!order) {
+        return {
+          success: false,
+          error: 'Sipariş bulunamadı',
+          orderId
+        }
+      }
+
+      // Sipariş formatını dönüştür
+      const ecommerceOrder = convertSupabaseOrderToBizimHesap(order)
+
+      // Faturayı oluştur
+      const result = await this.createInvoiceFromOrder(ecommerceOrder, options)
+
+      // Sonucu veritabanına kaydet  
+      if (result.success && options.createInvoiceRecord !== false) {
+        await this.saveInvoiceRecord(order.id, result) // Gerçek UUID kullan
+      }
+
+      return {
+        ...result,
+        orderId
+      }
+
+    } catch (error: any) {
+      console.error(`❌ Sipariş ${orderId} fatura oluşturma hatası:`, error)
+      return {
+        success: false,
+        error: error.message || 'Fatura oluşturma hatası',
+        orderId
+      }
+    }
+  }
+
+  /**
+   * E-commerce siparişinden fatura oluştur
+   */
+  async createInvoiceFromOrder(
+    order: ECommerceOrder,
+    options: InvoiceCreationOptions = {}
+  ): Promise<BizimHesapInvoiceResult> {
+    try {
+      console.log(`🧾 ${order.orderNumber} numaralı sipariş için fatura oluşturuluyor...`)
+
+      // Fatura tipini belirle
+      const invoiceType = options.invoiceType || InvoiceType.SALES
+
+      // Faturayı oluştur
+      let result: BizimHesapInvoiceResult
+
+      if (invoiceType === InvoiceType.SALES) {
+        result = await this.bizimHesapService.createSalesInvoice(order)
+      } else {
+        result = await this.bizimHesapService.createPurchaseInvoice(order)
+      }
+
+      if (result.success) {
+        console.log(`✅ Fatura başarıyla oluşturuldu:`, {
+          orderNumber: order.orderNumber,
+          guid: result.guid,
+          url: result.invoiceUrl
+        })
+
+        // Bildirim gönder
+        if (options.sendNotification !== false) {
+          await this.sendInvoiceNotification(order, result)
+        }
+      } else {
+        console.error(`❌ Fatura oluşturulamadı:`, result.error)
+      }
+
+      return result
+
+    } catch (error: any) {
+      console.error('❌ Fatura oluşturma hatası:', error)
+      return {
+        success: false,
+        error: error.message || 'Fatura oluşturma hatası'
+      }
+    }
+  }
+
+  /**
+   * Toplu fatura oluşturma
+   */
+  async createInvoicesForOrders(
+    orderIds: string[],
+    options: InvoiceCreationOptions = {}
+  ): Promise<InvoiceCreationResult[]> {
+    console.log(`🧾 ${orderIds.length} sipariş için toplu fatura oluşturuluyor...`)
+
+    const results: InvoiceCreationResult[] = []
+
+    for (const orderId of orderIds) {
+      try {
+        const result = await this.createInvoiceFromOrderId(orderId, options)
+        results.push(result)
+
+        // API rate limiting için kısa bekleme
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      } catch (error: any) {
+        results.push({
+          success: false,
+          error: error.message,
+          orderId
+        })
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length
+    console.log(`📊 Toplu fatura sonucu: ${successCount}/${orderIds.length} başarılı`)
+
+    return results
+  }
+
+  /**
+   * Supabase'den sipariş bilgilerini al
+   */
+  private async getOrderFromDatabase(orderId: string) {
+    const supabase = await createClient()
+
+    // UUID mi yoksa order number mı kontrol et
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)
+    
+    console.log(`🔍 Order ID tipi: ${orderId} -> ${isUUID ? 'UUID' : 'Order Number'}`)
+
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          *,
+          product:products (
+            name,
+            sku,
+            barcode
+          )
+        ),
+        customer:customers (
+          *
+        )
+      `)
+      .eq(isUUID ? 'id' : 'order_number', orderId)
+      .single()
+
+    if (error) {
+      console.error('Sipariş bilgisi alınamadı:', error)
+      return null
+    }
+
+    return order
+  }
+
+  /**
+   * Fatura kaydını veritabanına kaydet
+   */
+  private async saveInvoiceRecord(orderId: string, result: BizimHesapInvoiceResult) {
+    try {
+      const supabase = await createClient()
+
+      const { error } = await supabase
+        .from('invoices')
+        .insert({
+          order_id: orderId,
+          invoice_guid: result.guid,
+          invoice_url: result.invoiceUrl,
+          provider: 'bizimhesap',
+          status: 'created',
+          created_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('Fatura kaydı veritabanına kaydedilemedi:', error)
+      } else {
+        console.log('✅ Fatura kaydı veritabanına kaydedildi')
+      }
+
+      // Siparişin fatura durumunu güncelle
+      await supabase
+        .from('orders')
+        .update({ 
+          invoice_status: 'invoiced',
+          invoice_guid: result.guid,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+
+    } catch (error) {
+      console.error('Fatura kaydı kaydetme hatası:', error)
+    }
+  }
+
+  /**
+   * Fatura bildirimi gönder
+   */
+  private async sendInvoiceNotification(order: ECommerceOrder, result: BizimHesapInvoiceResult) {
+    try {
+      // Email bildirim gönder (eğer email service varsa)
+      if (order.customer.email && result.invoiceUrl) {
+        console.log(`📧 Fatura bildirimi gönderiliyor: ${order.customer.email}`)
+        
+        // TODO: Email service entegrasyonu
+        // await emailService.sendInvoiceNotification({
+        //   to: order.customer.email,
+        //   orderNumber: order.orderNumber,
+        //   invoiceUrl: result.invoiceUrl
+        // })
+      }
+
+    } catch (error) {
+      console.error('Fatura bildirimi gönderme hatası:', error)
+    }
+  }
+
+  /**
+   * BizimHesap bağlantısını test et
+   */
+  async testConnection(): Promise<BizimHesapInvoiceResult> {
+    return this.bizimHesapService.testConnection()
+  }
+
+  /**
+   * Belirli tarih aralığındaki siparişler için fatura oluştur
+   */
+  async createInvoicesForDateRange(
+    startDate: Date,
+    endDate: Date,
+    options: InvoiceCreationOptions = {}
+  ): Promise<InvoiceCreationResult[]> {
+    try {
+      const supabase = await createClient()
+
+      // Belirtilen tarih aralığındaki faturalanmamış siparişleri al
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('id')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+        .is('invoice_guid', null)
+        .eq('status', 'completed')
+
+      if (error) {
+        throw new Error(`Siparişler alınamadı: ${error.message}`)
+      }
+
+      const orderIds = orders.map(order => order.id)
+      console.log(`📅 ${startDate.toDateString()} - ${endDate.toDateString()} arası ${orderIds.length} sipariş bulundu`)
+
+      return this.createInvoicesForOrders(orderIds, options)
+
+    } catch (error: any) {
+      console.error('Tarih aralığı fatura oluşturma hatası:', error)
+      return []
+    }
+  }
+}
+
+// Singleton instance
+let bizimHesapInvoiceService: BizimHesapInvoiceService | null = null
+
+export function getBizimHesapInvoiceService(): BizimHesapInvoiceService {
+  if (!bizimHesapInvoiceService) {
+    bizimHesapInvoiceService = new BizimHesapInvoiceService()
+  }
+  return bizimHesapInvoiceService
+} 
