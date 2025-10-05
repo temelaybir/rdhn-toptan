@@ -61,7 +61,7 @@ export interface SiteSettings {
 
 // Fallback site ayarları
 const defaultSettings: Partial<SiteSettings> = {
-  site_name: 'RDHN Commerce',
+  site_name: 'catkapinda',
   site_description: 'Ardahan Ticaret - Kaliteli ürünler, uygun fiyatlar',
   site_slogan: 'Kaçırılmayacak fırsatlar, en uygun fiyatlarla',
   site_logo_url: '/logo.svg',

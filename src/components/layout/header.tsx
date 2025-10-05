@@ -169,7 +169,7 @@ export function Header() {
   }, [totalWishlistItems])
 
   // Varsayılan değerler
-  const siteName = headerSettings?.site_name || 'RDHN Commerce'
+  const siteName = headerSettings?.site_name || 'catkapinda'
   const showLogo = headerSettings?.show_logo !== false
   const showSearch = headerSettings?.show_search !== false
   const searchPlaceholder = headerSettings?.search_placeholder || 'Ürün ara...'

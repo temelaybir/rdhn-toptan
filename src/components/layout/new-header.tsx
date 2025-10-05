@@ -82,7 +82,7 @@ export function NewHeader() {
   const [quickLinks, setQuickLinks] = useState<HeaderQuickLink[]>([])
   const [categories, setCategories] = useState<Category[]>(defaultCategories)
   const [siteInfo, setSiteInfo] = useState<SiteInfo>({
-    site_name: 'RDHN Commerce',
+    site_name: 'catkapinda',
     site_logo_url: '/logo.svg',
     site_logo_dark_url: null,
     logo_display_mode: 'logo_with_text',
@@ -272,7 +272,7 @@ export function NewHeader() {
                   <div className="flex flex-col h-full">
                     <div className="p-8 border-b">
                       <Link href="/" className="text-3xl font-bold text-primary">
-                        {headerSettings?.site_name || 'RDHN Commerce'}
+                        {headerSettings?.site_name || 'catkapinda'}
                       </Link>
                     </div>
                     

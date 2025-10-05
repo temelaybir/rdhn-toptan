@@ -167,7 +167,7 @@ export function Footer() {
   }, [footerSettings, linkGroups, isLoaded])
 
   // Varsayılan değerler
-  const companyName = footerSettings?.company_name || 'RDHN Commerce'
+  const companyName = footerSettings?.company_name || 'catkapinda'
   const companyDescription = footerSettings?.company_description || 'Türkiye\'nin en güvenilir online alışveriş platformu.'
   const showNewsletter = footerSettings?.show_newsletter !== false
   const newsletterTitle = footerSettings?.newsletter_title || 'Bültenimize Abone Olun'
@@ -176,7 +176,7 @@ export function Footer() {
   const contactEmail = footerSettings?.contact_email
   const contactAddress = footerSettings?.contact_address
   const showSocialMedia = footerSettings?.show_social_media !== false
-  const copyrightText = footerSettings?.copyright_text || '© 2025 RDHN Commerce. Tüm hakları saklıdır.'
+  const copyrightText = footerSettings?.copyright_text || '© 2025 catkapinda. Tüm hakları saklıdır.'
 
   // Sosyal medya linkleri
   const socialLinks = [
