@@ -65,9 +65,9 @@ function mapDatabaseStatusToFrontend(dbStatus: string, paymentStatus?: string): 
   
   switch (statusLower) {
     case 'pending':
+      // Eğer ödeme bekleniyorsa "awaiting_payment", yoksa "pending"
       return paymentStatus === 'awaiting_payment' ? 'awaiting_payment' : 'pending'
-    case 'paid':
-      return 'paid' // Ödeme Alındı
+    case 'confirmed':
     case 'success':
     case 'completed':
     case 'processing':
@@ -185,18 +185,15 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .range(page * limit, (page + 1) * limit - 1)
 
     // Apply search filter
     if (search) {
       query = query.or(`order_number.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
     }
 
-    // Apply status filter (database uses uppercase, frontend uses lowercase)
-    if (status !== 'all') {
-      const dbStatus = status.toUpperCase()
-      query = query.eq('status', dbStatus)
-    }
+    // Apply status filter - need to fetch all and filter after mapping
+    // because frontend status depends on both status and payment_status columns
+    const needsClientFiltering = status !== 'all'
 
     // Apply ordering
     const validColumns = ['created_at', 'total_amount', 'order_number', 'status']
@@ -208,7 +205,12 @@ export async function GET(request: NextRequest) {
       query = query.order('created_at', { ascending: false })
     }
 
-    const { data: orders, error, count } = await query
+    // Don't apply pagination yet if we need to filter by frontend status
+    if (!needsClientFiltering) {
+      query = query.range(page * limit, (page + 1) * limit - 1)
+    }
+
+    const { data: allFetchedOrders, error } = await query
 
     if (error) {
       console.error('Orders fetch error:', error)
@@ -219,7 +221,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data for frontend
-    const transformedOrders = orders?.map(order => {
+    const allTransformedOrders = allFetchedOrders?.map(order => {
       // Extract customer name safely
       const billingAddress = order.billing_address as any
       const shippingAddress = order.shipping_address as any
@@ -247,7 +249,7 @@ export async function GET(request: NextRequest) {
         customer: customerName,
         email: order.email,
         phone: order.phone || 'Belirtilmemiş',
-        date: new Date(order.created_at).toLocaleDateString('tr-TR'),
+        date: order.created_at, // Keep as ISO string for proper formatting
         total: order.total_amount,
         status: frontendStatus,
         payment_status: order.payment_status,
@@ -283,6 +285,16 @@ export async function GET(request: NextRequest) {
       }
     }) || []
 
+    // Apply frontend status filter if needed
+    let filteredOrders = allTransformedOrders
+    if (needsClientFiltering) {
+      filteredOrders = allTransformedOrders.filter(order => order.status === status)
+    }
+
+    // Apply pagination after filtering
+    const totalFilteredCount = filteredOrders.length
+    const paginatedOrders = filteredOrders.slice(page * limit, (page + 1) * limit)
+
     // Calculate statistics - yeni bildirim aşamaları
     const statsQuery = await supabase
       .from('orders')
@@ -292,7 +304,6 @@ export async function GET(request: NextRequest) {
     const stats = {
       total: allOrders.length,
       pending: allOrders.filter(o => mapDatabaseStatusToFrontend(o.status, o.payment_status) === 'pending').length,
-      paid: allOrders.filter(o => mapDatabaseStatusToFrontend(o.status, o.payment_status) === 'paid').length, // Ödeme Alındı
       confirmed: allOrders.filter(o => mapDatabaseStatusToFrontend(o.status, o.payment_status) === 'confirmed').length, // Başarılı Sipariş - Kargolanacak
       shipped: allOrders.filter(o => mapDatabaseStatusToFrontend(o.status, o.payment_status) === 'shipped').length, // Kargoda
       delivered: allOrders.filter(o => mapDatabaseStatusToFrontend(o.status, o.payment_status) === 'delivered').length, // Teslim edildi
@@ -306,13 +317,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        orders: transformedOrders,
+        orders: paginatedOrders,
         stats,
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit)
+          total: totalFilteredCount,
+          totalPages: Math.ceil(totalFilteredCount / limit)
         }
       }
     })

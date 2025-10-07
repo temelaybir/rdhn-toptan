@@ -106,7 +106,6 @@ interface Order {
 interface OrderStats {
   total: number
   pending: number
-  paid: number // Ödeme Alındı
   confirmed: number // Başarılı Sipariş - Kargolanacak
   shipped: number // Kargoda
   delivered: number // Teslim edildi
@@ -129,7 +128,6 @@ export default function OrdersPage() {
   const [orderStats, setOrderStats] = useState<OrderStats>({
     total: 0,
     pending: 0,
-    paid: 0, // Ödeme Alındı
     confirmed: 0, // Başarılı Sipariş - Kargolanacak
     shipped: 0, // Kargoda
     delivered: 0, // Teslim edildi
@@ -204,7 +202,6 @@ export default function OrdersPage() {
       setOrderStats({
         total: 0,
         pending: 0,
-        paid: 0,
         confirmed: 0,
         shipped: 0,
         delivered: 0,
@@ -221,6 +218,11 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders()
   }, [currentPage, searchTerm, selectedStatus])
+
+  // Reset to first page when status changes
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [selectedStatus])
 
   // Debounce search
   useEffect(() => {
@@ -487,11 +489,10 @@ export default function OrdersPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'paid': return 'Ödeme Alındı'
       case 'confirmed': return 'Başarılı Sipariş - Kargolanacak'
       case 'shipped': return 'Kargoda'
       case 'delivered': return 'Teslim Edildi'
-      case 'pending': return 'Beklemede'
+      case 'pending': return 'İşleme Alındı'
       case 'cancelled': return 'İptal Edildi'
       case 'awaiting_payment': return 'Ödeme Bekliyor'
       default: return 'Bilinmiyor'
@@ -500,13 +501,6 @@ export default function OrdersPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'paid':
-        return (
-          <Badge className="bg-emerald-100 text-emerald-800">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Ödeme Alındı
-          </Badge>
-        )
       case 'confirmed':
         return (
           <Badge className="bg-blue-100 text-blue-800">
@@ -532,7 +526,7 @@ export default function OrdersPage() {
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
             <Clock className="mr-1 h-3 w-3" />
-            Beklemede
+            İşleme Alındı
           </Badge>
         )
       case 'awaiting_payment':
@@ -554,13 +548,8 @@ export default function OrdersPage() {
     }
   }
 
+  // Client-side filtering için gelişmiş filtreler (API'nin üzerine ekstra filtreler)
   const filteredOrders = orders.filter(order => {
-    // Arama
-    const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase())
-    
     // Tutar filtresi
     const matchesAmount = 
       (!filters.minAmount || order.total >= parseFloat(filters.minAmount)) &&
@@ -577,7 +566,8 @@ export default function OrdersPage() {
       filters.paymentMethod === 'all' || 
       order.payment.toLowerCase().includes(filters.paymentMethod.toLowerCase())
     
-    return matchesSearch && matchesAmount && matchesDate && matchesPayment
+    // API zaten arama ve status'e göre filtreliyor, burası sadece gelişmiş filtreler için
+    return matchesAmount && matchesDate && matchesPayment
   })
 
   if (error) {
@@ -645,7 +635,7 @@ export default function OrdersPage() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-yellow-600">Beklemede</CardTitle>
+            <CardTitle className="text-sm font-medium text-yellow-600">İşleme Alındı</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orderStats.pending}</div>
@@ -701,7 +691,7 @@ export default function OrdersPage() {
                 Ödeme Bekliyor
               </TabsTrigger>
               <TabsTrigger value="pending" onClick={() => setSelectedStatus('pending')}>
-                Beklemede
+                İşleme Alındı
               </TabsTrigger>
               <TabsTrigger value="processing" onClick={() => setSelectedStatus('processing')}>
                 Hazırlanıyor
@@ -753,7 +743,7 @@ export default function OrdersPage() {
                     <TableRow>
                       <TableHead>Sipariş No</TableHead>
                       <TableHead>Müşteri</TableHead>
-                      <TableHead>Tarih</TableHead>
+                      <TableHead>Tarih & Saat</TableHead>
                       <TableHead>Toplam</TableHead>
                       <TableHead>Ödeme</TableHead>
                       <TableHead>Durum</TableHead>
@@ -808,7 +798,7 @@ export default function OrdersPage() {
                                     Ödemeyi Onayla (Havale)
                                   </DropdownMenuItem>
                                 )}
-                                {order.status === 'paid' && (
+                                {order.status === 'confirmed' && (
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedOrder(order)
                                     setTrackingNumber('')
@@ -857,7 +847,7 @@ export default function OrdersPage() {
               {/* Sayfalama */}
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  {filteredOrders.length} siparişten {filteredOrders.length} tanesi gösteriliyor
+                  Sayfa {currentPage + 1} / {totalPages || 1} (Toplam {filteredOrders.length} sipariş gösteriliyor)
                 </p>
                 <div className="flex gap-2">
                   <Button 
@@ -1117,7 +1107,7 @@ export default function OrdersPage() {
                   <SelectItem value="pending">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      Beklemede
+                      İşleme Alındı
                     </div>
                   </SelectItem>
                   <SelectItem value="confirmed">
