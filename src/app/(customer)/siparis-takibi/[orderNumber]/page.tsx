@@ -59,6 +59,7 @@ interface Order {
 }
 
 const orderStatuses = [
+  { key: 'awaiting_payment', label: 'Ödeme Bekleniyor', icon: Clock, description: 'Havale/EFT ödemesi bekleniyor' },
   { key: 'pending', label: 'Sipariş Alındı', icon: ShoppingBag, description: 'Siparişiniz onaylandı' },
   { key: 'processing', label: 'Hazırlanıyor', icon: ChefHat, description: 'Siparişiniz hazırlanıyor' },
   { key: 'shipped', label: 'Yolda', icon: Bike, description: 'Kargo yolda' },
@@ -70,6 +71,7 @@ const DEMO_MODE = false
 
 // Tahmini teslimat süreleri (saat cinsinden)
 const estimatedDeliveryHours = {
+  awaiting_payment: 24,  // 24 saat (ödeme bekleniyor)
   pending: 96,      // 4 gün (sipariş alındı)
   processing: 72,   // 3 gün (hazırlanıyor)
   shipped: 48,      // 2 gün (kargoya verildi)
@@ -188,11 +190,14 @@ export default function OrderTrackingPage() {
 
   // Order status mapping function
   const mapOrderStatus = (status: string, paymentStatus: string): string => {
-    if (paymentStatus === 'awaiting_payment') return 'pending'
+    // Banka havalesi siparişleri için özel durum
+    if (paymentStatus === 'awaiting_payment') return 'awaiting_payment'
+    
     if (paymentStatus === 'paid' && status === 'processing') return 'processing'
     if (status === 'shipped') return 'shipped'
     if (status === 'delivered') return 'delivered'
     if (status === 'cancelled') return 'cancelled'
+    if (status === 'confirmed') return 'pending'
     return 'pending'
   }
 

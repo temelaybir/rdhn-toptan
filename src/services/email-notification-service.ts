@@ -8,6 +8,7 @@ interface OrderEmailData {
   customerPhone: string
   totalAmount: number
   currency: string
+  paymentMethod?: string
   orderItems: Array<{
     name: string
     quantity: number
@@ -315,6 +316,47 @@ export async function sendOrderConfirmationToCustomer(orderData: OrderEmailData)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const magicLinkResult = await generateMagicLoginLink(orderData.customerEmail, baseUrl)
 
+    // Banka havalesi bilgilerini çek (eğer ödeme yöntemi banka havalesi ise)
+    let bankTransferSection = ''
+    if (orderData.paymentMethod === 'bank_transfer') {
+      try {
+        const supabase = await createSupabaseServerClient()
+        const { data: bankSettings } = await supabase
+          .from('bank_transfer_settings')
+          .select('*')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (bankSettings) {
+          bankTransferSection = `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💳 BANKA HAVALESİ BİLGİLERİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${bankSettings.customer_message || ''}
+
+🏦 Banka Adı: ${bankSettings.bank_name}
+👤 Hesap Sahibi: ${bankSettings.account_holder}
+${bankSettings.branch_name ? `🏢 Şube: ${bankSettings.branch_name}\n` : ''}💳 Hesap No: ${bankSettings.account_number}
+
+📋 IBAN: ${bankSettings.iban}
+
+⚠️ ÖNEMLİ: ${bankSettings.payment_note || 'Ödeme açıklamasına sipariş numaranızı yazmayı unutmayın!'}
+
+⏰ Ödeme Süresi: ${bankSettings.payment_deadline_hours} saat içinde
+
+💰 Ödenecek Tutar: ${orderData.totalAmount.toFixed(2)} ${orderData.currency}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`
+        }
+      } catch (error) {
+        console.error('Banka bilgileri alınamadı:', error)
+      }
+    }
+
     const subject = `Sipariş Onayı - ${orderData.orderNumber}`
     
     const body = `Merhaba ${orderData.customerName},
@@ -332,7 +374,7 @@ ${orderData.orderItems.map(item => `• ${item.quantity}x ${item.name} - ${item.
 ${orderData.shippingAddress.fullName}
 ${orderData.shippingAddress.address}
 ${orderData.shippingAddress.district} / ${orderData.shippingAddress.city}
-
+${bankTransferSection}
 🔍 Sipariş Takibi:
 Siparişinizin durumunu takip etmek için: https://ardahanticaret.com/siparis-takibi/${orderData.orderNumber}
 

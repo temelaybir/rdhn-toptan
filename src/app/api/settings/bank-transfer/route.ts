@@ -8,11 +8,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient()
 
-    // Banka havalesi ayarlarını getir
+    // Banka havalesi ayarlarını getir (ilk kaydı al, is_active kontrolü yapma)
     const { data: bankSettings, error: bankError } = await supabase
       .from('bank_transfer_settings')
       .select('*')
-      .eq('is_active', true)
+      .order('created_at', { ascending: true })
+      .limit(1)
       .single()
 
     if (bankError && bankError.code !== 'PGRST116') {
@@ -65,18 +66,40 @@ export async function POST(request: NextRequest) {
 
     // TODO: Admin authentication kontrolü eklenebilir
     
-    const { error } = await supabase
+    // Mevcut kaydı kontrol et
+    const { data: existingSettings } = await supabase
       .from('bank_transfer_settings')
-      .upsert([{
-        ...body,
-        updated_at: new Date().toISOString()
-      }])
+      .select('id')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
 
-    if (error) {
-      console.error('Error updating bank transfer settings:', error)
+    let result
+    if (existingSettings?.id) {
+      // Güncelleme
+      result = await supabase
+        .from('bank_transfer_settings')
+        .update({
+          ...body,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingSettings.id)
+    } else {
+      // Yeni kayıt
+      result = await supabase
+        .from('bank_transfer_settings')
+        .insert([{
+          ...body,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+    }
+
+    if (result.error) {
+      console.error('Error updating bank transfer settings:', result.error)
       return NextResponse.json({
         success: false,
-        error: 'Ayarlar güncellenirken hata oluştu'
+        error: 'Ayarlar güncellenirken hata oluştu: ' + result.error.message
       }, { status: 500 })
     }
 
@@ -89,7 +112,7 @@ export async function POST(request: NextRequest) {
     console.error('Unexpected error in bank transfer settings update:', error)
     return NextResponse.json({
       success: false,
-      error: 'Sunucu hatası oluştu'
+      error: 'Sunucu hatası oluştu: ' + error.message
     }, { status: 500 })
   }
 } 

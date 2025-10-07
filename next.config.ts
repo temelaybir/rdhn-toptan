@@ -133,18 +133,6 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'fakestoreapi.com',
       },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'plus.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'source.unsplash.com',
-      },
       // E-commerce specific image CDNs
       {
         protocol: 'https',

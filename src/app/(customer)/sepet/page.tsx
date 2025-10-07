@@ -22,7 +22,8 @@ import {
   Truck,
   ShieldCheck,
   ArrowLeft,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -43,6 +44,9 @@ export default function CartPage() {
   
   const [promoCode, setPromoCode] = useState('')
   const [isPromoApplied, setIsPromoApplied] = useState(false)
+  const [promoDiscount, setPromoDiscount] = useState(0)
+  const [promoCodeId, setPromoCodeId] = useState<number | null>(null)
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false)
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -63,16 +67,54 @@ export default function CartPage() {
     toast.success('Sepet temizlendi')
   }
 
-  const handleApplyPromo = () => {
-    if (promoCode.toLowerCase() === 'yeni10') {
-      setIsPromoApplied(true)
-      toast.success('Promosyon kodu uygulandı! %10 indirim')
-    } else if (promoCode.toLowerCase() === 'hosgeldin') {
-      setIsPromoApplied(true)
-      toast.success('Hoş geldin kodu uygulandı! %5 indirim')
-    } else {
-      toast.error('Geçersiz promosyon kodu')
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
+      toast.error('Lütfen bir promosyon kodu girin')
+      return
     }
+
+    setIsValidatingPromo(true)
+    
+    try {
+      const { validatePromoCode } = await import('@/app/actions/admin/promo-code-actions')
+      const result = await validatePromoCode(promoCode, cart.subtotal)
+
+      if (result.success && result.data) {
+        if (result.data.valid && result.data.discountAmount) {
+          setIsPromoApplied(true)
+          setPromoDiscount(result.data.discountAmount)
+          
+          // Promosyon kodu ID'sini almak için kod ile sorgula
+          const { getPromoCodes } = await import('@/app/actions/admin/promo-code-actions')
+          const codesResult = await getPromoCodes({ search: promoCode })
+          if (codesResult.success && codesResult.data?.promoCodes.length > 0) {
+            setPromoCodeId(codesResult.data.promoCodes[0].id)
+          }
+          
+          const discountText = result.data.discountType === 'percentage' 
+            ? `%${result.data.discountValue}` 
+            : `${result.data.discountValue} ₺`
+          toast.success(`Promosyon kodu uygulandı! ${discountText} indirim`)
+        } else {
+          toast.error(result.data.errorMessage || 'Geçersiz promosyon kodu')
+        }
+      } else {
+        toast.error(result.error || 'Promosyon kodu doğrulanamadı')
+      }
+    } catch (error) {
+      console.error('Promosyon kodu hatası:', error)
+      toast.error('Bir hata oluştu')
+    } finally {
+      setIsValidatingPromo(false)
+    }
+  }
+  
+  const handleRemovePromo = () => {
+    setIsPromoApplied(false)
+    setPromoDiscount(0)
+    setPromoCode('')
+    setPromoCodeId(null)
+    toast.info('Promosyon kodu kaldırıldı')
   }
 
   const handleCheckout = () => {
@@ -255,16 +297,22 @@ export default function CartPage() {
                     />
                     <Button 
                       variant="outline" 
-                      onClick={handleApplyPromo}
-                      disabled={isPromoApplied || !promoCode}
+                      onClick={isPromoApplied ? handleRemovePromo : handleApplyPromo}
+                      disabled={isValidatingPromo || (!isPromoApplied && !promoCode)}
                     >
-                      <Tag className="h-4 w-4" />
+                      {isValidatingPromo ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isPromoApplied ? (
+                        <Trash2 className="h-4 w-4" />
+                      ) : (
+                        <Tag className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {isPromoApplied && (
                     <div className="flex items-center gap-2 text-green-600 text-sm">
                       <CheckCircle className="h-4 w-4" />
-                      Promosyon kodu uygulandı
+                      Promosyon kodu uygulandı (-{formatPrice(promoDiscount)})
                     </div>
                   )}
                 </div>
@@ -322,10 +370,10 @@ export default function CartPage() {
                           </span>
                         </div>
                         
-                        {isPromoApplied && (
-                          <div className="flex justify-between text-green-600 text-sm">
+                        {isPromoApplied && promoDiscount > 0 && (
+                          <div className="flex justify-between text-green-600 text-sm font-medium">
                             <span>Promosyon İndirimi</span>
-                            <span>-{formatPrice(finalTotal * 0.1)}</span>
+                            <span>-{formatPrice(promoDiscount)}</span>
                           </div>
                         )}
                         
@@ -336,7 +384,7 @@ export default function CartPage() {
                           <span>Toplam</span>
                           <div className="text-right">
                             <div className="text-lg font-bold">
-                              {formatPrice(isPromoApplied ? finalTotal * 0.9 : finalTotal)}
+                              {formatPrice(Math.max(0, finalTotal - promoDiscount))}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               KDV ve kargo dahil

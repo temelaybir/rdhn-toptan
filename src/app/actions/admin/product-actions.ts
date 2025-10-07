@@ -231,7 +231,8 @@ export async function getProducts(filters: ProductFilters = {}): Promise<ActionR
 
     // Filtreleme
     if (filters.search) {
-      query = query.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`)
+      // Ürün adı, SKU, barkod ve açıklamada arama yap
+      query = query.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
     }
     if (filters.categoryId) {
       query = query.eq('category_id', filters.categoryId)
@@ -245,13 +246,30 @@ export async function getProducts(filters: ProductFilters = {}): Promise<ActionR
       }
     }
 
-    // Sayfalama - Admin panel için kaldırıldı, tüm ürünleri göster
-    // Admin panelde tüm ürünleri görmek istiyoruz
-    // const page = filters.page || 1
-    // const pageSize = filters.pageSize || 20
-    // const from = (page - 1) * pageSize
-    // const to = from + pageSize - 1
-    // query = query.range(from, to)
+    // Sıralama - camelCase'i snake_case'e çevir
+    if (filters.sortBy) {
+      // Frontend'den gelen camelCase alanları veritabanı snake_case'e çevir
+      const sortByMapping: Record<string, string> = {
+        'name': 'name',
+        'price': 'price',
+        'stockQuantity': 'stock_quantity',
+        'createdAt': 'created_at',
+        'updatedAt': 'updated_at'
+      }
+      const sortColumn = sortByMapping[filters.sortBy] || filters.sortBy
+      const ascending = filters.sortOrder === 'asc'
+      query = query.order(sortColumn, { ascending })
+    } else {
+      // Varsayılan sıralama: En yeni en üstte
+      query = query.order('created_at', { ascending: false })
+    }
+
+    // Sayfalama
+    const page = filters.page || 1
+    const pageSize = filters.pageSize || 100
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+    query = query.range(from, to)
 
     const { data, error, count } = await query
 
@@ -259,9 +277,45 @@ export async function getProducts(filters: ProductFilters = {}): Promise<ActionR
 
     const products = transformProducts(data || [])
     
+    // İstatistikleri hesapla (pagination olmadan, sadece filtrelerle)
+    let statsQuery = supabase
+      .from('products')
+      .select('is_active, stock_quantity, price', { count: 'exact' })
+    
+    // Aynı filtreleri uygula (pagination hariç)
+    if (filters.search) {
+      statsQuery = statsQuery.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+    }
+    if (filters.categoryId) {
+      statsQuery = statsQuery.eq('category_id', filters.categoryId)
+    }
+    if (filters.status) {
+      switch (filters.status) {
+        case 'active': statsQuery = statsQuery.eq('is_active', true); break
+        case 'inactive': statsQuery = statsQuery.eq('is_active', false); break
+        case 'outofstock': statsQuery = statsQuery.eq('stock_quantity', 0); break
+        case 'lowstock': statsQuery = statsQuery.gt('stock_quantity', 0).lte('stock_quantity', 10); break
+      }
+    }
+    
+    const { data: statsData, count: statsCount } = await statsQuery
+    
+    // İstatistikleri hesapla
+    const stats = {
+      totalProducts: statsCount || 0,
+      activeProducts: statsData?.filter(p => p.is_active).length || 0,
+      outOfStock: statsData?.filter(p => p.stock_quantity === 0).length || 0,
+      lowStock: statsData?.filter(p => p.stock_quantity > 0 && p.stock_quantity <= 10).length || 0,
+      totalValue: statsData?.reduce((sum, p) => {
+        const price = Number(p.price) || 0
+        const stock = Number(p.stock_quantity) || 0
+        return sum + (price * stock)
+      }, 0) || 0
+    }
+    
     return { 
       success: true, 
-      data: { products, total: count || 0 }
+      data: { products, total: count || 0, stats }
     }
   } catch (error) {
     console.error('Ürünler getirilirken hata:', error)

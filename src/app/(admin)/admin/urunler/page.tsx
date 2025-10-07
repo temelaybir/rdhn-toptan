@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,8 +99,12 @@ export default function ProductsPage() {
     categoryId: undefined,
     status: 'all',
     sortBy: 'createdAt',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    page: 1,
+    pageSize: 100
   })
+  
+  const [totalCount, setTotalCount] = useState(0)
 
   // İstatistikler
   const [stats, setStats] = useState({
@@ -120,6 +124,18 @@ export default function ProductsPage() {
       
       if (productsResult.success && productsResult.data) {
         setProducts(productsResult.data.products)
+        setTotalCount(productsResult.data.total)
+        
+        // Backend'den gelen istatistikleri kullan
+        if (productsResult.data.stats) {
+          setStats({
+            totalProducts: productsResult.data.stats.totalProducts,
+            activeProducts: productsResult.data.stats.activeProducts,
+            outOfStock: productsResult.data.stats.outOfStock,
+            lowStock: productsResult.data.stats.lowStock,
+            totalValue: productsResult.data.stats.totalValue
+          })
+        }
       } else {
         toast.error(productsResult.error || 'Ürünler yüklenemedi')
       }
@@ -138,35 +154,31 @@ export default function ProductsPage() {
     }
   }, [filters])
 
+  // Filtreler değiştiğinde verileri yeniden yükle
   useEffect(() => {
     loadData()
   }, [loadData])
-
+  
+  // Filtre değişikliklerinde (page hariç) sayfayı 1'e resetle
+  const prevFiltersRef = useRef({ search: filters.search, categoryId: filters.categoryId, status: filters.status, sortBy: filters.sortBy, sortOrder: filters.sortOrder })
+  
   useEffect(() => {
-    const calculateStats = (prods: Product[]) => {
-      const safeNumber = (value: unknown): number => {
-        const num = Number(value)
-        return isNaN(num) ? 0 : num
-      }
-
-      const statsData = {
-        totalProducts: prods.length,
-        activeProducts: prods.filter(p => p.isActive).length,
-        outOfStock: prods.filter(p => safeNumber(p.stockQuantity) === 0).length,
-        lowStock: prods.filter(p => {
-          const stock = safeNumber(p.stockQuantity)
-          return stock > 0 && stock <= 10
-        }).length,
-        totalValue: prods.reduce((sum, p) => {
-          const price = safeNumber(p.price)
-          const stock = safeNumber(p.stockQuantity)
-          return sum + (price * stock)
-        }, 0)
-      }
-      setStats(statsData)
+    const prev = prevFiltersRef.current
+    const hasFilterChanged = 
+      prev.search !== filters.search ||
+      prev.categoryId !== filters.categoryId ||
+      prev.status !== filters.status ||
+      prev.sortBy !== filters.sortBy ||
+      prev.sortOrder !== filters.sortOrder
+    
+    if (hasFilterChanged && filters.page !== 1) {
+      setFilters(prev => ({ ...prev, page: 1 }))
     }
-    calculateStats(products)
-  }, [products])
+    
+    prevFiltersRef.current = { search: filters.search, categoryId: filters.categoryId, status: filters.status, sortBy: filters.sortBy, sortOrder: filters.sortOrder }
+  }, [filters.search, filters.categoryId, filters.status, filters.sortBy, filters.sortOrder, filters.page])
+
+  // Stats artık backend'den geliyor (loadData içinde set ediliyor)
 
   // Ürün işlemleri
   const handleCreateProduct = () => {
@@ -203,10 +215,10 @@ export default function ProductsPage() {
 
   // Toplu işlemler
   const toggleSelectAll = () => {
-    if (selectedProducts.size === filteredProducts.length) {
+    if (selectedProducts.size === displayedProducts.length) {
       setSelectedProducts(new Set())
     } else {
-      setSelectedProducts(new Set(filteredProducts.map(p => p.id)))
+      setSelectedProducts(new Set(displayedProducts.map(p => p.id)))
     }
   }
 
@@ -254,65 +266,48 @@ export default function ProductsPage() {
       : <Badge variant="secondary">Pasif</Badge>
   }
 
-  const filteredProducts = products.filter(product => {
-    const search = filters.search?.toLowerCase() || ''
-    const matchesSearch = !search || product.name.toLowerCase().includes(search)
-    const matchesCategory = !filters.categoryId || product.categoryId === filters.categoryId
-    const matchesStatus = !filters.status || filters.status === 'all' ||
-      (filters.status === 'active' && product.isActive) ||
-      (filters.status === 'inactive' && !product.isActive) ||
-      (filters.status === 'outofstock' && product.stockQuantity === 0) ||
-      (filters.status === 'lowstock' && product.stockQuantity > 0 && product.stockQuantity <= 10)
-    return matchesSearch && matchesCategory && matchesStatus
-  }).sort((a, b) => {
-    const { sortBy, sortOrder } = filters
-    let comparison = 0
-    
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name)
-        break
-      case 'price':
-        comparison = a.price - b.price
-        break
-      case 'stockQuantity':
-        comparison = a.stockQuantity - b.stockQuantity
-        break
-      case 'createdAt':
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        break
-      default:
-        comparison = 0
-    }
-    
-    return sortOrder === 'desc' ? -comparison : comparison
-  })
+  // Backend'den zaten filtrelenmiş ve sıralanmış veri geldiği için
+  // frontend'de tekrar filtrelemeye ve sıralamaya gerek yok
+  const displayedProducts = products
+  
+  // Pagination
+  const totalPages = Math.ceil(totalCount / (filters.pageSize || 100))
+  const currentPage = filters.page || 1
+  
+  const handlePageChange = (newPage: number) => {
+    setFilters(prev => ({ ...prev, page: newPage }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div className="space-y-6">
       {/* Başlık */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Ürünler</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Ürünler</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Ürün kataloğunuzu yönetin ve düzenleyin
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
-            <Download className="mr-2 h-4 w-4" /> Dışa Aktar
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setIsExportDialogOpen(true)} size="sm" className="sm:size-default">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Dışa Aktar</span>
           </Button>
-          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> İçe Aktar
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} size="sm" className="sm:size-default">
+            <Upload className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">İçe Aktar</span>
           </Button>
-          <Button onClick={handleCreateProduct}>
-            <Plus className="mr-2 h-4 w-4" /> Yeni Ürün
+          <Button onClick={handleCreateProduct} size="sm" className="sm:size-default">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Yeni Ürün</span>
+            <span className="sm:hidden">Yeni</span>
           </Button>
         </div>
       </div>
 
       {/* İstatistik Kartları */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -377,8 +372,8 @@ export default function ProductsPage() {
         <CardContent>
           {/* Filtre Toolbar */}
           <div className="flex flex-col gap-4 mb-6">
-            <div className="flex gap-4">
-              <div className="relative flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="relative lg:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Ürün ara..."
@@ -391,7 +386,7 @@ export default function ProductsPage() {
                 value={filters.categoryId ? filters.categoryId.toString() : 'all'}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, categoryId: value === 'all' ? undefined : Number(value) }))}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -408,7 +403,7 @@ export default function ProductsPage() {
                 value={filters.status}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, status: value as ProductFilters['status'] }))}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Durum" />
                 </SelectTrigger>
                 <SelectContent>
@@ -419,7 +414,9 @@ export default function ProductsPage() {
                   <SelectItem value="lowstock">Düşük Stok</SelectItem>
                 </SelectContent>
               </Select>
-
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
                 value={`${filters.sortBy}-${filters.sortOrder}`}
                 onValueChange={(value) => {
@@ -427,7 +424,7 @@ export default function ProductsPage() {
                   setFilters(prev => ({ ...prev, sortBy: sortBy as ProductFilters['sortBy'], sortOrder: sortOrder as ProductFilters['sortOrder'] }))
                 }}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sıralama" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,7 +439,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
             </div>            {selectedProducts.size > 0 && (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   {selectedProducts.size} ürün seçili
                 </span>
@@ -452,7 +449,8 @@ export default function ProductsPage() {
                   onClick={() => setIsBulkEditDialogOpen(true)}
                 >
                   <Edit className="mr-2 h-4 w-4" />
-                  Toplu Düzenle
+                  <span className="hidden sm:inline">Toplu Düzenle</span>
+                  <span className="sm:hidden">Düzenle</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -461,13 +459,14 @@ export default function ProductsPage() {
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Toplu Sil
+                  <span className="hidden sm:inline">Toplu Sil</span>
+                  <span className="sm:hidden">Sil</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsBulkImageFixDialogOpen(true)}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-blue-600 hover:text-blue-700 hidden md:flex"
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Görselleri Düzelt
@@ -478,28 +477,29 @@ export default function ProductsPage() {
                   onClick={() => setSelectedProducts(new Set())}
                 >
                   <X className="mr-2 h-4 w-4" />
-                  Seçimi Temizle
+                  <span className="hidden sm:inline">Seçimi Temizle</span>
+                  <span className="sm:hidden">Temizle</span>
                 </Button>
               </div>
             )}
           </div>          {/* Ürün Tablosu */}
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
+                  <TableHead className="w-[50px] sticky left-0 bg-background z-10">
                     <Checkbox
-                      checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                      checked={selectedProducts.size === displayedProducts.length && displayedProducts.length > 0}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="w-[80px]">Görsel</TableHead>
-                  <TableHead>Ürün</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead className="text-right">Fiyat</TableHead>
-                  <TableHead className="text-center">Stok</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead className="text-right">İşlemler</TableHead>
+                  <TableHead className="w-[80px] hidden sm:table-cell">Görsel</TableHead>
+                  <TableHead className="min-w-[200px]">Ürün</TableHead>
+                  <TableHead className="hidden md:table-cell">Kategori</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Fiyat</TableHead>
+                  <TableHead className="text-center whitespace-nowrap hidden lg:table-cell">Stok</TableHead>
+                  <TableHead className="hidden md:table-cell">Durum</TableHead>
+                  <TableHead className="text-right sticky right-0 bg-background z-10 w-[100px]">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -509,7 +509,7 @@ export default function ProductsPage() {
                       Yükleniyor...
                     </TableCell>
                   </TableRow>
-                ) : filteredProducts.length === 0 ? (
+                ) : displayedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -525,16 +525,16 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                   </TableRow>
-                ) : filteredProducts.map((product) => (
+                ) : displayedProducts.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10">
                       <Checkbox
                         checked={selectedProducts.has(product.id)}
                         onCheckedChange={() => toggleProductSelection(product.id)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <div className="relative w-20 h-20">
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="relative w-16 h-16">
                         <SafeImage
                           src={product.images?.[0]?.url || '/placeholder-product.svg'}
                           alt={product.name}
@@ -544,8 +544,8 @@ export default function ProductsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{product.name}</p>
+                      <div className="max-w-[250px]">
+                        <p className="font-medium truncate">{product.name}</p>
                         {product.shortDescription && (
                           <p className="text-sm text-muted-foreground line-clamp-1">
                             {product.shortDescription}
@@ -553,14 +553,14 @@ export default function ProductsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {product.category ? (
-                        <Badge variant="outline">{product.category.name}</Badge>
+                        <Badge variant="outline" className="whitespace-nowrap">{product.category.name}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <div>
                         <p className="font-medium">{formatPrice(product.price)}</p>
                         {product.comparePrice && (
@@ -570,7 +570,7 @@ export default function ProductsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center hidden lg:table-cell">
                       <div className="flex flex-col items-center">
                         <span className={`font-medium ${
                           product.stockQuantity === 0 ? 'text-red-600' : 
@@ -585,8 +585,8 @@ export default function ProductsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(product.isActive)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="hidden md:table-cell">{getStatusBadge(product.isActive)}</TableCell>
+                    <TableCell className="text-right sticky right-0 bg-background z-10">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -629,14 +629,95 @@ export default function ProductsPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>          {/* Ürün Sayısı */}
-          <div className="flex items-center justify-between mt-4">
+          </div>          
+          {/* Pagination */}
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
             <p className="text-sm text-muted-foreground">
-              Toplam {products.length} ürün{filteredProducts.length !== products.length ? `, ${filteredProducts.length} tanesi filtrelendi` : ' gösteriliyor'}
+              Toplam {totalCount} üründen {((currentPage - 1) * (filters.pageSize || 100)) + 1}-{Math.min(currentPage * (filters.pageSize || 100), totalCount)} arası gösteriliyor
+              {(filters.search || filters.categoryId || filters.status !== 'all') && ' (filtrelenmiş)'}
             </p>
-            <div className="text-sm text-muted-foreground">
-              Tüm ürünler gösteriliyor
-            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Önceki
+                </Button>
+                
+                <div className="flex gap-1">
+                  {/* İlk sayfa */}
+                  {currentPage > 3 && (
+                    <>
+                      <Button
+                        variant={currentPage === 1 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(1)}
+                      >
+                        1
+                      </Button>
+                      {currentPage > 4 && <span className="px-2 py-1">...</span>}
+                    </>
+                  )}
+                  
+                  {/* Önceki sayfalar */}
+                  {currentPage > 1 && currentPage - 1 >= 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                    >
+                      {currentPage - 1}
+                    </Button>
+                  )}
+                  
+                  {/* Mevcut sayfa */}
+                  <Button
+                    variant="default"
+                    size="sm"
+                  >
+                    {currentPage}
+                  </Button>
+                  
+                  {/* Sonraki sayfalar */}
+                  {currentPage < totalPages && currentPage + 1 <= totalPages && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                    >
+                      {currentPage + 1}
+                    </Button>
+                  )}
+                  
+                  {/* Son sayfa */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && <span className="px-2 py-1">...</span>}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(totalPages)}
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Sonraki
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

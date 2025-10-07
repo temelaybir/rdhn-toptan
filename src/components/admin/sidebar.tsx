@@ -25,7 +25,8 @@ import {
   ChevronRight,
   CreditCard,
   Banknote,
-  FileEdit
+  FileEdit,
+  Tag
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -56,6 +57,11 @@ const menuItems = [
     title: 'Siparişler',
     href: '/admin/siparisler',
     icon: ShoppingCart
+  },
+  {
+    title: 'Kampanyalar',
+    href: '/admin/kampanyalar',
+    icon: Tag
   },
   {
     title: 'Müşteriler',

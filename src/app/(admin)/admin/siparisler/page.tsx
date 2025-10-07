@@ -58,7 +58,8 @@ import {
   Navigation,
   Loader2,
   AlertCircle,
-  Receipt
+  Receipt,
+  CheckCircle2
 } from 'lucide-react'
 
 // Order interfaces
@@ -142,6 +143,16 @@ export default function OrdersPage() {
   const [totalPages, setTotalPages] = useState(0)
   // Invoice creation state
   const [invoiceLoading, setInvoiceLoading] = useState<string | null>(null)
+  
+  // Filtreleme state'leri
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
+  const [filters, setFilters] = useState({
+    minAmount: '',
+    maxAmount: '',
+    startDate: '',
+    endDate: '',
+    paymentMethod: 'all'
+  })
 
   // Fetch orders from API
   const fetchOrders = async () => {
@@ -349,6 +360,39 @@ export default function OrdersPage() {
     }
   }
 
+  const handleConfirmBankTransfer = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          orderId,
+          status: 'confirmed',
+          paymentStatus: 'paid'
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Ödeme onaylanırken hata oluştu')
+      }
+
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Ödeme onaylanamadı')
+      }
+
+      toast.success('Banka havalesi ödemesi onaylandı! Sipariş işleme alındı.')
+      fetchOrders()
+    } catch (err: any) {
+      console.error('Bank transfer confirmation error:', err)
+      toast.error(err.message || 'Ödeme onaylanırken hata oluştu')
+    }
+  }
+
   const handleUpdateStatus = async (orderId: string, status: string) => {
     try {
       const response = await fetch('/api/admin/orders', {
@@ -404,6 +448,41 @@ export default function OrdersPage() {
     } else {
       toast.error('Kargo takip numarası bulunamadı')
     }
+  }
+  
+  // Tarih formatlama (saat ile)
+  const formatDateTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date)
+    } catch {
+      return dateString
+    }
+  }
+  
+  // Filtreleri uygula
+  const applyFilters = () => {
+    setIsFilterDialogOpen(false)
+    fetchOrders()
+  }
+  
+  // Filtreleri temizle
+  const clearFilters = () => {
+    setFilters({
+      minAmount: '',
+      maxAmount: '',
+      startDate: '',
+      endDate: '',
+      paymentMethod: 'all'
+    })
+    setIsFilterDialogOpen(false)
+    fetchOrders()
   }
 
   const getStatusText = (status: string) => {
@@ -476,11 +555,29 @@ export default function OrdersPage() {
   }
 
   const filteredOrders = orders.filter(order => {
+    // Arama
     const matchesSearch = 
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.email.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
+    
+    // Tutar filtresi
+    const matchesAmount = 
+      (!filters.minAmount || order.total >= parseFloat(filters.minAmount)) &&
+      (!filters.maxAmount || order.total <= parseFloat(filters.maxAmount))
+    
+    // Tarih filtresi
+    const orderDate = new Date(order.date)
+    const matchesDate = 
+      (!filters.startDate || orderDate >= new Date(filters.startDate)) &&
+      (!filters.endDate || orderDate <= new Date(filters.endDate + 'T23:59:59'))
+    
+    // Ödeme yöntemi filtresi
+    const matchesPayment = 
+      filters.paymentMethod === 'all' || 
+      order.payment.toLowerCase().includes(filters.paymentMethod.toLowerCase())
+    
+    return matchesSearch && matchesAmount && matchesDate && matchesPayment
   })
 
   if (error) {
@@ -632,9 +729,12 @@ export default function OrdersPage() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setIsFilterDialogOpen(true)}>
               <Filter className="mr-2 h-4 w-4" />
               Filtrele
+              {(filters.minAmount || filters.maxAmount || filters.startDate || filters.endDate || filters.paymentMethod !== 'all') && (
+                <span className="ml-2 h-2 w-2 rounded-full bg-blue-600" />
+              )}
             </Button>
           </div>
 
@@ -677,7 +777,7 @@ export default function OrdersPage() {
                               <p className="text-sm text-muted-foreground">{order.email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{order.date}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDateTime(order.date)}</TableCell>
                           <TableCell>
                             {order.total.toLocaleString('tr-TR', { 
                               style: 'currency', 
@@ -699,6 +799,15 @@ export default function OrdersPage() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   Detayları Görüntüle
                                 </DropdownMenuItem>
+                                {order.status === 'awaiting_payment' && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleConfirmBankTransfer(order.id)}
+                                    className="text-green-600"
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Ödemeyi Onayla (Havale)
+                                  </DropdownMenuItem>
+                                )}
                                 {order.status === 'paid' && (
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedOrder(order)
@@ -774,6 +883,91 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
+      {/* Filtreleme Dialog */}
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gelişmiş Filtreleme</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Tutar Aralığı */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Sipariş Tutarı</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Input
+                    type="number"
+                    placeholder="Min (₺)"
+                    value={filters.minAmount}
+                    onChange={(e) => setFilters(prev => ({ ...prev, minAmount: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Input
+                    type="number"
+                    placeholder="Max (₺)"
+                    value={filters.maxAmount}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxAmount: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tarih Aralığı */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Tarih Aralığı</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ödeme Yöntemi */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Ödeme Yöntemi</label>
+              <Select 
+                value={filters.paymentMethod} 
+                onValueChange={(value) => setFilters(prev => ({ ...prev, paymentMethod: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ödeme yöntemi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="kredi kartı">Kredi Kartı</SelectItem>
+                  <SelectItem value="havale">Havale/EFT</SelectItem>
+                  <SelectItem value="kapıda ödeme">Kapıda Ödeme</SelectItem>
+                  <SelectItem value="online ödeme">Online Ödeme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Butonlar */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={clearFilters}>
+                Temizle
+              </Button>
+              <Button onClick={applyFilters}>
+                <Filter className="mr-2 h-4 w-4" />
+                Uygula
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Sipariş Detayları Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-none w-[70vw] h-[85vh] max-h-[85vh] overflow-y-auto p-6 rounded-lg border shadow-2xl min-w-[800px] min-h-[600px]">
@@ -789,7 +983,7 @@ export default function OrdersPage() {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <p><span className="font-medium">Sipariş No:</span> {selectedOrder.id}</p>
-                    <p><span className="font-medium">Tarih:</span> {selectedOrder.date}</p>
+                    <p><span className="font-medium">Tarih:</span> {formatDateTime(selectedOrder.date)}</p>
                     <p><span className="font-medium">Toplam:</span> {selectedOrder.total.toLocaleString('tr-TR', { 
                       style: 'currency', 
                       currency: selectedOrder.currency || 'TRY',

@@ -305,6 +305,7 @@ export async function POST(request: NextRequest) {
       customerPhone: phone,
       totalAmount: totalAmount,
       currency: currency,
+      paymentMethod: paymentMethod,
       orderItems: items?.map((item: any) => ({
         name: item.productName,
         quantity: item.quantity,

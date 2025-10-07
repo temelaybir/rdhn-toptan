@@ -289,6 +289,8 @@ export interface ProductFilters {
   tags?: string[]
   sortBy?: 'name' | 'price' | 'stock' | 'stockQuantity' | 'createdAt' | 'updatedAt'
   sortOrder?: 'asc' | 'desc'
+  page?: number
+  pageSize?: number
 }
 
 // Toplu İşlemler

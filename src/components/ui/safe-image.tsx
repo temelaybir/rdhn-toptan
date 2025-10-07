@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import imageLoader from '@/lib/image-loader'
@@ -32,11 +33,13 @@ export function SafeImage({
   quality = 85,
   ...props
 }: SafeImageProps) {
+  const [hasError, setHasError] = useState(false)
+  
   // Basit URL kontrolü
   const isValidSrc = src && typeof src === 'string' && src.trim() !== ''
 
-  // Geçersiz src için placeholder
-  if (!isValidSrc) {
+  // Placeholder göster: geçersiz src VEYA error durumunda
+  if (!isValidSrc || hasError) {
     if (fill) {
       return (
         <div className={cn('bg-gray-100 flex items-center justify-center', className)}>
@@ -72,6 +75,10 @@ export function SafeImage({
         placeholder={placeholder}
         blurDataURL={blurDataURL}
         quality={quality}
+        onError={() => {
+          console.warn('❌ Image load failed, showing placeholder:', src)
+          setHasError(true)
+        }}
         {...props}
       />
     )
@@ -91,6 +98,10 @@ export function SafeImage({
       placeholder={placeholder}
       blurDataURL={blurDataURL}
       quality={quality}
+      onError={() => {
+        console.warn('❌ Image load failed, showing placeholder:', src)
+        setHasError(true)
+      }}
       {...props}
     />
   )

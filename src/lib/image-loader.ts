@@ -35,7 +35,6 @@ export default function imageLoader({ src, width, quality }: {
     'ardahanticaret.com', 
     'plante.biz',
     'supabase.co',
-    'images.unsplash.com',
     'amazonaws.com'
   ]
   

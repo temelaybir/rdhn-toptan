@@ -342,7 +342,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { orderId, status, notes, trackingNumber, cargoCompany } = body
+    const { orderId, status, paymentStatus, notes, trackingNumber, cargoCompany } = body
 
     if (!orderId || !status) {
       return NextResponse.json({
@@ -360,6 +360,16 @@ export async function PATCH(request: NextRequest) {
     const updateData: any = {
       status: dbStatus,
       updated_at: new Date().toISOString()
+    }
+
+    // Ödeme durumu güncellemesi (Banka havalesi onayı için)
+    if (paymentStatus !== undefined) {
+      updateData.payment_status = paymentStatus
+      
+      // Eğer ödeme onaylandıysa (paid), status'u da confirmed yap
+      if (paymentStatus === 'paid' && dbStatus === 'PENDING') {
+        updateData.status = 'CONFIRMED'
+      }
     }
 
     if (notes !== undefined) {
