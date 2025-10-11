@@ -28,6 +28,32 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     phone: supabaseOrder.customer_phone || supabaseOrder.phone
   }
 
+  // Billing address'i string'e dönüştür
+  let billingAddressString = 'Adres bilgisi eksik'
+  
+  if (supabaseOrder.billing_address) {
+    if (typeof supabaseOrder.billing_address === 'string') {
+      billingAddressString = supabaseOrder.billing_address
+    } else if (typeof supabaseOrder.billing_address === 'object') {
+      // Object ise, adres parçalarını birleştir
+      const addr = supabaseOrder.billing_address
+      const parts = [
+        addr.addressLine1,
+        addr.addressLine2,
+        addr.district,
+        addr.city,
+        addr.postalCode
+      ].filter(Boolean)
+      billingAddressString = parts.join(', ') || 'Adres bilgisi eksik'
+    }
+  } else {
+    // Fallback: Diğer alanlardan oluştur
+    const fallbackAddr = `${supabaseOrder.address || ''} ${supabaseOrder.city || ''} ${supabaseOrder.postal_code || ''}`.trim()
+    if (fallbackAddr) {
+      billingAddressString = fallbackAddr
+    }
+  }
+
   const customer: OrderCustomer = {
     id: supabaseOrder.customer_id || supabaseOrder.id,
     name: (customerData.first_name && customerData.last_name) 
@@ -39,9 +65,7 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     phone: customerData.phone || directCustomer.phone || supabaseOrder.customer_phone,
     taxNumber: supabaseOrder.tax_number,
     taxOffice: supabaseOrder.tax_office,
-    billingAddress: supabaseOrder.billing_address || 
-      `${supabaseOrder.address || ''} ${supabaseOrder.city || ''} ${supabaseOrder.postal_code || ''}`.trim() ||
-      'Adres bilgisi eksik'
+    billingAddress: billingAddressString
   }
 
   console.log('👤 Customer processed:', {
