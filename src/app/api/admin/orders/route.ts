@@ -441,6 +441,28 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
+    // ✅ Banka havalesi ödemesi onaylandıysa - BizimHesap faturası oluştur
+    if (paymentStatus === 'paid' && order) {
+      try {
+        console.log('🧾 Banka havalesi onaylandı, fatura oluşturuluyor:', order.order_number)
+        
+        const { getBizimHesapInvoiceService, InvoiceType } = await import('@/services/invoice/bizimhesap-invoice-service')
+        const invoiceService = getBizimHesapInvoiceService()
+        
+        invoiceService.createInvoiceFromOrderId(order.id, {
+          invoiceType: InvoiceType.SALES,
+          createInvoiceRecord: true,
+          sendNotification: true
+        }).catch(error => {
+          console.error('❌ Banka havalesi faturası oluşturulamadı:', error)
+        })
+        
+        console.log('✅ Banka havalesi fatura işlemi başlatıldı')
+      } catch (invoiceError) {
+        console.error('❌ Fatura servisi yüklenemedi:', invoiceError)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Sipariş durumu güncellendi',

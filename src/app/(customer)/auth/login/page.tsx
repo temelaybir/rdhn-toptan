@@ -37,6 +37,8 @@ function LoginPageContent() {
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [isLoginLoading, setIsLoginLoading] = useState(false)
+  const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   
   // Register states
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
@@ -108,6 +110,48 @@ function LoginPageContent() {
       toast.error('Bir hata oluştu, lütfen tekrar deneyin')
     } finally {
       setIsLoginLoading(false)
+    }
+  }
+
+  // Magic link handler
+  const handleMagicLink = async () => {
+    if (!loginEmail.trim()) {
+      toast.error('Lütfen e-mail adresinizi girin')
+      return
+    }
+
+    if (!loginEmail.includes('@')) {
+      toast.error('Geçerli bir e-mail adresi girin')
+      return
+    }
+
+    setIsMagicLinkLoading(true)
+
+    try {
+      const response = await fetch('/api/customer/magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          email: loginEmail.trim().toLowerCase(),
+          redirectTo
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setMagicLinkSent(true)
+        toast.success('Giriş linki e-mail adresinize gönderildi!')
+      } else {
+        toast.error(result.error || 'Link gönderilemedi')
+      }
+    } catch (error) {
+      console.error('Magic link error:', error)
+      toast.error('Bir hata oluştu, lütfen tekrar deneyin')
+    } finally {
+      setIsMagicLinkLoading(false)
     }
   }
 
@@ -286,7 +330,72 @@ function LoginPageContent() {
                     </>
                   )}
                 </Button>
+                
+                <div className="flex justify-between items-center text-sm mt-2">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-blue-600 hover:underline"
+                    onClick={() => router.push('/auth/forgot-password')}
+                  >
+                    Şifremi Unuttum
+                  </Button>
+                </div>
               </form>
+              
+              {!magicLinkSent ? (
+                <div className="space-y-3 mt-6 pt-6 border-t">
+                  <div className="text-center text-sm text-gray-600">
+                    <p className="font-medium mb-2">Şifresiz Giriş</p>
+                    <p className="text-xs">E-mail adresinize giriş linki gönderelim</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isMagicLinkLoading}
+                    onClick={handleMagicLink}
+                    className="w-full"
+                  >
+                    {isMagicLinkLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Gönderiliyor...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        E-mail ile Giriş Linki Gönder
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-green-900 mb-1">
+                        ✅ Giriş Linki Gönderildi
+                      </p>
+                      <p className="text-green-700">
+                        <strong>{loginEmail}</strong> adresine giriş linki gönderdik.
+                        Lütfen e-postanızı kontrol edin ve linke tıklayarak giriş yapın.
+                      </p>
+                      <p className="text-xs text-green-600 mt-2">
+                        Link 30 dakika geçerlidir. E-posta gelmedi mi? Spam klasörünü kontrol edin.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMagicLinkSent(false)}
+                    className="w-full mt-3"
+                  >
+                    Yeni Link Gönder
+                  </Button>
+                </div>
+              )}
               
               <div className="text-center text-xs text-gray-500 mt-4">
                 Giriş yaptığınızda geçmiş siparişlerinizi görüntüleyebilir, 

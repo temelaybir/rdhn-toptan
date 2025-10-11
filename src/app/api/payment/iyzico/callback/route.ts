@@ -684,6 +684,65 @@ async function handleCallback(request: NextRequest) {
               
             console.log('[SUCCESS] Order updated successfully:', transaction.order_number)
             
+            // ✅ Kredi kartı ödemesi başarılı - Email bildirimleri gönder
+            try {
+              const { data: fullOrder } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('order_number', transaction.order_number)
+                .single()
+              
+              if (fullOrder) {
+                const { sendOrderNotification, sendOrderConfirmationToCustomer } = await import('@/services/email-notification-service')
+                const { getBizimHesapInvoiceService, InvoiceType } = await import('@/services/invoice/bizimhesap-invoice-service')
+                
+                const emailData = {
+                  orderNumber: fullOrder.order_number,
+                  customerEmail: fullOrder.email,
+                  customerName: fullOrder.billing_address?.fullName || fullOrder.shipping_address?.fullName || 'Müşteri',
+                  totalAmount: fullOrder.total_amount,
+                  items: [], // Order items'ı almak için join gerekir ama şimdilik boş
+                  shippingAddress: fullOrder.shipping_address,
+                  paymentMethod: fullOrder.payment_method || 'credit_card'
+                }
+                
+                // Admin'e bildirim gönder
+                sendOrderNotification(emailData).catch(error => {
+                  console.error('❌ Admin email gönderilemedi:', error)
+                })
+                
+                // Müşteriye onay emaili gönder
+                sendOrderConfirmationToCustomer(emailData).catch(error => {
+                  console.error('❌ Müşteri email gönderilemedi:', error)
+                })
+                
+                // ✅ Kredi kartı ödemesi başarılı - BizimHesap faturası oluştur
+                console.log('🧾 Kredi kartı ödemesi başarılı, fatura oluşturuluyor:', transaction.order_number)
+                const invoiceService = getBizimHesapInvoiceService()
+                invoiceService.createInvoiceFromOrderId(fullOrder.id, {
+                  invoiceType: InvoiceType.SALES,
+                  createInvoiceRecord: true,
+                  sendNotification: true
+                }).then(result => {
+                  if (result.success) {
+                    console.log('✅ Kredi kartı ödemesi faturası oluşturuldu:', {
+                      orderNumber: transaction.order_number,
+                      invoiceGuid: result.invoiceGuid,
+                      invoiceUrl: result.invoiceUrl
+                    })
+                  } else {
+                    console.error('❌ Kredi kartı faturası oluşturulamadı:', result.error)
+                  }
+                }).catch(error => {
+                  console.error('❌ BizimHesap fatura hatası:', error)
+                })
+                
+                console.log('✅ Email ve fatura işlemleri başlatıldı')
+              }
+            } catch (emailError) {
+              console.error('❌ Email/fatura işlemi hatası:', emailError)
+            }
+            
             return createHtmlRedirect(
               `/siparis-basarili?orderNumber=${transaction.order_number}`, 
               'Payment successful! Redirecting...',

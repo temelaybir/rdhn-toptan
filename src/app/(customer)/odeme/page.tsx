@@ -1168,6 +1168,57 @@ export default function CheckoutPage() {
         zipCode: formData.deliveryAddress.postalCode
       }
 
+      // ✅ ÖNCELİKLE SİPARİŞİ OLUŞTUR (3DS öncesi)
+      console.log('[ORDER_CREATE] Sipariş oluşturuluyor (3DS öncesi)...')
+      const orderDataForCreditCard = {
+        orderNumber,
+        email: formData.deliveryAddress.email,
+        phone: formData.deliveryAddress.phone,
+        customerType: formData.customerType,
+        identityNumber: formData.identityNumber,
+        companyName: formData.companyName,
+        taxNumber: formData.taxNumber,
+        taxOffice: formData.taxOffice,
+        totalAmount: total,
+        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+        taxAmount: items.reduce((sum, item) => {
+          const itemTotal = item.product.price * item.quantity
+          const taxAmount = itemTotal - (itemTotal / 1.2)
+          return sum + taxAmount
+        }, 0),
+        shippingAmount: 0,
+        discountAmount: 0,
+        currency: 'TRY',
+        billingAddress: formData.sameAsDelivery ? formData.deliveryAddress : formData.billingAddress,
+        shippingAddress: formData.deliveryAddress,
+        notes: `3D Secure ödeme - ${orderNumber}`,
+        paymentMethod: 'credit_card',
+        paymentStatus: 'pending', // 3DS tamamlandığında 'paid' olacak
+        items: items.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          sku: item.product.sku || '',
+          image: item.product.images?.[0] || ''
+        })),
+        userId: null
+      }
+
+      // Sipariş oluştur
+      const orderCreateResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderDataForCreditCard)
+      })
+
+      const orderCreateResult = await orderCreateResponse.json()
+      if (!orderCreateResult.success) {
+        throw new Error(orderCreateResult.error || 'Sipariş oluşturulamadı')
+      }
+
+      console.log('[ORDER_CREATE] ✅ Sipariş başarıyla oluşturuldu:', orderCreateResult.data)
+
       // Prepare payment request
       const paymentRequest = {
         orderNumber,
