@@ -53,6 +53,8 @@ function SearchPageContent() {
     }
 
     setLoading(true)
+    console.log('🔍 [ARAMA SAYFASI] Arama başlatılıyor:', searchTerm)
+    
     try {
       const supabase = createClient()
       
@@ -73,8 +75,16 @@ function SearchPageContent() {
         .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
         .limit(50)
 
+      console.log('📦 [ARAMA SAYFASI] Sonuçlar:', {
+        searchTerm,
+        hasError: !!error,
+        error: error,
+        resultCount: data?.length || 0,
+        sampleData: data?.[0]
+      })
+
       if (error) {
-        console.error('Arama hatası:', error)
+        console.error('❌ [ARAMA SAYFASI] Arama hatası:', error)
         return
       }
 
@@ -93,9 +103,10 @@ function SearchPageContent() {
         description: item.description || ''
       }))
 
+      console.log('✅ [ARAMA SAYFASI] Formatlanmış sonuçlar:', searchResults.length)
       setProducts(searchResults)
     } catch (error) {
-      console.error('Arama işlemi başarısız:', error)
+      console.error('❌ [ARAMA SAYFASI] Arama işlemi başarısız:', error)
     } finally {
       setLoading(false)
     }

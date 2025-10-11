@@ -1,17 +1,45 @@
--- Faturalar tablosunu oluştur
+-- Faturalar tablosunu oluştur veya güncelle
 
 CREATE TABLE IF NOT EXISTS invoices (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  invoice_number VARCHAR(100) NOT NULL UNIQUE, -- Benzersiz fatura numarası (SIP-XXX-timestamp)
   invoice_guid VARCHAR(255) NOT NULL UNIQUE,
   invoice_url TEXT,
-  provider VARCHAR(50) DEFAULT 'bizimhesap',
-  invoice_type VARCHAR(20) CHECK (invoice_type IN ('SALES', 'PURCHASE')),
-  status VARCHAR(50) DEFAULT 'created',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Yeni kolonları ekle (eğer yoksa)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'invoices' AND column_name = 'invoice_number'
+  ) THEN
+    ALTER TABLE invoices ADD COLUMN invoice_number VARCHAR(100) UNIQUE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'invoices' AND column_name = 'provider'
+  ) THEN
+    ALTER TABLE invoices ADD COLUMN provider VARCHAR(50) DEFAULT 'bizimhesap';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'invoices' AND column_name = 'invoice_type'
+  ) THEN
+    ALTER TABLE invoices ADD COLUMN invoice_type VARCHAR(20) CHECK (invoice_type IN ('SALES', 'PURCHASE'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'invoices' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE invoices ADD COLUMN status VARCHAR(50) DEFAULT 'created';
+  END IF;
+END $$;
 
 -- İndeksler
 CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
@@ -32,7 +60,9 @@ COMMENT ON COLUMN invoices.status IS 'Fatura durumu (created, sent, cancelled, v
 -- RLS (Row Level Security) politikaları
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
--- Admin kullanıcıları tüm faturalara erişebilir
+-- Admin kullanıcıları tüm faturalara erişebilir (policy varsa önce sil)
+DROP POLICY IF EXISTS "Admin users can access all invoices" ON invoices;
+
 CREATE POLICY "Admin users can access all invoices"
   ON invoices
   FOR ALL

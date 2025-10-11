@@ -121,18 +121,32 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
     setIsLoading(true)
     
     try {
-      if (searchQuery.length > 2) {
+      if (searchQuery.length > 0) { // 2'den 0'a düşürdük
         const supabase = createClient()
         
-        // Ürünleri ara
+        console.log('🔍 Arama başlatılıyor:', searchQuery)
+        
+        // Ürünleri ara - Daha basit query
         const { data: products, error } = await supabase
           .from('products')
           .select('id, name, price, images, slug, category:categories(name)')
-          .or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`)
+          .or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
           .eq('is_active', true)
           .limit(6)
         
-        if (!error && products) {
+        console.log('📦 Arama sonuçları:', {
+          query: searchQuery,
+          hasError: !!error,
+          error: error,
+          resultCount: products?.length || 0,
+          products: products
+        })
+        
+        if (error) {
+          console.error('❌ Supabase arama hatası:', error)
+        }
+        
+        if (!error && products && products.length > 0) {
           const formattedResults: SearchResult[] = products.map(product => ({
             id: product.id,
             name: product.name,
@@ -154,13 +168,17 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
           }))
           
           setSuggestions(productSuggestions)
+        } else {
+          console.log('⚠️ Sonuç bulunamadı')
+          setSuggestions([])
+          setResults([])
         }
       } else {
         setSuggestions([])
         setResults([])
       }
     } catch (error) {
-      console.error('Arama hatası:', error)
+      console.error('❌ Arama hatası:', error)
       setSuggestions([])
       setResults([])
     }
@@ -171,9 +189,9 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.length > 2) {
+      if (query.length > 0) { // En az 1 karakter
         performSearch(query)
-      } else if (query.length === 0) {
+      } else {
         setSuggestions([])
         setResults([])
       }

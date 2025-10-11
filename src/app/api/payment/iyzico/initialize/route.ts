@@ -136,21 +136,43 @@ async function validateBasketPrices(
       let product = null
       
       if (typeof actualProductId === 'number') {
-        // Legacy ID lookup
-        const { data: legacyProduct } = await supabase
+        // Legacy integer ID - Kullanıcı eski cart data'sı kullanıyor
+        logger.warn('⚠️ Legacy integer product ID detected - user needs to clear cart', {
+          actualProductId,
+          cartItemId: item.id
+        })
+        
+        // Try to find by ID directly (some DBs might have integer IDs)
+        const { data: legacyProduct, error: legacyError } = await supabase
           .from('products')
-          .select('id, name, price, legacy_id')
-          .eq('legacy_id', actualProductId)
-          .single()
+          .select('id, name, price')
+          .eq('id', actualProductId.toString()) // Try as string UUID conversion
+          .maybeSingle()
+        
+        if (legacyError) {
+          logger.error('❌ Legacy ID query error:', legacyError)
+        }
         
         product = legacyProduct
+        
+        // If not found, user has old cart data with invalid IDs
+        if (!product) {
+          return {
+            isValid: false,
+            message: `❌ ESKI SEPET VERİSİ HATASI\n\nSepetinizde eski ürün bilgileri var. Lütfen:\n1. Sepeti temizleyin\n2. Ürünleri yeniden ekleyin\n3. Tekrar deneyin\n\n(Hata: Ürün ID ${actualProductId} veritabanında bulunamadı)`
+          }
+        }
       } else {
         // UUID lookup
-        const { data: uuidProduct } = await supabase
+        const { data: uuidProduct, error: uuidError } = await supabase
           .from('products')
-          .select('id, name, price, legacy_id')
+          .select('id, name, price')
           .eq('id', actualProductId)
-          .single()
+          .maybeSingle()
+        
+        if (uuidError) {
+          logger.error('❌ UUID query error:', uuidError)
+        }
         
         product = uuidProduct
       }
@@ -164,7 +186,7 @@ async function validateBasketPrices(
         })
         return {
           isValid: false,
-          message: `Ürün bulunamadı: ${item.name} (Cart ID: ${item.id}, Product ID: ${actualProductId})`
+          message: `❌ ÜRÜN BULUNAMADI\n\nSepetinizdeki "${item.name}" ürünü veritabanında bulunamadı.\n\nLütfen:\n1. Sepeti temizleyin\n2. Ürünü yeniden ekleyin\n3. Tekrar deneyin`
         }
       }
 
