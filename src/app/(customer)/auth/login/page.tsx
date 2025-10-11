@@ -87,6 +87,7 @@ function LoginPageContent() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include', // ✅ Cookie'leri kaydetmek için gerekli!
         body: JSON.stringify({ 
           email: loginEmail.trim().toLowerCase(),
           password: loginPassword
@@ -96,11 +97,55 @@ function LoginPageContent() {
       const result = await response.json()
 
       if (result.success) {
+        // ✅ Session storage'a customer bilgisini yaz (new-header.tsx için)
+        if (result.customer) {
+          sessionStorage.setItem('customer', JSON.stringify(result.customer))
+          
+          // ✅ UserContext için de localStorage'a yaz
+          const userData = {
+            id: result.customer.id,
+            email: result.customer.email,
+            firstName: result.customer.firstName || '',
+            lastName: result.customer.lastName || '',
+            phone: result.customer.phone || '',
+            emailVerified: true,
+            phoneVerified: false,
+            memberSince: new Date().toISOString(),
+            addresses: [],
+            orders: [],
+            preferences: {
+              language: 'tr',
+              currency: 'TRY',
+              theme: 'system',
+              notifications: {
+                email: true,
+                sms: true,
+                push: false,
+                marketing: false
+              },
+              privacy: {
+                showProfile: true,
+                showOrders: true,
+                allowTracking: true
+              }
+            },
+            stats: {
+              orderCount: 0,
+              totalSpent: 0,
+              loyaltyPoints: 0,
+              wishlistItems: 0,
+              reviewsCount: 0,
+              averageRating: 0
+            }
+          }
+          localStorage.setItem('rdhn-commerce-user', JSON.stringify(userData))
+          localStorage.setItem('rdhn-commerce-auth', 'true')
+        }
+        
         toast.success('Giriş başarılı! Yönlendiriliyorsunuz...')
-        // Redirect after successful login
+        // ✅ Hard redirect ile cookie'nin yüklenmesini garantiliyoruz
         setTimeout(() => {
-          router.push(redirectTo)
-          router.refresh()
+          window.location.href = redirectTo
         }, 500)
       } else {
         toast.error(result.error || 'Giriş başarısız')

@@ -183,7 +183,7 @@ export default function ProfilePage() {
                 <ShoppingBag className="w-8 h-8 text-blue-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Toplam Sipariş</p>
-                  <p className="text-2xl font-bold text-gray-900">{customer.total_orders}</p>
+                  <p className="text-2xl font-bold text-gray-900">{customer.total_orders || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -195,7 +195,7 @@ export default function ProfilePage() {
                 <TrendingUp className="w-8 h-8 text-green-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Toplam Harcama</p>
-                  <p className="text-2xl font-bold text-gray-900">{customer.total_spent.toFixed(2)} TL</p>
+                  <p className="text-2xl font-bold text-gray-900">{(customer.total_spent || 0).toFixed(2)} TL</p>
                 </div>
               </div>
             </CardContent>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                               {getStatusText(order.status)}
                             </Badge>
                             <p className="text-lg font-bold mt-1">
-                              {order.total_amount.toFixed(2)} TL
+                              {(order.total_amount || 0).toFixed(2)} TL
                             </p>
                           </div>
                         </div>

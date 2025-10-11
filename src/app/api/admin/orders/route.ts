@@ -449,21 +449,44 @@ export async function PATCH(request: NextRequest) {
 
     // ✅ Banka havalesi ödemesi onaylandıysa - BizimHesap faturası oluştur
     if (paymentStatus === 'paid' && order) {
+      console.log('🧾 Banka havalesi onaylandı, fatura oluşturuluyor:', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        paymentStatus: paymentStatus
+      })
+      
       try {
         const { getBizimHesapInvoiceService, InvoiceType } = await import('@/services/invoice/bizimhesap-invoice-service')
         const invoiceService = getBizimHesapInvoiceService()
         
+        // Faturayı oluştur ve sonucu bekle
         invoiceService.createInvoiceFromOrderId(order.id, {
           invoiceType: InvoiceType.SALES,
           createInvoiceRecord: true,
           sendNotification: true
+        }).then(result => {
+          if (result.success) {
+            console.log('✅ Banka havalesi faturası başarıyla oluşturuldu:', {
+              orderNumber: order.order_number,
+              invoiceGuid: result.invoiceGuid
+            })
+          } else {
+            console.error('❌ Banka havalesi faturası oluşturulamadı:', result.error)
+          }
         }).catch(error => {
-          console.error('❌ Banka havalesi faturası oluşturulamadı:', error)
+          console.error('❌ Banka havalesi fatura exception:', error)
         })
         
-        console.log('✅ Banka havalesi fatura işlemi başlatıldı')
+        console.log('🚀 Banka havalesi fatura işlemi başlatıldı')
       } catch (invoiceError) {
         console.error('❌ Fatura servisi yüklenemedi:', invoiceError)
+      }
+    } else {
+      // Debug: Neden fatura oluşturulmadı?
+      if (!order) {
+        console.warn('⚠️ Order bulunamadı, fatura oluşturulamadı')
+      } else if (paymentStatus !== 'paid') {
+        console.warn('⚠️ PaymentStatus "paid" değil:', paymentStatus, '- Fatura oluşturulmadı')
       }
     }
 

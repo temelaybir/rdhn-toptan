@@ -79,7 +79,12 @@ export async function POST(request: NextRequest) {
         email: customer.email,
         firstName: customer.first_name,
         lastName: customer.last_name,
-        phone: customer.phone
+        phone: customer.phone,
+        first_name: customer.first_name, // ✅ Profil sayfası için
+        last_name: customer.last_name,   // ✅ Profil sayfası için
+        created_at: customer.created_at,
+        total_orders: customer.total_orders || 0,
+        total_spent: customer.total_spent || 0
       }
     })
 

@@ -176,15 +176,31 @@ export function NewHeader() {
     window.location.href = '/auth/login'
   }
 
-  const handleLogout = () => {
-    // Customer session'ını temizle
-    sessionStorage.removeItem('customer')
-    setCustomer(null)
-    setIsLoggedIn(false)
-    toast.success('Başarıyla çıkış yapıldı')
-    
-    // Ana sayfaya yönlendir
-    if (window.location.pathname.includes('/profil')) {
+  const handleLogout = async () => {
+    try {
+      // ✅ Backend'den logout API'sini çağır (cookie'yi temizler)
+      await fetch('/api/customer/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      // ✅ Frontend storage'ları temizle
+      sessionStorage.removeItem('customer')
+      localStorage.removeItem('rdhn-commerce-user')
+      localStorage.removeItem('rdhn-commerce-auth')
+      
+      setCustomer(null)
+      setIsLoggedIn(false)
+      toast.success('Başarıyla çıkış yapıldı')
+      
+      // Ana sayfaya yönlendir
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Hata olsa da frontend'i temizle
+      sessionStorage.removeItem('customer')
+      localStorage.removeItem('rdhn-commerce-user')
+      localStorage.removeItem('rdhn-commerce-auth')
       window.location.href = '/'
     }
   }
