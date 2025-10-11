@@ -153,7 +153,7 @@ export default function OrderTrackingPage() {
               district: orderData.shipping_address?.district || 'Merkez',
               phone: orderData.phone || orderData.shipping_address?.phone || '+90 555 000 0000'
             },
-            paymentMethod: getPaymentMethodLabel(orderData.payment_status),
+            paymentMethod: getPaymentMethodLabel(orderData.payment_method, orderData.payment_status),
             cardLastFour: 'XXXX', // Bu bilgi güvenlik açısından API'de olmayabilir
             trackingNumber: orderData.tracking_number || orderData.kargo_takipno || orderData.kargo_barcode || null,
             cargoCompany: orderData.cargo_company || orderData.kargo_firma || 'Aras Kargo'
@@ -202,8 +202,14 @@ export default function OrderTrackingPage() {
   }
 
   // Payment method label function
-  const getPaymentMethodLabel = (paymentStatus: string): string => {
-    if (paymentStatus === 'awaiting_payment') return 'Banka Havalesi'
+  const getPaymentMethodLabel = (paymentMethod: string | null, paymentStatus: string): string => {
+    // Önce gerçek payment_method alanını kontrol et
+    if (paymentMethod === 'bank_transfer') return 'Banka Havalesi / EFT'
+    if (paymentMethod === 'credit_card') return 'Kredi Kartı'
+    if (paymentMethod === 'debit_card') return 'Banka Kartı'
+    
+    // Fallback: payment_status'a göre tahmin et
+    if (paymentStatus === 'awaiting_payment') return 'Banka Havalesi / EFT'
     return 'Kredi Kartı'
   }
 

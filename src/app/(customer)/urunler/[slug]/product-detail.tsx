@@ -250,10 +250,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             )}
           </div>
 
-          {/* Ultra Kompakt Thumbnail Galerisi */}
+          {/* Ultra Kompakt Thumbnail Galerisi - Sadece Desktop */}
           {images.length > 1 && (
-            <div className="max-w-[55%] mx-auto md:max-w-[65%] lg:max-w-[60%] max-sm:max-w-full">
-              <div className="grid grid-cols-5 gap-1.5 max-sm:grid-cols-4 max-sm:gap-1">
+            <div className="hidden md:block max-w-[65%] mx-auto lg:max-w-[60%]">
+              <div className="grid grid-cols-5 gap-1.5">
                 {images.slice(0, 5).map((image, index) => (
                   <button
                     key={index}

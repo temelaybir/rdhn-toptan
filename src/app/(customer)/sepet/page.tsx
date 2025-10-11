@@ -214,9 +214,22 @@ export default function CartPage() {
                               </p>
                             )}
                             <div className="flex items-center justify-between mt-1">
-                              <span className="text-sm font-bold">
-                                {formatPrice(item.product.price)}
-                              </span>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm font-bold">
+                                  {formatPrice(item.product.price)}
+                                </span>
+                                {item.product.stockQuantity !== undefined && (
+                                  <span className={`text-xs font-medium ${
+                                    item.product.stockQuantity > 10 
+                                      ? 'text-green-600' 
+                                      : item.product.stockQuantity > 0 
+                                      ? 'text-orange-600' 
+                                      : 'text-red-600'
+                                  }`}>
+                                    Stok: {item.product.stockQuantity}
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-1 border rounded">
                                 <Button
                                   variant="ghost"
@@ -301,6 +314,17 @@ export default function CartPage() {
 
                         {/* Miktar Kontrolü */}
                         <div className="col-span-1 flex flex-col items-center justify-center space-y-2">
+                          {item.product.stockQuantity !== undefined && (
+                            <span className={`text-sm font-medium ${
+                              item.product.stockQuantity > 10 
+                                ? 'text-green-600' 
+                                : item.product.stockQuantity > 0 
+                                ? 'text-orange-600' 
+                                : 'text-red-600'
+                            }`}>
+                              Stok: {item.product.stockQuantity}
+                            </span>
+                          )}
                           <div className="flex items-center border rounded-md">
                             <Button
                               variant="ghost"
