@@ -1,4 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import type { 
+  BizimHesapService as IBizimHesapService,
+  BizimHesapInvoiceResult,
+  ECommerceOrder
+} from '@catkapinda/bizimhesap-integration'
 
 // BizimHesap Integration Types
 export enum InvoiceType {
@@ -20,19 +25,8 @@ export interface InvoiceCreationOptions {
   invoiceType?: InvoiceType
 }
 
-interface BizimHesapService {
-  createInvoiceFromOrder: (order: any, options?: any) => Promise<any>
-}
-
-interface ECommerceOrder {
-  orderNumber: string
-  customer: any
-  items: any[]
-  totals: any
-}
-
 export class BizimHesapInvoiceService {
-  private bizimHesapService: BizimHesapService | null = null
+  private bizimHesapService: IBizimHesapService | null = null
 
   constructor() {
     // BizimHesap service'i lazy load ediyoruz
@@ -108,6 +102,13 @@ export class BizimHesapInvoiceService {
     options: InvoiceCreationOptions = {}
   ): Promise<BizimHesapInvoiceResult> {
     try {
+      if (!this.bizimHesapService) {
+        return {
+          success: false,
+          error: 'BizimHesap servisi yüklenemedi. Lütfen yapılandırmayı kontrol edin.'
+        }
+      }
+
       console.log(`🧾 ${order.orderNumber} numaralı sipariş için fatura oluşturuluyor...`)
 
       // Fatura tipini belirle
@@ -284,7 +285,21 @@ export class BizimHesapInvoiceService {
    * BizimHesap bağlantısını test et
    */
   async testConnection(): Promise<BizimHesapInvoiceResult> {
-    return this.bizimHesapService.testConnection()
+    if (!this.bizimHesapService) {
+      return {
+        success: false,
+        error: 'BizimHesap servisi yüklenemedi. Lütfen yapılandırmayı kontrol edin.'
+      }
+    }
+    
+    try {
+      return await this.bizimHesapService.testConnection()
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Bağlantı testi başarısız'
+      }
+    }
   }
 
   /**
