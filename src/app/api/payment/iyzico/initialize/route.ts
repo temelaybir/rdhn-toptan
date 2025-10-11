@@ -60,33 +60,47 @@ const paymentRequestSchema = z.object({
  */
 function parseCartItemId(cartItemId: string): string | number | null {
   try {
+    // UUID pattern check (ÖNCE UUID kontrol et!)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    
+    // If it's a valid UUID, return it directly
+    if (uuidPattern.test(cartItemId)) {
+      return cartItemId
+    }
+    
     // Check if it's a cart ID format
     if (cartItemId.startsWith('cart_')) {
       const parts = cartItemId.split('_')
       if (parts.length >= 2) {
         const productIdPart = parts[1]
-        // Try to parse as number first (legacy ID)
-        const legacyId = parseInt(productIdPart, 10)
-        if (!isNaN(legacyId) && legacyId > 0) {
-          return legacyId
+        
+        // Check if the product part is a UUID
+        if (uuidPattern.test(productIdPart)) {
+          return productIdPart
         }
-        // Otherwise return as string (UUID)
+        
+        // Try to parse as number (legacy ID) - only if it's ONLY digits
+        if (/^\d+$/.test(productIdPart)) {
+          const legacyId = parseInt(productIdPart, 10)
+          if (!isNaN(legacyId) && legacyId > 0) {
+            return legacyId
+          }
+        }
+        
+        // Otherwise return as string
         return productIdPart
       }
     }
     
-    // If not cart ID format, try to parse directly
-    const numericId = parseInt(cartItemId, 10)
-    if (!isNaN(numericId) && numericId > 0) {
-      return numericId
+    // If not cart ID format, check if it's ONLY digits (legacy integer ID)
+    if (/^\d+$/.test(cartItemId)) {
+      const numericId = parseInt(cartItemId, 10)
+      if (!isNaN(numericId) && numericId > 0) {
+        return numericId
+      }
     }
     
-    // Check if it's UUID format
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (uuidPattern.test(cartItemId)) {
-      return cartItemId
-    }
-    
+    // Return null if nothing matched
     return null
   } catch (error) {
     logger.error('Error parsing cart item ID:', { cartItemId, error })
