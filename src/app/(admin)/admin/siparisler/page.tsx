@@ -372,7 +372,7 @@ export default function OrdersPage() {
         credentials: 'include',
         body: JSON.stringify({
           orderId,
-          status: 'confirmed',
+          status: 'pending', // ✅ "İşleme Alındı" durumuna getir
           paymentStatus: 'paid'
         })
       })

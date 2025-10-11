@@ -377,10 +377,9 @@ export async function PATCH(request: NextRequest) {
     if (paymentStatus !== undefined) {
       updateData.payment_status = paymentStatus
       
-      // Eğer ödeme onaylandıysa (paid), status'u da confirmed yap
-      if (paymentStatus === 'paid' && dbStatus === 'PENDING') {
-        updateData.status = 'CONFIRMED'
-      }
+      // ⚠️ NOT: Banka havalesi onaylandığında status frontend'den gelir
+      // Burada otomatik status değişikliği yapmıyoruz
+      // Frontend'den gelen status değeri kullanılır (pending → İşleme Alındı)
     }
 
     if (notes !== undefined) {
