@@ -66,10 +66,11 @@ function SearchPageContent() {
           images,
           stock_quantity,
           description,
+          slug,
           category:categories(name)
         `)
         .eq('is_active', true)
-        .ilike('name', `%${searchTerm}%`)
+        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
         .limit(50)
 
       if (error) {
@@ -87,7 +88,7 @@ function SearchPageContent() {
         reviews: Math.floor(Math.random() * 100),
         category: item.category?.name || 'Genel',
         brand: 'Marka',
-        slug: item.id,
+        slug: item.slug || item.id,
         stockQuantity: item.stock_quantity,
         description: item.description || ''
       }))
@@ -343,8 +344,9 @@ function SearchPageContent() {
                       id: product.id,
                       name: product.name,
                       price: product.price,
-                      image: product.image,
-                      stockQuantity: product.stockQuantity
+                      image_url: product.image,
+                      slug: product.slug,
+                      stock_quantity: product.stockQuantity
                     }}
                   />
                 </div>

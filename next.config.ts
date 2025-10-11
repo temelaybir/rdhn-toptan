@@ -3,6 +3,7 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  transpilePackages: ['@catkapinda/bizimhesap-integration', '@catkapinda/trendyol-integration'],
   eslint: {
     // Warning: Build sırasında ESLint hatalarını yoksay
     ignoreDuringBuilds: true,

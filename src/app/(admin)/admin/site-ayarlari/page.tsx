@@ -35,6 +35,10 @@ interface SiteSettings {
   contact_phone: string | null
   whatsapp_number: string | null
   address: string | null
+  google_maps_embed_url: string | null
+  show_google_maps: boolean
+  google_maps_width: string
+  google_maps_height: string
   facebook_url: string | null
   instagram_url: string | null
   whatsapp_url: string | null
@@ -144,6 +148,10 @@ export default function SiteSettingsPage() {
         contact_phone: settings.contact_phone?.trim() || null,
         whatsapp_number: settings.whatsapp_number?.trim() || null,
         address: settings.address?.trim() || null,
+        google_maps_embed_url: settings.google_maps_embed_url?.trim() || null,
+        show_google_maps: settings.show_google_maps ?? false,
+        google_maps_width: settings.google_maps_width || '100%',
+        google_maps_height: settings.google_maps_height || '300',
         facebook_url: settings.facebook_url?.trim() || null,
         instagram_url: settings.instagram_url?.trim() || null,
         whatsapp_url: settings.whatsapp_url?.trim() || null,
@@ -787,6 +795,95 @@ export default function SiteSettingsPage() {
                   placeholder="Tam adres bilgilerinizi girin"
                   rows={3}
                 />
+              </div>
+
+              <Separator />
+
+              {/* Google Maps Ayarları */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Google Maps Harita
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show_google_maps">Haritayı Göster</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Footer'da Google Maps haritasını göster/gizle
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_google_maps"
+                      checked={settings.show_google_maps}
+                      onCheckedChange={(checked) => updateSetting('show_google_maps', checked)}
+                    />
+                  </div>
+
+                  {settings.show_google_maps && (
+                    <>
+                      <div>
+                        <Label htmlFor="google_maps_embed_url">Google Maps Embed Kodu</Label>
+                        <Textarea
+                          id="google_maps_embed_url"
+                          value={settings.google_maps_embed_url || ''}
+                          onChange={(e) => updateSetting('google_maps_embed_url', e.target.value)}
+                          placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." width="600" height="450"></iframe>'
+                          rows={4}
+                          className="font-mono text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Google Maps'ten "Paylaş" → "Harita Yerleştir" seçeneğinden embed kodunu alın
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="google_maps_width">Harita Genişliği</Label>
+                          <Input
+                            id="google_maps_width"
+                            value={settings.google_maps_width || '100%'}
+                            onChange={(e) => updateSetting('google_maps_width', e.target.value)}
+                            placeholder="100%"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Örn: 100%, 600px, 80%
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="google_maps_height">Harita Yüksekliği</Label>
+                          <Input
+                            id="google_maps_height"
+                            value={settings.google_maps_height || '300'}
+                            onChange={(e) => updateSetting('google_maps_height', e.target.value)}
+                            placeholder="300"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Piksel cinsinden (örn: 300, 400, 500)
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Önizleme */}
+                      {settings.google_maps_embed_url && (
+                        <div>
+                          <Label className="mb-2 block">Harita Önizleme</Label>
+                          <div 
+                            className="rounded-lg overflow-hidden border bg-muted"
+                            dangerouslySetInnerHTML={{ 
+                              __html: settings.google_maps_embed_url
+                                .replace(/width="[^"]*"/, `width="${settings.google_maps_width}"`)
+                                .replace(/height="[^"]*"/, `height="${settings.google_maps_height}"`)
+                                .replace(/<iframe/, '<iframe style="border:0; display:block; width:100%;"')
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
 
               <Separator />

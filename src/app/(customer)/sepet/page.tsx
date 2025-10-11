@@ -203,7 +203,7 @@ export default function CartPage() {
                           {/* Ürün Bilgileri */}
                           <div className="flex-1 min-w-0">
                             <Link 
-                              href={`/urunler/${item.productId}`}
+                              href={`/urunler/${item.product.slug || item.productId}`}
                               className="text-sm font-semibold line-clamp-2 hover:text-primary"
                             >
                               {item.product.name}
@@ -290,7 +290,7 @@ export default function CartPage() {
                         {/* Ürün Bilgileri */}
                         <div className="col-span-2 space-y-2">
                           <Link 
-                            href={`/urunler/${item.productId}`}
+                            href={`/urunler/${item.product.slug || item.productId}`}
                             className="font-semibold hover:text-primary transition-colors"
                           >
                             {item.product.name}

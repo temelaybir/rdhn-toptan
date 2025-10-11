@@ -14,6 +14,7 @@ interface AddToCartButtonProps {
     name: string
     price: number
     image_url?: string
+    slug?: string       // SEO-friendly URL slug
     stock?: number      // Keep for backward compatibility
     stock_quantity?: number  // New field
     brand?: string
@@ -72,6 +73,7 @@ export function AddToCartButton({
         name: productData.name,
         price: productData.price,
         image_url: productData.image_url || '/placeholder-product.svg',
+        slug: productData.slug || (typeof productData.id === 'string' ? productData.id : productData.id.toString()),
         stock: stockQuantity,
         brand: productData.brand || '',
         images: Array.isArray(productData.images) 
@@ -141,6 +143,7 @@ interface QuickAddToCartProps {
     name: string
     price: number
     image_url?: string
+    slug?: string
     stock?: number
     stock_quantity?: number
     brand?: string

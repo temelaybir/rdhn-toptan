@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { SafeImage } from '@/components/ui/safe-image'
 import { searchResultImages } from '@/lib/utils/category-images'
+import { createClient } from '@/lib/supabase/client'
 
 interface SearchResult {
   id: string
@@ -86,7 +87,19 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
   const [isLoading, setIsLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
   const [results, setResults] = useState<SearchResult[]>([])
-  const [recentSearches, setRecentSearches] = useState<string[]>(mockRecentSearches)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  
+  // Load recent searches from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('recentSearches')
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved))
+      } catch (e) {
+        setRecentSearches([])
+      }
+    }
+  }, [])
   
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -103,26 +116,51 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Mock search function
+  // Real search function
   const performSearch = async (searchQuery: string) => {
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
-    if (searchQuery.length > 0) {
-      // Filter suggestions based on query
-      const filteredSuggestions = mockSuggestions.filter(suggestion =>
-        suggestion.text.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      setSuggestions(filteredSuggestions)
-      
-      // Filter results based on query
-      const filteredResults = mockSearchResults.filter(result =>
-        result.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      setResults(filteredResults)
-    } else {
+    try {
+      if (searchQuery.length > 2) {
+        const supabase = createClient()
+        
+        // Ürünleri ara
+        const { data: products, error } = await supabase
+          .from('products')
+          .select('id, name, price, images, slug, category:categories(name)')
+          .or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`)
+          .eq('is_active', true)
+          .limit(6)
+        
+        if (!error && products) {
+          const formattedResults: SearchResult[] = products.map(product => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: Array.isArray(product.images) && product.images.length > 0 
+              ? product.images[0] 
+              : '/placeholder-product.svg',
+            category: product.category?.name || 'Genel',
+            slug: product.slug
+          }))
+          
+          setResults(formattedResults)
+          
+          // Önerileri oluştur (ürün isimleri)
+          const productSuggestions: SearchSuggestion[] = formattedResults.slice(0, 4).map(result => ({
+            id: result.id,
+            text: result.name,
+            type: 'product' as const
+          }))
+          
+          setSuggestions(productSuggestions)
+        }
+      } else {
+        setSuggestions([])
+        setResults([])
+      }
+    } catch (error) {
+      console.error('Arama hatası:', error)
       setSuggestions([])
       setResults([])
     }
@@ -130,18 +168,25 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
     setIsLoading(false)
   }
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.length > 2) {
+        performSearch(query)
+      } else if (query.length === 0) {
+        setSuggestions([])
+        setResults([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [query])
+
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setQuery(value)
     setIsOpen(true)
-    
-    if (value.length > 0) {
-      performSearch(value)
-    } else {
-      setSuggestions([])
-      setResults([])
-    }
   }
 
   // Handle search submission
@@ -150,7 +195,10 @@ export function EnhancedSearch({ className, placeholder = "Ürün, kategori veya
       // Add to recent searches
       setRecentSearches(prev => {
         const updated = [searchQuery, ...prev.filter(item => item !== searchQuery)]
-        return updated.slice(0, 4)
+        const sliced = updated.slice(0, 4)
+        // Save to localStorage
+        localStorage.setItem('recentSearches', JSON.stringify(sliced))
+        return sliced
       })
       
       // Navigate to search results
