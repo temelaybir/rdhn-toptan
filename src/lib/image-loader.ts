@@ -32,7 +32,7 @@ export default function imageLoader({ src, width, quality }: {
   // Production-safe domain kontrolü
   const safeHosts = [
     'ardahan.cdn.akinoncdn.com',
-    'ardahanticaret.com', 
+    'catkapinda.com.tr', 
     'plante.biz',
     'supabase.co',
     'amazonaws.com'

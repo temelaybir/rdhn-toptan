@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
         // Eğer hiç görsel yoksa varsayılan görsel ekle
         if (images.length === 0) {
-          images.push('https://ardahanticaret.com/image/cache/catalog/ardahan-logo-1000x230-998x230.png')
+          images.push('https://catkapinda.com.tr/placeholder-product.svg')
         }
 
         // Ürün slug'ı oluştur

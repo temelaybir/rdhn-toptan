@@ -189,7 +189,7 @@ export default function CartPage() {
                         <div className="md:col-span-1">
                           <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                             <SafeImage
-                              src={item.product.image_url}
+                              src={item.product.images?.[0] || '/placeholder-product.svg'}
                               alt={item.product.name}
                               width={120}
                               height={120}

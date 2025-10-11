@@ -241,7 +241,7 @@ Teslimat Adresi:
 Admin panelde detayları görüntüleyebilirsiniz.
 
 Saygılarımızla,
-Ardahan Ticaret`
+Çat Kapında`
 
     const body = replaceEmailVariables(
       emailSettings.order_email_template || defaultTemplate,
@@ -271,7 +271,7 @@ export async function sendMagicLoginEmail(email: string, loginUrl: string): Prom
   try {
     console.log('🔑 Magic login e-maili gönderiliyor:', email)
 
-    const subject = 'Giriş Linkiniz - Ardahan Ticaret'
+    const subject = 'Giriş Linkiniz - Çat Kapında'
     
     const body = `Merhaba,
 
@@ -287,7 +287,7 @@ Güvenlik için:
 - Eğer bu isteği siz yapmadıysanız bu e-maili görmezden gelin
 
 Saygılarımızla,
-Ardahan Ticaret`
+Çat Kapında`
 
     const success = await sendEmail([email], subject, body)
     
@@ -376,7 +376,7 @@ ${orderData.shippingAddress.address}
 ${orderData.shippingAddress.district} / ${orderData.shippingAddress.city}
 ${bankTransferSection}
 🔍 Sipariş Takibi:
-Siparişinizin durumunu takip etmek için: https://ardahanticaret.com/siparis-takibi/${orderData.orderNumber}
+Siparişinizin durumunu takip etmek için: https://catkapinda.com.tr/siparis-takibi/${orderData.orderNumber}
 
 👤 Hesabınıza Giriş:
 ${magicLinkResult.success && magicLinkResult.loginUrl ? 
@@ -384,13 +384,13 @@ ${magicLinkResult.success && magicLinkResult.loginUrl ?
 ${magicLinkResult.loginUrl}
 
 Bu giriş linki 30 dakika geçerlidir ve güvenli şekilde hesabınıza giriş yapmanızı sağlar.` : 
-'Hesabınıza giriş yapmak için https://ardahanticaret.com/auth/login adresini ziyaret edin.'
+'Hesabınıza giriş yapmak için https://catkapinda.com.tr/auth/login adresini ziyaret edin.'
 }
 
 📞 Sorularınız için bize ulaşabilirsiniz.
 
 Teşekkürler,
-Ardahan Ticaret`
+Çat Kapında`
 
     const success = await sendEmail([orderData.customerEmail], subject, body)
     
@@ -473,7 +473,7 @@ Kargo Takibi: https://kargotakip.com.tr/sorgula/${trackingNumber}
 ` : ''}
 
 🔍 Sipariş Detayları:
-Siparişinizin tüm detaylarını görmek için: https://ardahanticaret.com/siparis-takibi/${orderData.orderNumber}
+Siparişinizin tüm detaylarını görmek için: https://catkapinda.com.tr/siparis-takibi/${orderData.orderNumber}
 
 👤 Hesabınıza Giriş:
 ${magicLinkResult.success && magicLinkResult.loginUrl ? 
@@ -481,11 +481,11 @@ ${magicLinkResult.success && magicLinkResult.loginUrl ?
 ${magicLinkResult.loginUrl}
 
 Bu giriş linki 30 dakika geçerlidir.` : 
-'Hesabınıza giriş yapmak için https://ardahanticaret.com/auth/login adresini ziyaret edin.'
+'Hesabınıza giriş yapmak için https://catkapinda.com.tr/auth/login adresini ziyaret edin.'
 }
 
 Teşekkürler,
-Ardahan Ticaret`
+Çat Kapında`
 
     const success = await sendEmail([orderData.customerEmail], subject, body)
     

@@ -750,7 +750,7 @@ export default function SiteSettingsPage() {
                     type="email"
                     value={settings.contact_email || ''}
                     onChange={(e) => updateSetting('contact_email', e.target.value)}
-                    placeholder="info@ardahanticaret.com"
+                    placeholder="info@catkapinda.com.tr"
                   />
                 </div>
                 
@@ -871,7 +871,7 @@ export default function SiteSettingsPage() {
                         id="smtp_host"
                         value={settings.smtp_host || ''}
                         onChange={(e) => updateSetting('smtp_host', e.target.value)}
-                        placeholder="mail.ardahanticaret.com"
+                        placeholder="mail.catkapinda.com.tr"
                       />
                     </div>
                     <div>
@@ -893,7 +893,7 @@ export default function SiteSettingsPage() {
                         id="smtp_username"
                         value={settings.smtp_username || ''}
                         onChange={(e) => updateSetting('smtp_username', e.target.value)}
-                        placeholder="siparis@ardahanticaret.com"
+                        placeholder="siparis@catkapinda.com.tr"
                       />
                     </div>
                     <div>
@@ -916,7 +916,7 @@ export default function SiteSettingsPage() {
                         type="email"
                         value={settings.smtp_from_email || ''}
                         onChange={(e) => updateSetting('smtp_from_email', e.target.value)}
-                        placeholder="siparis@ardahanticaret.com"
+                        placeholder="siparis@catkapinda.com.tr"
                       />
                     </div>
                     <div>
@@ -977,7 +977,7 @@ export default function SiteSettingsPage() {
                     id="facebook_url"
                     value={settings.facebook_url || ''}
                     onChange={(e) => updateSetting('facebook_url', e.target.value)}
-                    placeholder="https://facebook.com/ardahanticaret"
+                    placeholder="https://facebook.com/catkapinda"
                   />
                 </div>
                 
@@ -987,7 +987,7 @@ export default function SiteSettingsPage() {
                     id="instagram_url"
                     value={settings.instagram_url || ''}
                     onChange={(e) => updateSetting('instagram_url', e.target.value)}
-                    placeholder="https://instagram.com/ardahanticaret"
+                    placeholder="https://instagram.com/catkapinda"
                   />
                 </div>
 
@@ -1010,7 +1010,7 @@ export default function SiteSettingsPage() {
                     id="twitter_url"
                     value={settings.twitter_url || ''}
                     onChange={(e) => updateSetting('twitter_url', e.target.value)}
-                    placeholder="https://twitter.com/ardahanticaret"
+                    placeholder="https://twitter.com/catkapinda"
                   />
                 </div>
                 
@@ -1020,7 +1020,7 @@ export default function SiteSettingsPage() {
                     id="youtube_url"
                     value={settings.youtube_url || ''}
                     onChange={(e) => updateSetting('youtube_url', e.target.value)}
-                    placeholder="https://youtube.com/@ardahanticaret"
+                    placeholder="https://youtube.com/@catkapinda"
                   />
                 </div>
 
@@ -1030,7 +1030,7 @@ export default function SiteSettingsPage() {
                     id="linkedin_url"
                     value={settings.linkedin_url || ''}
                     onChange={(e) => updateSetting('linkedin_url', e.target.value)}
-                    placeholder="https://linkedin.com/company/ardahanticaret"
+                    placeholder="https://linkedin.com/company/catkapinda"
                   />
                 </div>
               </div>
@@ -1201,7 +1201,7 @@ export default function SiteSettingsPage() {
                       id="order_notification_emails"
                       value={settings.order_notification_emails || ''}
                       onChange={(e) => updateSetting('order_notification_emails', e.target.value)}
-                      placeholder="admin@ardahanticaret.com&#10;satis@ardahanticaret.com&#10;depo@ardahanticaret.com"
+                      placeholder="admin@catkapinda.com.tr&#10;satis@catkapinda.com.tr&#10;depo@catkapinda.com.tr"
                       rows={4}
                       className="mt-2"
                     />

@@ -425,7 +425,7 @@ export function ImageManager({
               
               <div className="space-y-4">
                 <Input
-                  placeholder="https://ardahanticaret.com/image/... veya başka bir görsel URL'i"
+                  placeholder="https://catkapinda.com.tr/images/... veya başka bir görsel URL'i"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   onKeyPress={(e) => {
@@ -487,7 +487,7 @@ export function ImageManager({
               </div>
               
               <p className="text-xs text-gray-500">
-                ardahanticaret.com veya diğer güvenilir kaynaklardan görsel URL'i girebilirsiniz
+                catkapinda.com.tr veya diğer güvenilir kaynaklardan görsel URL'i girebilirsiniz
               </p>
               
               {/* Hızlı Erişim Örnekleri */}

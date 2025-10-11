@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
 import type { PromoCode, PromoCodeFormData, PromoCodeFilters, PromoCodeValidation } from '@/types/promo-code'
 
 // Veritabanı snake_case -> TypeScript camelCase dönüşümü
@@ -29,7 +29,7 @@ function transformPromoCode(data: any): PromoCode {
  */
 export async function getPromoCodes(filters?: PromoCodeFilters) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     let query = supabase
       .from('promo_codes')
@@ -117,7 +117,7 @@ export async function getPromoCodes(filters?: PromoCodeFilters) {
  */
 export async function getPromoCodeById(id: number) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     const { data, error } = await supabase
       .from('promo_codes')
@@ -146,14 +146,14 @@ export async function getPromoCodeById(id: number) {
  */
 export async function createPromoCode(formData: PromoCodeFormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     // Kod benzersizliği kontrolü
     const { data: existing } = await supabase
       .from('promo_codes')
       .select('id')
       .eq('code', formData.code.toUpperCase())
-      .single()
+      .maybeSingle()
     
     if (existing) {
       return {
@@ -199,7 +199,7 @@ export async function createPromoCode(formData: PromoCodeFormData) {
  */
 export async function updatePromoCode(id: number, formData: Partial<PromoCodeFormData>) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     // Kod değişiyorsa benzersizlik kontrolü
     if (formData.code) {
@@ -208,7 +208,7 @@ export async function updatePromoCode(id: number, formData: Partial<PromoCodeFor
         .select('id')
         .eq('code', formData.code.toUpperCase())
         .neq('id', id)
-        .single()
+        .maybeSingle()
       
       if (existing) {
         return {
@@ -257,7 +257,7 @@ export async function updatePromoCode(id: number, formData: Partial<PromoCodeFor
  */
 export async function deletePromoCode(id: number) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     const { error } = await supabase
       .from('promo_codes')
@@ -287,7 +287,7 @@ export async function validatePromoCode(
   userId?: number
 ): Promise<{ success: boolean; data?: PromoCodeValidation; error?: string }> {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     // Veritabanı fonksiyonunu çağır
     const { data, error } = await supabase
@@ -337,7 +337,7 @@ export async function usePromoCode(
   userId?: number
 ) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     // Kullanım kaydı oluştur
     const { error: usageError } = await supabase
@@ -388,7 +388,7 @@ export async function usePromoCode(
  */
 export async function getPromoCodeStats() {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminSupabaseClient()
     
     const now = new Date().toISOString()
     

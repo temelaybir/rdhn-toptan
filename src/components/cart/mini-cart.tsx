@@ -98,7 +98,7 @@ export function MiniCart() {
                     {/* Product Image */}
                     <div className="relative w-16 h-16 bg-white rounded-md overflow-hidden flex-shrink-0">
                       <SafeImage
-                        src={item.product.image_url}
+                        src={item.product.images?.[0] || '/placeholder-product.svg'}
                         alt={item.product.name}
                         fill
                         className="object-cover"

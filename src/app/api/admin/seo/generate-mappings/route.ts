@@ -79,7 +79,7 @@ function parseOldUrls(content: string) {
     const match = url.match(/\/([^\/]+)_([A-Za-z0-9\-]+)\.html$/)
     if (match) {
       return {
-        fullUrl: url.replace('https://ardahanticaret.com', ''), // Relative URL
+        fullUrl: url.replace('https://catkapinda.com.tr', ''), // Relative URL
         slug: match[1],
         barcode: match[2],
         productName: match[1].replace(/-/g, ' ')

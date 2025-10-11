@@ -83,14 +83,37 @@ export function ProductCard({ product }: ProductCardProps) {
   const mockData = generateMockData(product.id)
 
   const handleAddToCart = () => {
+    // Product type'a uygun obje oluştur
     addToCart({
-      id: numericId,
+      id: product.id.toString(), // UUID string
       name: product.name,
+      slug: product.slug,
       price: product.price,
-      image_url: imageUrl,
-      images: [imageUrl],
-      stock: product.stock_quantity,
-      brand: 'Generic'
+      images: product.images.map(img => ({ url: img.url, alt: img.alt, position: 0, isMain: img.is_main })),
+      stockQuantity: product.stock_quantity,
+      sku: null,
+      tags: [],
+      description: null,
+      shortDescription: null,
+      comparePrice: product.compare_price || null,
+      costPrice: null,
+      trackStock: true,
+      allowBackorders: false,
+      lowStockThreshold: null,
+      barcode: null,
+      weight: null,
+      dimensions: null,
+      categoryId: null,
+      isActive: product.is_active,
+      isFeatured: false,
+      variants: [],
+      hasVariants: false,
+      variantOptions: [],
+      seo: null,
+      shipping: null,
+      taxRate: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     }, 1)
     // Toast message is handled by cart context
   }
