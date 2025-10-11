@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
-import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { 
       email, 
+      password,
       firstName, 
       lastName, 
       phone, 
@@ -18,9 +19,17 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validation
-    if (!email || !firstName || !lastName || !phone || !address) {
+    if (!email || !password || !firstName || !lastName || !phone || !address) {
       return NextResponse.json(
         { success: false, error: 'Zorunlu alanlar eksik' },
+        { status: 400 }
+      )
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      return NextResponse.json(
+        { success: false, error: 'Şifre en az 6 karakter olmalıdır' },
         { status: 400 }
       )
     }
@@ -41,11 +50,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10)
+
     // Create customer
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .insert({
         email: email.toLowerCase().trim(),
+        password_hash: passwordHash,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         phone: phone.trim(),

@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 // Register form data interface
 interface RegisterFormData {
   email: string
+  password: string
   firstName: string
   lastName: string
   phone: string
@@ -34,14 +35,15 @@ function LoginPageContent() {
   
   // Login states
   const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [isLoginLoading, setIsLoginLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
   
   // Register states
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
   const [registerSuccess, setRegisterSuccess] = useState(false)
   const [registerFormData, setRegisterFormData] = useState<RegisterFormData>({
     email: '',
+    password: '',
     firstName: '',
     lastName: '',
     phone: '',
@@ -70,28 +72,36 @@ function LoginPageContent() {
       return
     }
 
+    if (!loginPassword.trim()) {
+      toast.error('Lütfen şifrenizi girin')
+      return
+    }
+
     setIsLoginLoading(true)
 
     try {
-      const response = await fetch('/api/customer/magic-login', {
+      const response = await fetch('/api/customer/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           email: loginEmail.trim().toLowerCase(),
-          redirectTo 
+          password: loginPassword
         })
       })
 
       const result = await response.json()
 
       if (result.success) {
-        setEmailSent(true)
-        toast.success('Giriş linki e-mail adresinize gönderildi!')
-        // Development mode butonu production'da gösterilmiyor
+        toast.success('Giriş başarılı! Yönlendiriliyorsunuz...')
+        // Redirect after successful login
+        setTimeout(() => {
+          router.push(redirectTo)
+          router.refresh()
+        }, 500)
       } else {
-        toast.error(result.error || 'Bir hata oluştu')
+        toast.error(result.error || 'Giriş başarısız')
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -106,14 +116,19 @@ function LoginPageContent() {
     e.preventDefault()
     
     // Validation
-    if (!registerFormData.email || !registerFormData.firstName || !registerFormData.lastName || 
-        !registerFormData.phone || !registerFormData.address) {
+    if (!registerFormData.email || !registerFormData.password || !registerFormData.firstName || 
+        !registerFormData.lastName || !registerFormData.phone || !registerFormData.address) {
       toast.error('Lütfen tüm zorunlu alanları doldurun')
       return
     }
 
     if (!registerFormData.email.includes('@')) {
       toast.error('Geçerli bir e-mail adresi girin')
+      return
+    }
+
+    if (registerFormData.password.length < 6) {
+      toast.error('Şifre en az 6 karakter olmalıdır')
       return
     }
 
@@ -145,9 +160,9 @@ function LoginPageContent() {
   }
 
   const handleTryAgain = () => {
-    setEmailSent(false)
     setRegisterSuccess(false)
     setLoginEmail('')
+    setLoginPassword('')
   }
 
   // Order tracking handler
@@ -162,7 +177,7 @@ function LoginPageContent() {
     router.push(`/siparis-takibi/${orderNumber.trim()}`)
   }
 
-  // Success screen for register (no email sent)
+  // Success screen for register
   if (registerSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -178,47 +193,12 @@ function LoginPageContent() {
               <span className="font-medium">{registerFormData.email}</span> adresiyle üyeliğiniz oluşturuldu.
             </p>
             <p className="text-sm text-gray-500">
-              Artık "Giriş Yap" sekmesinden e-mail adresinizle giriş yapabilirsiniz.
-              Size giriş linki gönderilecektir.
+              Artık "Giriş Yap" sekmesinden e-mail ve şifrenizle giriş yapabilirsiniz.
             </p>
             
             <div className="space-y-2 pt-4">
               <Button onClick={handleTryAgain} className="w-full">
                 Giriş Yap
-              </Button>
-              <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
-                Ana Sayfa'ya Dön
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Success screen for login (email sent)
-  if (emailSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-600" />
-            <CardTitle className="text-xl text-green-800">
-              E-mail Gönderildi!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
-              <span className="font-medium">{loginEmail}</span> adresine giriş linki gönderildi.
-            </p>
-            <p className="text-sm text-gray-500">
-              E-mail kutunuzu kontrol edin ve giriş linkine tıklayın.
-              Link 30 dakika geçerlidir.
-            </p>
-            
-            <div className="space-y-2 pt-4">
-              <Button variant="outline" onClick={handleTryAgain} className="w-full">
-                Farklı E-mail ile Dene
               </Button>
               <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
                 Ana Sayfa'ya Dön
@@ -260,9 +240,9 @@ function LoginPageContent() {
             {/* Login Tab */}
             <TabsContent value="login" className="space-y-4">
               <div className="text-center mb-4">
-                <Mail className="w-12 h-12 mx-auto mb-2 text-blue-600" />
+                <LogIn className="w-12 h-12 mx-auto mb-2 text-blue-600" />
                 <p className="text-gray-600 text-sm">
-                  Şifre gerektirmez. E-mail adresinize giriş linki göndereceğiz.
+                  E-mail ve şifrenizle giriş yapın
                 </p>
               </div>
               
@@ -279,17 +259,30 @@ function LoginPageContent() {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Şifre *</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    disabled={isLoginLoading}
+                    required
+                  />
+                </div>
                 
                 <Button type="submit" disabled={isLoginLoading} className="w-full">
                   {isLoginLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Gönderiliyor...
+                      Giriş yapılıyor...
                     </>
                   ) : (
                     <>
-                      Giriş Linki Gönder
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Giriş Yap
                     </>
                   )}
                 </Button>
@@ -339,6 +332,22 @@ function LoginPageContent() {
                     disabled={isRegisterLoading}
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="register-password">Şifre *</Label>
+                  <Input
+                    id="register-password"
+                    type="password"
+                    placeholder="En az 6 karakter"
+                    value={registerFormData.password}
+                    onChange={(e) => setRegisterFormData(prev => ({ ...prev, password: e.target.value }))}
+                    disabled={isRegisterLoading}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Şifreniz en az 6 karakter olmalıdır
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -428,7 +437,7 @@ function LoginPageContent() {
               </form>
               
               <div className="text-center text-xs text-gray-500 mt-4">
-                Üyelik oluşturduğunuzda "Giriş Yap" sekmesinden e-mail ile giriş yapabilirsiniz.
+                Üyelik oluşturduğunuzda "Giriş Yap" sekmesinden e-mail ve şifrenizle giriş yapabilirsiniz.
               </div>
             </TabsContent>
 

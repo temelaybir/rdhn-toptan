@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
+import { SignJWT } from 'jose'
+import bcrypt from 'bcryptjs'
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
+)
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { email, password } = body
+
+    if (!email || !password) {
+      return NextResponse.json({
+        success: false,
+        error: 'E-mail ve şifre gereklidir'
+      }, { status: 400 })
+    }
+
+    const supabase = await createAdminSupabaseClient()
+
+    // Find customer by email
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .single()
+
+    if (error || !customer) {
+      return NextResponse.json({
+        success: false,
+        error: 'E-mail veya şifre hatalı'
+      }, { status: 401 })
+    }
+
+    // Check if customer has password set
+    if (!customer.password_hash) {
+      return NextResponse.json({
+        success: false,
+        error: 'Bu hesap için şifre belirlenmemiş. Lütfen şifre oluşturun.'
+      }, { status: 401 })
+    }
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, customer.password_hash)
+
+    if (!passwordMatch) {
+      return NextResponse.json({
+        success: false,
+        error: 'E-mail veya şifre hatalı'
+      }, { status: 401 })
+    }
+
+    // Update last login
+    await supabase
+      .from('customers')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', customer.id)
+
+    // Create JWT token
+    const token = await new SignJWT({
+      customerId: customer.id,
+      email: customer.email,
+      type: 'customer'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('30d')
+      .sign(JWT_SECRET)
+
+    // Set cookie
+    const response = NextResponse.json({
+      success: true,
+      message: 'Giriş başarılı',
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.first_name,
+        lastName: customer.last_name,
+        phone: customer.phone
+      }
+    })
+
+    response.cookies.set('customer_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/'
+    })
+
+    return response
+
+  } catch (error: any) {
+    console.error('Login error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Giriş sırasında bir hata oluştu'
+    }, { status: 500 })
+  }
+}
+
