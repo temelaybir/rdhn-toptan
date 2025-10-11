@@ -406,41 +406,14 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Orders tablosuna da sipariş kaydını oluştur
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            order_number: paymentRequest.orderNumber,
-            user_id: null, // Guest order - RLS uyumluluğu için
-            email: paymentRequest.buyer.email,
-            phone: paymentRequest.buyer.phone || null,
-            status: 'PENDING',
-            payment_status: 'PENDING',
-            fulfillment_status: 'UNFULFILLED',
-            total_amount: paymentRequest.amount,
-            subtotal_amount: paymentRequest.amount,
-            tax_amount: 0,
-            shipping_amount: 0,
-            discount_amount: 0,
-            currency: paymentRequest.currency || 'TRY',
-            billing_address: paymentRequest.billingAddress || null,
-            shipping_address: paymentRequest.shippingAddress || null,
-            notes: `3D Secure payment - Conversation ID: ${paymentResult.conversationId}`
-          })
-
-        if (orderError) {
-          logger.error('❌ Orders kaydetme hatası:', { 
-            error: orderError,
-            orderNumber: paymentRequest.orderNumber,
-            conversationId: paymentResult.conversationId
-          })
-        } else {
-          logger.info('✅ Orders kaydedildi:', { 
-            orderNumber: paymentRequest.orderNumber,
-            conversationId: paymentResult.conversationId,
-            status: 'PENDING'
-          })
-        }
+        // ⚠️ NOT: Order zaten /api/orders route'unda oluşturuldu
+        // Burada sadece payment transaction kaydediyoruz, order kaydı oluşturmuyoruz
+        // Aksi halde duplicate order kayıtları oluşur!
+        
+        logger.info('ℹ️ Order zaten oluşturuldu, sadece payment transaction kaydedildi:', { 
+          orderNumber: paymentRequest.orderNumber,
+          conversationId: paymentResult.conversationId
+        })
       } catch (transactionError) {
         logger.error('💥 Payment transaction create error:', { 
           error: transactionError, 

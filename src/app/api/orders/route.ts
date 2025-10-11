@@ -312,11 +312,19 @@ export async function POST(request: NextRequest) {
     console.log('✅ Order created successfully:', order.id)
     
     // E-mail bildirimleri gönder (async, sipariş oluşturma sürecini yavaşlatmayacak)
+    // ⚠️ Address field isimleri normalize edildi (fullName veya contactName olabilir)
+    const customerName = billingAddress?.fullName || billingAddress?.contactName || 
+                         shippingAddress?.fullName || shippingAddress?.contactName || 
+                         'Müşteri'
+    const shippingName = shippingAddress?.fullName || shippingAddress?.contactName || 
+                         billingAddress?.fullName || billingAddress?.contactName || 
+                         'Müşteri'
+    
     const emailData = {
       orderNumber: orderNumber,
-      customerName: billingAddress?.contactName || shippingAddress?.contactName || 'Müşteri',
+      customerName: customerName,
       customerEmail: email,
-      customerPhone: phone,
+      customerPhone: phone || '',
       totalAmount: totalAmount,
       currency: currency,
       paymentMethod: paymentMethod,
@@ -326,13 +334,20 @@ export async function POST(request: NextRequest) {
         price: item.price
       })) || [],
       shippingAddress: {
-        fullName: shippingAddress?.contactName || 'Müşteri',
-        address: shippingAddress?.address || '',
+        fullName: shippingName,
+        address: shippingAddress?.address || shippingAddress?.addressLine1 || '',
         city: shippingAddress?.city || '',
         district: shippingAddress?.district || '',
-        phone: phone
+        phone: phone || ''
       }
     }
+    
+    console.log('📧 Email data hazırlandı:', {
+      orderNumber,
+      customerName,
+      customerEmail: email,
+      hasItems: (items?.length || 0) > 0
+    })
     
     // Admin'lere bildirim gönder (background'da)
     sendOrderNotification(emailData).catch(error => {

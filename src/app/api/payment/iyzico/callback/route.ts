@@ -717,9 +717,13 @@ async function handleCallback(request: NextRequest) {
                 })
                 
                 // ✅ Kredi kartı ödemesi başarılı - BizimHesap faturası oluştur
-                console.log('🧾 Kredi kartı ödemesi başarılı, fatura oluşturuluyor:', transaction.order_number)
+                // ⚠️ UUID kullanılmalı, order_number değil (multiple rows hatası önlenir)
+                console.log('🧾 Kredi kartı ödemesi başarılı, fatura oluşturuluyor:', {
+                  orderNumber: transaction.order_number,
+                  orderId: fullOrder.id
+                })
                 const invoiceService = getBizimHesapInvoiceService()
-                invoiceService.createInvoiceFromOrderId(fullOrder.id, {
+                invoiceService.createInvoiceFromOrderId(fullOrder.id, { // UUID kullan
                   invoiceType: InvoiceType.SALES,
                   createInvoiceRecord: true,
                   sendNotification: true

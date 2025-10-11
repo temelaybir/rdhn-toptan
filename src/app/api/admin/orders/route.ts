@@ -413,17 +413,23 @@ export async function PATCH(request: NextRequest) {
 
     // Customer'a durum değişikliği e-maili gönder (background)
     if (order && order.email) {
+      // Address field isimlerini normalize et (fullName veya contactName olabilir)
+      const billingName = order.billing_address?.fullName || order.billing_address?.contactName || 
+                          extractCustomerName(order.billing_address, order.shipping_address, order.email)
+      const shippingName = order.shipping_address?.fullName || order.shipping_address?.contactName || 
+                           extractCustomerName(order.billing_address, order.shipping_address, order.email)
+      
       const emailData = {
         orderNumber: order.order_number,
-        customerName: order.billing_address?.contactName || order.shipping_address?.contactName || 'Müşteri',
+        customerName: billingName,
         customerEmail: order.email,
         customerPhone: order.phone || '',
         totalAmount: parseFloat(order.total_amount) || 0,
         currency: order.currency || 'TRY',
         orderItems: [], // Boş array, detaylar gerekirse ayrı sorgu yapılabilir
         shippingAddress: {
-          fullName: order.shipping_address?.contactName || 'Müşteri',
-          address: order.shipping_address?.address || '',
+          fullName: shippingName,
+          address: order.shipping_address?.address || order.shipping_address?.addressLine1 || '',
           city: order.shipping_address?.city || '',
           district: order.shipping_address?.district || '',
           phone: order.phone || ''
