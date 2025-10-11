@@ -129,13 +129,13 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center py-12">
-            <ShoppingCart className="h-24 w-24 mx-auto text-muted-foreground mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Sepetiniz Boş</h1>
-            <p className="text-muted-foreground mb-6">
+          <div className="text-center py-8 md:py-12">
+            <ShoppingCart className="h-16 w-16 md:h-24 md:w-24 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-xl md:text-2xl font-bold mb-2">Sepetiniz Boş</h1>
+            <p className="text-sm md:text-base text-muted-foreground mb-6 px-4">
               Henüz sepetinizde ürün bulunmuyor. Alışverişe başlamak için ürünlerimizi inceleyin.
             </p>
-            <Button asChild>
+            <Button asChild className="h-10 md:h-11">
               <Link href="/urunler">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Alışverişe Devam Et
@@ -148,45 +148,121 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-sm mb-8">
+    <div className="min-h-screen bg-background py-2 md:py-8">
+      <div className="container mx-auto px-2 md:px-4 max-w-6xl">
+        {/* Breadcrumb - Desktop only */}
+        <nav className="hidden md:flex items-center space-x-2 text-sm mb-8">
           <Link href="/" className="text-muted-foreground hover:text-foreground">Ana Sayfa</Link>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
           <span className="text-foreground">Sepet</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-8">
           {/* Sol Taraf - Sepet Ürünleri */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold">
-                Sepetim ({cart.totalItems} Ürün)
+          <div className="lg:col-span-2 space-y-2 md:space-y-4">
+            <div className="flex items-center justify-between mb-3 md:mb-6 px-1">
+              <h1 className="text-lg md:text-2xl font-bold">
+                Sepetim ({cart.totalItems})
               </h1>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={handleClearCart}
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive h-8 px-2 md:px-4"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Sepeti Temizle
+                <Trash2 className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+                <span className="hidden md:inline">Sepeti Temizle</span>
               </Button>
             </div>
 
             {/* Ürün Listesi */}
-            <div className="space-y-4">
+            <div className="space-y-2 md:space-y-4">
               {items.map((item) => {
                 const itemTotal = item.product.price * item.quantity
                 const itemDiscount = 0 // İndirim sistemi henüz eklenmedi
                 
                 return (
-                  <Card key={item.id}>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Card key={item.id} className="shadow-sm">
+                    <CardContent className="p-2 md:p-4">
+                      {/* Mobile Layout */}
+                      <div className="md:hidden">
+                        <div className="flex gap-2">
+                          {/* Ürün Resmi */}
+                          <div className="w-16 h-16 flex-shrink-0">
+                            <div className="aspect-square bg-muted rounded overflow-hidden">
+                              <SafeImage
+                                src={item.product.images?.[0] || '/placeholder-product.svg'}
+                                alt={item.product.name}
+                                width={64}
+                                height={64}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Ürün Bilgileri */}
+                          <div className="flex-1 min-w-0">
+                            <Link 
+                              href={`/urunler/${item.productId}`}
+                              className="text-sm font-semibold line-clamp-2 hover:text-primary"
+                            >
+                              {item.product.name}
+                            </Link>
+                            {item.product.brand && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {item.product.brand}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-sm font-bold">
+                                {formatPrice(item.product.price)}
+                              </span>
+                              <div className="flex items-center gap-1 border rounded">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="px-2 text-sm min-w-[2rem] text-center">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                  disabled={item.maxQuantity ? item.quantity >= item.maxQuantity : false}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Toplam ve Sil */}
+                          <div className="flex flex-col items-end justify-between">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveItem(item.id, item.product.name)}
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-bold">
+                              {formatPrice(itemTotal)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desktop Layout */}
+                      <div className="hidden md:grid grid-cols-5 gap-4">
                         {/* Ürün Resmi */}
-                        <div className="md:col-span-1">
+                        <div className="col-span-1">
                           <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                             <SafeImage
                               src={item.product.images?.[0] || '/placeholder-product.svg'}
@@ -199,7 +275,7 @@ export default function CartPage() {
                         </div>
 
                         {/* Ürün Bilgileri */}
-                        <div className="md:col-span-2 space-y-2">
+                        <div className="col-span-2 space-y-2">
                           <Link 
                             href={`/urunler/${item.productId}`}
                             className="font-semibold hover:text-primary transition-colors"
@@ -224,7 +300,7 @@ export default function CartPage() {
                         </div>
 
                         {/* Miktar Kontrolü */}
-                        <div className="md:col-span-1 flex flex-col items-center justify-center space-y-2">
+                        <div className="col-span-1 flex flex-col items-center justify-center space-y-2">
                           <div className="flex items-center border rounded-md">
                             <Button
                               variant="ghost"
@@ -259,7 +335,7 @@ export default function CartPage() {
                         </div>
 
                         {/* Toplam Fiyat */}
-                        <div className="md:col-span-1 flex flex-col items-end justify-center">
+                        <div className="col-span-1 flex flex-col items-end justify-center">
                           <span className="text-lg font-bold">
                             {formatPrice(itemTotal)}
                           </span>
@@ -279,14 +355,14 @@ export default function CartPage() {
 
           {/* Sağ Taraf - Sipariş Özeti */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Sipariş Özeti</CardTitle>
+            <Card className="lg:sticky lg:top-4">
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="text-base md:text-lg">Sipariş Özeti</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6 pt-0">
                 {/* Promosyon Kodu */}
                 <div className="space-y-2">
-                  <Label htmlFor="promo">Promosyon Kodu</Label>
+                  <Label htmlFor="promo" className="text-xs md:text-sm">Promosyon Kodu</Label>
                   <div className="flex gap-2">
                     <Input
                       id="promo"
@@ -294,24 +370,27 @@ export default function CartPage() {
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       disabled={isPromoApplied}
+                      className="h-9 text-sm"
                     />
                     <Button 
                       variant="outline" 
                       onClick={isPromoApplied ? handleRemovePromo : handleApplyPromo}
                       disabled={isValidatingPromo || (!isPromoApplied && !promoCode)}
+                      size="icon"
+                      className="h-9 w-9 flex-shrink-0"
                     >
                       {isValidatingPromo ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : isPromoApplied ? (
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       ) : (
-                        <Tag className="h-4 w-4" />
+                        <Tag className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
                   {isPromoApplied && (
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
-                      <CheckCircle className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-green-600 text-xs md:text-sm">
+                      <CheckCircle className="h-3.5 w-3.5" />
                       Promosyon kodu uygulandı (-{formatPrice(promoDiscount)})
                     </div>
                   )}
@@ -320,36 +399,28 @@ export default function CartPage() {
                 <Separator />
 
                 {/* Fiyat Detayları */}
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {(() => {
                     const taxInfo = getTaxInfo()
                     const shippingInfo = getShippingInfo()
                     const finalTotal = getFinalTotal()
                     
-                    // Debug: KDV hesaplamalarını kontrol et
-                    console.log('🧮 Sepet KDV Hesaplamaları:', {
-                      priceBeforeTax: taxInfo.priceBeforeTax,
-                      taxAmount: taxInfo.taxAmount,
-                      totalWithTax: taxInfo.totalWithTax,
-                      finalTotal: finalTotal
-                    })
-                    
                     return (
                       <>
                         {/* Ara Toplam (KDV Hariç) */}
-                        <div className="flex justify-between text-sm">
-                          <span>Ara Toplam (KDV Hariç)</span>
-                          <span>{formatPrice(taxInfo.priceBeforeTax)}</span>
+                        <div className="flex justify-between text-xs md:text-sm">
+                          <span className="text-muted-foreground">Ara Toplam (KDV Hariç)</span>
+                          <span className="font-medium">{formatPrice(taxInfo.priceBeforeTax)}</span>
                         </div>
                         
                         {/* KDV */}
-                        <div className="flex justify-between text-sm">
-                          <span>KDV (%{taxInfo.taxRate})</span>
-                          <span>{formatPrice(taxInfo.taxAmount)}</span>
+                        <div className="flex justify-between text-xs md:text-sm">
+                          <span className="text-muted-foreground">KDV (%{taxInfo.taxRate})</span>
+                          <span className="font-medium">{formatPrice(taxInfo.taxAmount)}</span>
                         </div>
                         
                         {/* KDV Dahil Fiyat */}
-                        <div className="flex justify-between text-sm font-medium">
+                        <div className="flex justify-between text-xs md:text-sm font-medium">
                           <span>Ara Toplam (KDV Dahil)</span>
                           <span>{formatPrice(taxInfo.totalWithTax)}</span>
                         </div>
@@ -357,11 +428,11 @@ export default function CartPage() {
                         <Separator />
                         
                         {/* Kargo Bilgisi */}
-                        <div className="flex justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-green-600" />
+                        <div className="flex justify-between items-center text-xs md:text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="h-3.5 w-3.5 text-green-600" />
                             <span>Kargo</span>
-                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                            <Badge variant="secondary" className="text-[10px] md:text-xs bg-green-100 text-green-700 px-1.5 py-0">
                               ÜCRETSİZ
                             </Badge>
                           </div>
@@ -371,7 +442,7 @@ export default function CartPage() {
                         </div>
                         
                         {isPromoApplied && promoDiscount > 0 && (
-                          <div className="flex justify-between text-green-600 text-sm font-medium">
+                          <div className="flex justify-between text-green-600 text-xs md:text-sm font-medium">
                             <span>Promosyon İndirimi</span>
                             <span>-{formatPrice(promoDiscount)}</span>
                           </div>
@@ -380,13 +451,13 @@ export default function CartPage() {
                         <Separator />
                         
                         {/* Son Toplam */}
-                        <div className="flex justify-between text-lg font-bold">
-                          <span>Toplam</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm md:text-base font-semibold">Toplam</span>
                           <div className="text-right">
-                            <div className="text-lg font-bold">
+                            <div className="text-base md:text-lg font-bold">
                               {formatPrice(Math.max(0, finalTotal - promoDiscount))}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-[10px] md:text-xs text-muted-foreground">
                               KDV ve kargo dahil
                             </div>
                           </div>
@@ -398,8 +469,8 @@ export default function CartPage() {
 
                 <Separator />
 
-                {/* Güven Göstergeleri */}
-                <div className="space-y-2">
+                {/* Güven Göstergeleri - Desktop only */}
+                <div className="hidden md:flex flex-col space-y-2">
                   <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                     <Truck className="h-4 w-4" />
                     <span>Tüm siparişlerde ücretsiz kargo</span>
@@ -412,17 +483,16 @@ export default function CartPage() {
 
                 {/* Checkout Button */}
                 <Button 
-                  className="w-full" 
-                  size="lg"
+                  className="w-full h-10 md:h-11 text-sm md:text-base" 
                   onClick={handleCheckout}
                 >
                   Ödemeye Geç
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
 
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full h-9 md:h-10 text-sm" asChild>
                   <Link href="/urunler">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-3.5 w-3.5 mr-2" />
                     Alışverişe Devam Et
                   </Link>
                 </Button>
