@@ -235,34 +235,35 @@ export async function POST(request: NextRequest) {
     if (items && items.length > 0) {
       const orderItems = []
       
-      // Product ID lookup: legacy_id (number) → UUID conversion
       for (const item of items) {
-        let productUUID = null
+        // Product ID'yi string'e çevir ve direkt kullan
+        let productId = item.productId?.toString()
         
-        if (typeof item.productId === 'number' || !isNaN(Number(item.productId))) {
-          // Legacy ID ise, database'den UUID al
-          const { data: product } = await supabase
-            .from('products')
-            .select('id')
-            .eq('legacy_id', Number(item.productId))
-            .single()
-          
-          if (product) {
-            productUUID = product.id
-          }
-        } else {
-          // Zaten UUID ise direkt kullan
-          productUUID = item.productId
+        if (!productId) {
+          console.error(`[ORDER_ITEMS] Missing product ID for item:`, item)
+          continue
         }
         
-        if (!productUUID) {
-          console.error(`[ORDER_ITEMS] Product not found for ID: ${item.productId}`)
+        // Ürünün database'de var olduğunu doğrula
+        const { data: product, error: productError } = await supabase
+          .from('products')
+          .select('id')
+          .eq('id', productId)
+          .single()
+        
+        if (productError || !product) {
+          console.error(`[ORDER_ITEMS] Product not found for ID: ${productId}`, productError)
+          console.error(`[ORDER_ITEMS] Item details:`, { 
+            productId: item.productId, 
+            productName: item.productName,
+            price: item.price 
+          })
           continue // Skip this item, don't fail entire order
         }
         
         orderItems.push({
           order_id: order.id,
-          product_id: productUUID, // Artık doğru UUID
+          product_id: product.id, // Database'den dönen ID'yi kullan
           variant_id: item.variantId || null,
           quantity: item.quantity,
           price: item.price,
@@ -276,6 +277,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (orderItems.length === 0) {
+        console.error('[ORDER_ITEMS] No valid products found in order items:', items)
         throw new Error('Hiçbir geçerli ürün bulunamadı')
       }
 
