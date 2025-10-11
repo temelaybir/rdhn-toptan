@@ -205,14 +205,30 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState)
 
-  // LocalStorage'dan sepeti yükle
+  // LocalStorage'dan sepeti yükle + Migration
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('rdhn-commerce-cart')
       if (savedCart) {
         const cart = JSON.parse(savedCart)
-        // Veri doğrulaması yap
+        
+        // Migration: Eski number-based product ID'leri kontrol et
         if (cart && typeof cart === 'object' && Array.isArray(cart.items)) {
+          const hasOldNumberIds = cart.items.some((item: any) => 
+            typeof item.productId === 'number' || 
+            (item.product && typeof item.product.id === 'number')
+          )
+          
+          if (hasOldNumberIds) {
+            console.log('🔄 Eski sepet formatı tespit edildi (number ID), temizleniyor...')
+            localStorage.removeItem('rdhn-commerce-cart')
+            toast.info('Sepetiniz güncellendi. Lütfen ürünleri tekrar ekleyin.', {
+              duration: 6000,
+              description: 'Sistemimiz UUID formatına geçti.'
+            })
+            return // Eski sepeti yükleme
+          }
+          
           // Date'leri restore et
           const restoredCart = {
             ...cart,
