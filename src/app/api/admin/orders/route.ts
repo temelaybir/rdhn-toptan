@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
         phone,
         status,
         payment_status,
+        payment_method,
         fulfillment_status,
         total_amount,
         subtotal_amount,
@@ -233,16 +234,12 @@ export async function GET(request: NextRequest) {
       // Count total items
       const totalItems = order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0
 
-      // Determine payment method
-      let paymentMethod = 'Kredi Kartı' // default
-      
-      if (order.notes?.includes('banka_transfer') || order.notes?.includes('bank_transfer')) {
-        paymentMethod = 'Havale/EFT'
-      } else if (order.payment_status === 'awaiting_payment') {
-        paymentMethod = 'Havale/EFT'
-      } else if (order.notes?.includes('3D Secure')) {
-        paymentMethod = 'Kredi Kartı'
-      }
+      // ✅ Payment method artık doğrudan database'den geliyor
+      const paymentMethod = order.payment_method === 'bank_transfer' 
+        ? 'Banka Havalesi / EFT' 
+        : order.payment_method === 'credit_card'
+        ? 'Kredi Kartı'
+        : order.payment_method || 'Kredi Kartı' // fallback
 
       return {
         id: order.order_number || order.id,
@@ -399,7 +396,7 @@ export async function PATCH(request: NextRequest) {
       .from('orders')
       .update(updateData)
       .eq('order_number', orderId)
-      .select()
+      .select('*, payment_method') // ✅ payment_method'u da çek
       .single()
 
     if (error) {
@@ -446,12 +443,15 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    // ✅ Banka havalesi ödemesi onaylandıysa - BizimHesap faturası oluştur
-    if (paymentStatus === 'paid' && order) {
-      console.log('🧾 Banka havalesi onaylandı, fatura oluşturuluyor:', {
+    // ✅ Sipariş "İşleme Alındı" (PENDING) durumuna getirildiğinde - BizimHesap faturası oluştur
+    // NOT: Bu her sipariş türü için geçerlidir (kredi kartı, banka havalesi, vb.)
+    if (order && dbStatus === 'PENDING') {
+      console.log('🧾 Sipariş "İşleme Alındı" durumuna getirildi, fatura oluşturuluyor:', {
         orderId: order.id,
         orderNumber: order.order_number,
-        paymentStatus: paymentStatus
+        status: dbStatus,
+        paymentMethod: order.payment_method,
+        paymentStatus: order.payment_status
       })
       
       try {
@@ -465,28 +465,29 @@ export async function PATCH(request: NextRequest) {
           sendNotification: true
         }).then(result => {
           if (result.success) {
-            console.log('✅ Banka havalesi faturası başarıyla oluşturuldu:', {
+            console.log('✅ Sipariş faturası başarıyla oluşturuldu:', {
               orderNumber: order.order_number,
+              paymentMethod: order.payment_method,
               invoiceGuid: result.invoiceGuid
             })
           } else {
-            console.error('❌ Banka havalesi faturası oluşturulamadı:', result.error)
+            console.error('❌ Sipariş faturası oluşturulamadı:', result.error)
           }
         }).catch(error => {
-          console.error('❌ Banka havalesi fatura exception:', error)
+          console.error('❌ Fatura oluşturma hatası:', error)
         })
         
-        console.log('🚀 Banka havalesi fatura işlemi başlatıldı')
+        console.log('🚀 Fatura işlemi başlatıldı (async)')
       } catch (invoiceError) {
         console.error('❌ Fatura servisi yüklenemedi:', invoiceError)
       }
-    } else {
+    } else if (order && dbStatus !== 'PENDING') {
       // Debug: Neden fatura oluşturulmadı?
-      if (!order) {
-        console.warn('⚠️ Order bulunamadı, fatura oluşturulamadı')
-      } else if (paymentStatus !== 'paid') {
-        console.warn('⚠️ PaymentStatus "paid" değil:', paymentStatus, '- Fatura oluşturulmadı')
-      }
+      console.log('ℹ️ Fatura oluşturulmadı - Durum "İşleme Alındı" değil:', {
+        orderNumber: order.order_number,
+        currentStatus: dbStatus,
+        requiredStatus: 'PENDING'
+      })
     }
 
     return NextResponse.json({

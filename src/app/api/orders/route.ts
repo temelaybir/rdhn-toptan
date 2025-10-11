@@ -218,6 +218,7 @@ export async function POST(request: NextRequest) {
         tax_office: taxOffice,
         status: paymentMethod === 'bank_transfer' ? 'awaiting_payment' : 'pending',
         payment_status: paymentStatus,
+        payment_method: paymentMethod, // ✅ Ödeme yöntemi kaydediliyor
         fulfillment_status: 'unfulfilled',
         total_amount: totalAmount,
         subtotal_amount: subtotalAmount,
