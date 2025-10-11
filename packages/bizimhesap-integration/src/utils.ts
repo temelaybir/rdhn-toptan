@@ -88,7 +88,20 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     hasAddress: !!customer.billingAddress
   })
 
-  const items: OrderItem[] = (supabaseOrder.order_items || supabaseOrder.items || []).map((item: any) => {
+  // Order items debug
+  const rawOrderItems = supabaseOrder.order_items || supabaseOrder.items || []
+  console.log('🔍 Raw order_items:', {
+    hasOrderItems: !!supabaseOrder.order_items,
+    hasItems: !!supabaseOrder.items,
+    length: rawOrderItems.length,
+    firstItem: rawOrderItems.length > 0 ? {
+      product_id: rawOrderItems[0].product_id,
+      quantity: rawOrderItems[0].quantity,
+      unit_price: rawOrderItems[0].unit_price
+    } : null
+  })
+
+  const items: OrderItem[] = rawOrderItems.map((item: any) => {
     // Product bilgilerini join'den al
     const product = item.product || {}
     
