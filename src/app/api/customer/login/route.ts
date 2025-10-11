@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
-import { SignJWT } from 'jose'
+import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
-)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,15 +58,17 @@ export async function POST(request: NextRequest) {
       .eq('id', customer.id)
 
     // Create JWT token
-    const token = await new SignJWT({
-      customerId: customer.id,
-      email: customer.email,
-      type: 'customer'
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(JWT_SECRET)
+    const token = jwt.sign(
+      {
+        customerId: customer.id,
+        email: customer.email,
+        type: 'customer'
+      },
+      JWT_SECRET,
+      {
+        expiresIn: '30d'
+      }
+    )
 
     // Set cookie
     const response = NextResponse.json({
