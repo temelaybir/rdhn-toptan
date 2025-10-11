@@ -28,8 +28,9 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     phone: supabaseOrder.customer_phone || supabaseOrder.phone
   }
 
-  // Billing address'i string'e dönüştür
+  // Billing address'i string'e dönüştür ve fullName'i çıkar
   let billingAddressString = 'Adres bilgisi eksik'
+  let billingFullName = ''
   
   if (supabaseOrder.billing_address) {
     if (typeof supabaseOrder.billing_address === 'string') {
@@ -37,6 +38,7 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     } else if (typeof supabaseOrder.billing_address === 'object') {
       // Object ise, adres parçalarını birleştir
       const addr = supabaseOrder.billing_address
+      billingFullName = addr.fullName || '' // fullName'i kaydet
       const parts = [
         addr.addressLine1,
         addr.addressLine2,
@@ -54,13 +56,25 @@ export function convertSupabaseOrderToBizimHesap(supabaseOrder: any): ECommerceO
     }
   }
 
+  // Müşteri adını belirle (öncelik sırasına göre)
+  let customerName = 'Müşteri' // Default fallback
+  
+  if (customerData.first_name && customerData.last_name) {
+    customerName = `${customerData.first_name} ${customerData.last_name}`.trim()
+  } else if (directCustomer.first_name && directCustomer.last_name) {
+    customerName = `${directCustomer.first_name} ${directCustomer.last_name}`.trim()
+  } else if (billingFullName) {
+    customerName = billingFullName.trim()
+  } else if (supabaseOrder.customer_name) {
+    customerName = supabaseOrder.customer_name
+  } else if (supabaseOrder.company_name) {
+    // Kurumsal müşteri ise şirket adını kullan
+    customerName = supabaseOrder.company_name
+  }
+
   const customer: OrderCustomer = {
     id: supabaseOrder.customer_id || supabaseOrder.id,
-    name: (customerData.first_name && customerData.last_name) 
-      ? `${customerData.first_name} ${customerData.last_name}`.trim()
-      : (directCustomer.first_name && directCustomer.last_name)
-      ? `${directCustomer.first_name} ${directCustomer.last_name}`.trim()
-      : supabaseOrder.customer_name || 'Müşteri',
+    name: customerName,
     email: customerData.email || directCustomer.email || supabaseOrder.customer_email,
     phone: customerData.phone || directCustomer.phone || supabaseOrder.customer_phone,
     taxNumber: supabaseOrder.tax_number,

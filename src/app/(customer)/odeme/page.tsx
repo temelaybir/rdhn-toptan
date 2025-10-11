@@ -109,6 +109,11 @@ export default function CheckoutPage() {
   
   // Form data
   const [formData, setFormData] = useState<CheckoutFormData>({
+    customerType: 'individual', // Default: Bireysel
+    identityNumber: '',
+    companyName: '',
+    taxNumber: '',
+    taxOffice: '',
     deliveryAddress: {
       fullName: '',
       phone: '',
@@ -342,6 +347,14 @@ export default function CheckoutPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
+        // Müşteri tipi kontrolü
+        if (formData.customerType === 'corporate') {
+          if (!formData.companyName || !formData.taxNumber || !formData.taxOffice) {
+            toast.error('Kurumsal müşteriler için şirket adı, vergi numarası ve vergi dairesi zorunludur')
+            return false
+          }
+        }
+        
         const { fullName, phone, email, addressLine1, city, district } = formData.deliveryAddress
         if (!fullName || !phone || !email || !addressLine1 || !city || !district) {
           toast.error('Lütfen tüm zorunlu alanları doldurun')
@@ -1027,6 +1040,12 @@ export default function CheckoutPage() {
         orderNumber,
         email: formData.deliveryAddress.email,
         phone: formData.deliveryAddress.phone,
+        // Müşteri tipi bilgileri
+        customerType: formData.customerType,
+        identityNumber: formData.identityNumber,
+        companyName: formData.companyName,
+        taxNumber: formData.taxNumber,
+        taxOffice: formData.taxOffice,
         totalAmount: total,
         subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV dahil
         taxAmount: items.reduce((sum, item) => {
@@ -1243,20 +1262,20 @@ export default function CheckoutPage() {
            },
            
            // Müşteri bilgileri (Backend schema formatı) - billing ya da delivery kullan
-           buyer: (() => {
-             const addressToUse = formData.sameAsDelivery ? formData.deliveryAddress : formData.billingAddress
-             return {
-               name: addressToUse?.fullName?.split(' ')[0] || '',
-               surname: addressToUse?.fullName?.split(' ').slice(1).join(' ') || '',
-               email: addressToUse?.email || '',
-               phone: addressToUse?.phone || '',
-               identityNumber: '11111111111', // Gerçek uygulamada TC no
-               address: addressToUse?.addressLine1 || '',
-               city: addressToUse?.city || '',
-               country: 'Turkey',
-               zipCode: addressToUse?.postalCode || '34000'
-             }
-           })(),
+          buyer: (() => {
+            const addressToUse = formData.sameAsDelivery ? formData.deliveryAddress : formData.billingAddress
+            return {
+              name: formData.customerType === 'corporate' ? formData.companyName : addressToUse?.fullName?.split(' ')[0] || '',
+              surname: formData.customerType === 'corporate' ? '' : addressToUse?.fullName?.split(' ').slice(1).join(' ') || '',
+              email: addressToUse?.email || '',
+              phone: addressToUse?.phone || '',
+              identityNumber: formData.identityNumber || '11111111111', // TC Kimlik No veya default
+              address: addressToUse?.addressLine1 || '',
+              city: addressToUse?.city || '',
+              country: 'Turkey',
+              zipCode: addressToUse?.postalCode || '34000'
+            }
+          })(),
            
            // Adres bilgileri (Backend schema formatı)
            shippingAddress: {
@@ -2311,6 +2330,87 @@ export default function CheckoutPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6 pt-0">
+                {/* Müşteri Tipi Seçimi */}
+                <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+                  <Label className="text-base font-semibold">Müşteri Tipi *</Label>
+                  <RadioGroup
+                    value={formData.customerType}
+                    onValueChange={(value: 'individual' | 'corporate') => 
+                      setFormData(prev => ({ ...prev, customerType: value }))
+                    }
+                    className="flex flex-col sm:flex-row gap-4"
+                  >
+                    <div className="flex items-center space-x-2 flex-1">
+                      <RadioGroupItem value="individual" id="individual" className="shrink-0" />
+                      <Label htmlFor="individual" className="cursor-pointer flex-1 py-2">
+                        👤 Bireysel Müşteri
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 flex-1">
+                      <RadioGroupItem value="corporate" id="corporate" className="shrink-0" />
+                      <Label htmlFor="corporate" className="cursor-pointer flex-1 py-2">
+                        🏢 Kurumsal Müşteri
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {/* Bireysel için TC Kimlik No */}
+                  {formData.customerType === 'individual' && (
+                    <div className="pt-2">
+                      <Label htmlFor="identityNumber">TC Kimlik No (Opsiyonel)</Label>
+                      <Input
+                        id="identityNumber"
+                        value={formData.identityNumber || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, identityNumber: e.target.value }))}
+                        placeholder="12345678901"
+                        maxLength={11}
+                        className="max-w-md"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fatura için gerekli olabilir
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Kurumsal için Şirket Bilgileri */}
+                  {formData.customerType === 'corporate' && (
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <Label htmlFor="companyName">Şirket Adı *</Label>
+                        <Input
+                          id="companyName"
+                          value={formData.companyName || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                          placeholder="ABC Teknoloji A.Ş."
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="taxNumber">Vergi Numarası *</Label>
+                          <Input
+                            id="taxNumber"
+                            value={formData.taxNumber || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, taxNumber: e.target.value }))}
+                            placeholder="1234567890"
+                            maxLength={10}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="taxOffice">Vergi Dairesi *</Label>
+                          <Input
+                            id="taxOffice"
+                            value={formData.taxOffice || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, taxOffice: e.target.value }))}
+                            placeholder="Kadıköy"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Separator className="my-4" />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="fullName">Ad Soyad *</Label>

@@ -130,12 +130,20 @@ export class BizimHesapService {
     }
 
     // Ürün detaylarını dönüştür
+    // NOT: Fiyatlar zaten KDV dahil olarak geldiği için tersden hesaplama yapıyoruz
     const details: InvoiceDetail[] = order.items.map(item => {
-      const grossPrice = item.quantity * item.unitPrice
+      // Fiyat KDV dahil olarak geldiği için önce brüt tutarı hesapla
+      const grossPriceWithVAT = item.quantity * item.unitPrice  // KDV dahil toplam
       const discountAmount = item.discount || 0
-      const net = grossPrice - discountAmount
-      const tax = net * (item.taxRate / 100)
-      const total = net + tax
+      const totalWithVAT = grossPriceWithVAT - discountAmount  // KDV dahil net toplam
+      
+      // KDV dahil fiyattan KDV hariç tutarı hesapla
+      const taxRateMultiplier = 1 + (item.taxRate / 100)  // 1.18 for %18 KDV
+      const net = totalWithVAT / taxRateMultiplier         // KDV hariç tutar
+      const tax = totalWithVAT - net                       // KDV tutarı
+      
+      // Birim fiyatı da KDV hariç hesapla
+      const unitPriceWithoutVAT = item.unitPrice / taxRateMultiplier
 
       return {
         productId: item.id,
@@ -144,12 +152,12 @@ export class BizimHesapService {
         barcode: item.barcode,
         taxRate: item.taxRate,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        grossPrice,
+        unitPrice: Math.round(unitPriceWithoutVAT * 100) / 100,  // KDV hariç birim fiyat
+        grossPrice: Math.round(net * 100) / 100,                 // KDV hariç toplam (net)
         discount: discountAmount.toString(),
-        net,
-        tax,
-        total
+        net: Math.round(net * 100) / 100,
+        tax: Math.round(tax * 100) / 100,
+        total: Math.round(totalWithVAT * 100) / 100              // KDV dahil toplam
       }
     })
 
@@ -169,9 +177,19 @@ export class BizimHesapService {
       total
     }
 
-    // Tarih formatları
-    const invoiceDate = order.orderDate.toISOString()
-    const dueDate = order.dueDate ? order.dueDate.toISOString() : order.orderDate.toISOString()
+    // Tarih formatları - Türkiye saati (UTC+3) ile şu anki zaman
+    const nowTurkey = new Date()
+    // Türkiye saatine çevir (UTC+3)
+    nowTurkey.setHours(nowTurkey.getHours() + 3)
+    
+    const invoiceDate = nowTurkey.toISOString()
+    const dueDate = nowTurkey.toISOString()
+
+    console.log('📅 Fatura tarihi (Türkiye saati):', {
+      invoiceDate,
+      dueDate,
+      localTime: nowTurkey.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+    })
 
     return {
       firmId: this.config.firmId,
@@ -280,8 +298,16 @@ export class BizimHesapService {
         invoiceType: InvoiceType.SALES,
         note: 'Test bağlantısı',
         dates: {
-          invoiceDate: new Date().toISOString(),
-          dueDate: new Date().toISOString()
+          invoiceDate: (() => {
+            const now = new Date()
+            now.setHours(now.getHours() + 3) // Türkiye saati
+            return now.toISOString()
+          })(),
+          dueDate: (() => {
+            const now = new Date()
+            now.setHours(now.getHours() + 3) // Türkiye saati
+            return now.toISOString()
+          })()
         },
         customer: {
           customerId: 'TEST-CUSTOMER',

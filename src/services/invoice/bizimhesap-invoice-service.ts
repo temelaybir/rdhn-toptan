@@ -4,12 +4,10 @@ import type {
   BizimHesapInvoiceResult,
   ECommerceOrder
 } from '@catkapinda/bizimhesap-integration'
+import { InvoiceType } from '@catkapinda/bizimhesap-integration'
 
-// BizimHesap Integration Types
-export enum InvoiceType {
-  SALES = 'SALES',
-  PURCHASE = 'PURCHASE'
-}
+// Re-export InvoiceType for backwards compatibility
+export { InvoiceType }
 
 export interface InvoiceCreationResult {
   success: boolean

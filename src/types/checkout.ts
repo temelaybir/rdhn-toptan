@@ -78,6 +78,11 @@ export interface AlternativeAccount {
 }
 
 export interface CheckoutFormData {
+  customerType: 'individual' | 'corporate' // Müşteri tipi
+  identityNumber?: string // TC Kimlik No (bireysel için opsiyonel)
+  companyName?: string // Şirket adı (kurumsal için zorunlu)
+  taxNumber?: string // Vergi numarası (kurumsal için zorunlu)
+  taxOffice?: string // Vergi dairesi (kurumsal için zorunlu)
   deliveryAddress: Address
   billingAddress: Address
   sameAsDelivery: boolean

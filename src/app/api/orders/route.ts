@@ -133,6 +133,12 @@ export async function POST(request: NextRequest) {
       orderNumber,
       email,
       phone,
+      // Müşteri tipi bilgileri
+      customerType = 'individual',
+      identityNumber,
+      companyName,
+      taxNumber,
+      taxOffice,
       totalAmount,
       subtotalAmount,
       taxAmount = 0,
@@ -207,6 +213,12 @@ export async function POST(request: NextRequest) {
         customer_id: customerId, // Yeni customer_id alanı
         email,
         phone,
+        // Müşteri tipi bilgileri
+        customer_type: customerType,
+        identity_number: identityNumber,
+        company_name: companyName,
+        tax_number: taxNumber,
+        tax_office: taxOffice,
         status: paymentMethod === 'bank_transfer' ? 'awaiting_payment' : 'pending',
         payment_status: paymentStatus,
         fulfillment_status: 'unfulfilled',
