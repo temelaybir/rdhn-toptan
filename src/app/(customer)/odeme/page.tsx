@@ -1297,13 +1297,13 @@ export default function CheckoutPage() {
              }
            })(),
            
-           // Sepet items (Backend schema: "category" not "category1")
-           basketItems: items.map(item => ({
-             id: item.id.toString(),
-             name: item.product.name,
-             category: item.product.category || 'Genel',
-             price: item.product.price
-           }))
+          // Sepet items (Backend schema: "category" not "category1")
+          basketItems: items.map(item => ({
+            id: item.product.id.toString(), // ✅ Product UUID (not cart item ID!)
+            name: item.product.name,
+            category: item.product.category || 'Genel',
+            price: item.product.price
+          }))
          })
        })
 
