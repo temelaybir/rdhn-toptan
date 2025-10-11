@@ -77,6 +77,11 @@ export default function CheckoutPage() {
   const modalContainerRef = useRef<HTMLDivElement | null>(null)
   
   const [currentStep, setCurrentStep] = useState(1)
+  
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [currentStep])
   const [isProcessing, setIsProcessing] = useState(false)
   const [is3DSecureWaiting, setIs3DSecureWaiting] = useState(false)
   const [currentOrderNumber, setCurrentOrderNumber] = useState<string | null>(null)
@@ -2145,7 +2150,7 @@ export default function CheckoutPage() {
   }, [router, toast, clearCart]) // currentOrderNumber kaldırıldı - modal kapatma sorununu çözer
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 md:px-4 py-3 md:py-8">
       {/* Payment Error Banner */}
       {paymentError && (
         <div className="max-w-3xl mx-auto mb-6">
@@ -2192,29 +2197,31 @@ export default function CheckoutPage() {
       
       {/* Login Status Banner */}
       {!currentCustomer && (
-        <Card className="mb-6 bg-blue-50 border-blue-200">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <LogIn className="h-5 w-5 text-blue-600" />
+        <Card className="mb-3 md:mb-6 bg-blue-50 border-blue-200">
+          <CardContent className="py-2.5 md:py-4 px-3 md:px-6">
+            <div className="flex items-center justify-between flex-wrap gap-2 md:gap-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <LogIn className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">
+                  <p className="text-xs md:text-sm font-medium text-blue-900">
                     Üye değil misiniz?
                   </p>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-[10px] md:text-xs text-blue-700 hidden sm:block">
                     Giriş yaparak kayıtlı adreslerinizi kullanabilir ve siparişlerinizi takip edebilirsiniz
                   </p>
                 </div>
               </div>
               <Button 
                 variant="outline" 
-                className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                size="sm"
+                className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 text-xs md:text-sm h-8 md:h-9"
                 onClick={() => router.push(`/auth/login?redirect=${encodeURIComponent('/odeme')}`)}
               >
-                <LogIn className="w-4 h-4 mr-2" />
-                Giriş Yap / Üye Ol
+                <LogIn className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Giriş Yap / Üye Ol</span>
+                <span className="sm:hidden">Giriş</span>
               </Button>
             </div>
           </CardContent>
@@ -2223,18 +2230,18 @@ export default function CheckoutPage() {
 
       {/* Current Customer Info */}
       {currentCustomer && (
-        <Card className="mb-6 bg-green-50 border-green-200">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+        <Card className="mb-3 md:mb-6 bg-green-50 border-green-200">
+          <CardContent className="py-2.5 md:py-4 px-3 md:px-6">
+            <div className="flex items-center justify-between flex-wrap gap-2 md:gap-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-green-900">
+                  <p className="text-xs md:text-sm font-medium text-green-900">
                     Hoş geldiniz, {currentCustomer.first_name || currentCustomer.email}!
                   </p>
-                  <p className="text-xs text-green-700">
+                  <p className="text-[10px] md:text-xs text-green-700 hidden sm:block">
                     Kayıtlı adres bilgileriniz otomatik olarak gelecektir
                   </p>
                 </div>
@@ -2242,7 +2249,7 @@ export default function CheckoutPage() {
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="text-green-700 hover:bg-green-100"
+                className="text-green-700 hover:bg-green-100 text-xs md:text-sm h-8 md:h-9"
                 onClick={() => {
                   sessionStorage.removeItem('customer')
                   setCurrentCustomer(null)
@@ -2257,14 +2264,14 @@ export default function CheckoutPage() {
       )}
 
       {/* Progress Steps */}
-      <div className="max-w-3xl mx-auto mb-8">
+      <div className="max-w-3xl mx-auto mb-4 md:mb-8">
         <div className="flex items-center justify-between">
           {checkoutSteps.map((step, index) => (
             <div key={step.id} className="flex items-center flex-1">
               <button
                 onClick={() => goToStep(step.id)}
                 disabled={step.id > currentStep && !checkoutSteps[step.id - 2]?.completed}
-                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                className={`flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full border-2 transition-colors ${
                   step.completed
                     ? 'bg-primary border-primary text-primary-foreground'
                     : step.active
@@ -2272,17 +2279,17 @@ export default function CheckoutPage() {
                     : 'border-muted-foreground text-muted-foreground'
                 }`}
               >
-                {step.completed ? <CheckCircle className="h-5 w-5" /> : step.id}
+                {step.completed ? <CheckCircle className="h-4 w-4 md:h-5 md:w-5" /> : step.id}
               </button>
-              <div className="ml-3 flex-1">
-                <p className={`text-sm font-medium ${
+              <div className="ml-1 md:ml-3 flex-1">
+                <p className={`text-xs md:text-sm font-medium ${
                   step.active ? 'text-primary' : 'text-muted-foreground'
                 }`}>
                   {step.label}
                 </p>
               </div>
               {index < checkoutSteps.length - 1 && (
-                <div className={`h-0.5 flex-1 mx-4 ${
+                <div className={`h-0.5 flex-1 mx-1 md:mx-4 ${
                   step.completed ? 'bg-primary' : 'bg-muted'
                 }`} />
               )}
@@ -2291,19 +2298,19 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-8">
         {/* Left - Form Steps */}
         <div className="lg:col-span-2">
           {/* Step 1: Delivery Address */}
           {currentStep === 1 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <MapPin className="h-4 w-4 md:h-5 md:w-5" />
                   Teslimat Adresi
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6 pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="fullName">Ad Soyad *</Label>
@@ -2478,16 +2485,16 @@ export default function CheckoutPage() {
                   </Label>
                 </div>
 
-                <div className="flex justify-between">
-                  <Button variant="outline" asChild>
+                <div className="flex justify-between gap-2">
+                  <Button variant="outline" asChild size="sm" className="h-9 md:h-10">
                     <Link href="/sepet">
-                      <ChevronLeft className="h-4 w-4 mr-2" />
-                      Sepete Dön
+                      <ChevronLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="text-xs md:text-sm">Sepete Dön</span>
                     </Link>
                   </Button>
-                  <Button onClick={nextStep}>
-                    Devam Et
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                  <Button onClick={nextStep} size="sm" className="h-9 md:h-10">
+                    <span className="text-xs md:text-sm">Devam Et</span>
+                    <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 ml-1 md:ml-2" />
                   </Button>
                 </div>
               </CardContent>
@@ -2497,13 +2504,13 @@ export default function CheckoutPage() {
           {/* Step 2: Payment Method */}
           {currentStep === 2 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
                   Ödeme Yöntemi
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 md:space-y-6 p-3 md:p-6 pt-0">
                 {isLoadingPaymentSettings ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="flex items-center gap-2">
@@ -2525,13 +2532,13 @@ export default function CheckoutPage() {
                     }
                   >
                     {paymentMethods.map((method) => (
-                      <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg">
-                        <RadioGroupItem value={method.type} id={method.id} />
+                      <div key={method.id} className="flex items-center space-x-2 p-2.5 md:p-4 border rounded-lg hover:border-primary/50 transition-colors">
+                        <RadioGroupItem value={method.type} id={method.id} className="shrink-0" />
                         <Label htmlFor={method.id} className="flex-1 cursor-pointer">
                           <div className="flex items-center gap-2">
-                            {method.icon === 'CreditCard' && <CreditCard className="h-4 w-4" />}
-                            {method.icon === 'Banknote' && <Banknote className="h-4 w-4" />}
-                            <span className="font-medium">{method.label}</span>
+                            {method.icon === 'CreditCard' && <CreditCard className="h-4 w-4 shrink-0" />}
+                            {method.icon === 'Banknote' && <Banknote className="h-4 w-4 shrink-0" />}
+                            <span className="font-medium text-sm md:text-base">{method.label}</span>
                           </div>
                         </Label>
                       </div>
@@ -2618,8 +2625,9 @@ export default function CheckoutPage() {
                         id="saveCard"
                         checked={formData.cardDetails?.saveCard || false}
                         onCheckedChange={(checked) => updateCardDetails('saveCard', checked as boolean)}
+                        className="shrink-0"
                       />
-                      <Label htmlFor="saveCard" className="cursor-pointer text-sm">
+                      <Label htmlFor="saveCard" className="cursor-pointer text-xs md:text-sm leading-tight">
                         Kartımı sonraki alışverişlerim için kaydet
                       </Label>
                     </div>
@@ -2750,24 +2758,26 @@ export default function CheckoutPage() {
 
 
 
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={prevStep}>
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Geri
+                <div className="flex justify-between gap-2">
+                  <Button variant="outline" onClick={prevStep} size="sm" className="h-9 md:h-10">
+                    <ChevronLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+                    <span className="text-xs md:text-sm">Geri</span>
                   </Button>
                   <Button 
                     onClick={nextStep}
                     disabled={isLoadingPaymentSettings || paymentMethods.length === 0}
+                    size="sm"
+                    className="h-9 md:h-10"
                   >
                     {isLoadingPaymentSettings ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Yükleniyor...
+                        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2 animate-spin" />
+                        <span className="text-xs md:text-sm">Yükleniyor...</span>
                       </>
                     ) : (
                       <>
-                        Devam Et
-                        <ChevronRight className="h-4 w-4 ml-2" />
+                        <span className="text-xs md:text-sm">Devam Et</span>
+                        <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 ml-1 md:ml-2" />
                       </>
                     )}
                   </Button>
@@ -2852,23 +2862,24 @@ export default function CheckoutPage() {
 
               {/* Terms and Conditions */}
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center space-x-3">
+                <CardContent className="pt-4 md:pt-6 pb-3 md:pb-4">
+                  <div className="flex items-start space-x-2 md:space-x-3">
                     <Checkbox
                       id="acceptTerms"
                       checked={formData.acceptTerms}
                       onCheckedChange={(checked) => 
                         setFormData(prev => ({ ...prev, acceptTerms: checked as boolean }))
                       }
+                      className="shrink-0 mt-0.5"
                     />
-                    <Label htmlFor="acceptTerms" className="cursor-pointer text-sm">
+                    <Label htmlFor="acceptTerms" className="cursor-pointer text-xs md:text-sm leading-tight">
                       <Link href="/sozlesmeler/satis" className="underline text-primary hover:text-primary/80">Satış sözleşmesi</Link> ve{' '}
                       <Link href="/sozlesmeler/gizlilik" className="underline text-primary hover:text-primary/80">gizlilik politikası</Link>'nı okudum ve kabul ediyorum.
                     </Label>
                   </div>
                   {!formData.acceptTerms && (
-                    <div className="flex items-center gap-2 text-amber-600 text-xs mt-2 ml-7">
-                      <AlertCircle className="h-3 w-3" />
+                    <div className="flex items-center gap-1.5 md:gap-2 text-amber-600 text-[10px] md:text-xs mt-2 ml-6 md:ml-7">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
                       <span>Siparişi tamamlamak için sözleşmeleri kabul etmeniz gerekmektedir.</span>
                     </div>
                   )}
@@ -2938,25 +2949,26 @@ export default function CheckoutPage() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={prevStep} disabled={is3DSecureWaiting}>
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Geri
+              <div className="flex justify-between gap-2">
+                <Button variant="outline" onClick={prevStep} disabled={is3DSecureWaiting} size="sm" className="h-9 md:h-10">
+                  <ChevronLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span className="text-xs md:text-sm">Geri</span>
                 </Button>
                 <Button 
                   onClick={completeOrder} 
                   disabled={!formData.acceptTerms || isProcessing || is3DSecureWaiting}
-                  className="min-w-[150px]"
+                  size="sm"
+                  className="min-w-[120px] md:min-w-[150px] h-9 md:h-10"
                 >
                   {isProcessing ? (
                     <>
-                      <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                      İşleniyor...
+                      <div className="h-3.5 w-3.5 md:h-4 md:w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-1 md:mr-2" />
+                      <span className="text-xs md:text-sm">İşleniyor...</span>
                     </>
                   ) : (
                     <>
-                      Siparişi Tamamla
-                      <ShieldCheck className="h-4 w-4 ml-2" />
+                      <span className="text-xs md:text-sm">Siparişi Tamamla</span>
+                      <ShieldCheck className="h-3.5 w-3.5 md:h-4 md:w-4 ml-1 md:ml-2" />
                     </>
                   )}
                 </Button>
@@ -2967,20 +2979,20 @@ export default function CheckoutPage() {
 
         {/* Right - Order Summary (Sticky) */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Sipariş Özeti</CardTitle>
+          <Card className="lg:sticky lg:top-4">
+            <CardHeader className="p-3 md:p-6">
+              <CardTitle className="text-base md:text-lg">Sipariş Özeti</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6 pt-0">
               {/* Items */}
-              <div className="space-y-3 max-h-60 overflow-y-auto">
+              <div className="space-y-2 md:space-y-3 max-h-48 md:max-h-60 overflow-y-auto">
                 {items.map((item) => (
-                  <div key={item.product.id} className="flex justify-between text-sm">
+                  <div key={item.product.id} className="flex justify-between text-xs md:text-sm">
                     <div className="flex-1 pr-2">
-                      <p className="font-medium line-clamp-1">{item.product.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.quantity} adet</p>
+                      <p className="font-medium line-clamp-2">{item.product.name}</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground">{item.quantity} adet</p>
                     </div>
-                    <p className="font-medium">
+                    <p className="font-medium shrink-0">
                       {(item.product.price * item.quantity).toLocaleString('tr-TR')} ₺
                     </p>
                   </div>
@@ -2990,21 +3002,21 @@ export default function CheckoutPage() {
               <Separator />
 
               {/* Price Details */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Ara Toplam</span>
-                  <span>{subtotal.toLocaleString('tr-TR')} ₺</span>
+              <div className="space-y-1.5 md:space-y-2">
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-muted-foreground">Ara Toplam</span>
+                  <span className="font-medium">{subtotal.toLocaleString('tr-TR')} ₺</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
+                  <div className="flex justify-between text-xs md:text-sm text-green-600">
                     <span>İndirimler</span>
                     <span>-{discount.toLocaleString('tr-TR')} ₺</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <div className="flex items-center gap-2">
+                <div className="flex justify-between text-xs md:text-sm">
+                  <div className="flex items-center gap-1.5">
                     <span>Kargo</span>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-[9px] md:text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
                       ÜCRETSİZ
                     </span>
                   </div>

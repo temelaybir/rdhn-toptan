@@ -62,6 +62,7 @@ export function CartIcon({
             className={cn(
               "absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold",
               "animate-in fade-in zoom-in duration-200",
+              "max-sm:bg-transparent max-sm:text-foreground max-sm:border-0", // Mobilde arkaplan yok
               isAnimating && "animate-bounce"
             )}
           >

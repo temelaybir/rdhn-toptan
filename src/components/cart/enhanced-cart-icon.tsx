@@ -56,7 +56,8 @@ export function EnhancedCartIcon({
             className={cn(
               "absolute flex items-center justify-center p-0 text-xs font-bold",
               "-top-2 -right-2 h-6 w-6 md:-top-2 md:-right-2", // Desktop position
-              "sm:-bottom-1 sm:-right-1 sm:h-4 sm:w-4 sm:text-[10px]" // Mobile position - alt sağ
+              "sm:-bottom-1 sm:-right-1 sm:h-4 sm:w-4 sm:text-[10px]", // Mobile position - alt sağ
+              "max-sm:bg-transparent max-sm:text-foreground max-sm:border-0" // Mobilde arkaplan yok
             )}
           >
             {cart.totalItems > 99 ? '99+' : cart.totalItems}
@@ -88,6 +89,7 @@ export function EnhancedCartIcon({
               "animate-in fade-in zoom-in duration-200",
               "-top-2 -right-2 h-6 w-6 md:-top-2 md:-right-2", // Desktop position
               "sm:-bottom-1 sm:-right-1 sm:h-4 sm:w-4 sm:text-[10px]", // Mobile position - alt sağ
+              "max-sm:bg-transparent max-sm:text-foreground max-sm:border-0", // Mobilde arkaplan yok
               variant === 'large' && 'bg-background text-primary border-2 border-primary',
               isAnimating && 'animate-bounce'
             )}
@@ -260,6 +262,7 @@ export function EnhancedCartIcon({
             className={cn(
               "absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold",
               "animate-in fade-in zoom-in duration-200",
+              "max-sm:bg-transparent max-sm:text-foreground max-sm:border-0", // Mobilde arkaplan yok
               isAnimating && 'animate-bounce'
             )}
           >
