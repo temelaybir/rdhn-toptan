@@ -85,6 +85,7 @@ export interface BizimHesapInvoiceResult {
   error?: string
   guid?: string
   invoiceUrl?: string
+  invoiceNumber?: string // Benzersiz fatura numarası
 }
 
 // E-commerce order types (internal)

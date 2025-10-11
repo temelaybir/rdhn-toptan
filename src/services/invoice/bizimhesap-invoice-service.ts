@@ -69,8 +69,21 @@ export class BizimHesapInvoiceService {
       const { convertSupabaseOrderToBizimHesap } = require('@catkapinda/bizimhesap-integration')
       const ecommerceOrder = convertSupabaseOrderToBizimHesap(order)
 
+      // ✅ SALES (Satış faturası) olarak zorla
+      const invoiceOptions = {
+        ...options,
+        invoiceType: InvoiceType.SALES // 3 - Satış faturası
+      }
+
+      console.log('🔍 Invoice Type Forced:', {
+        optionsType: options.invoiceType,
+        forcedType: invoiceOptions.invoiceType,
+        InvoiceTypeSALES: InvoiceType.SALES,
+        InvoiceTypePURCHASE: InvoiceType.PURCHASE
+      })
+
       // Faturayı oluştur
-      const result = await this.createInvoiceFromOrder(ecommerceOrder, options)
+      const result = await this.createInvoiceFromOrder(ecommerceOrder, invoiceOptions)
 
       // Sonucu veritabanına kaydet  
       if (result.success && options.createInvoiceRecord !== false) {
@@ -210,6 +223,14 @@ export class BizimHesapInvoiceService {
       .eq(isUUID ? 'id' : 'order_number', orderId)
       .single()
 
+    console.log('🔍 Database Order Result:', {
+      hasError: !!error,
+      hasOrder: !!order,
+      orderItemsField: order?.order_items ? 'EXISTS' : 'NULL',
+      orderItemsLength: order?.order_items?.length || 0,
+      orderItemsRaw: JSON.stringify(order?.order_items || [])
+    })
+
     if (error) {
       console.error('Sipariş bilgisi alınamadı:', error)
       return null
@@ -229,9 +250,11 @@ export class BizimHesapInvoiceService {
         .from('invoices')
         .insert({
           order_id: orderId,
+          invoice_number: result.invoiceNumber || result.guid, // Benzersiz fatura numarası
           invoice_guid: result.guid,
           invoice_url: result.invoiceUrl,
           provider: 'bizimhesap',
+          invoice_type: 'SALES', // Her zaman satış faturası
           status: 'created',
           created_at: new Date().toISOString()
         })

@@ -191,9 +191,18 @@ export class BizimHesapService {
       localTime: nowTurkey.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
     })
 
+    // Benzersiz fatura numarası oluştur (timestamp ekleyerek)
+    const uniqueInvoiceNo = options.customInvoiceNumber || 
+      `${order.orderNumber}-${Date.now().toString().slice(-6)}`
+
+    console.log('📋 Fatura numarası:', {
+      original: order.orderNumber,
+      unique: uniqueInvoiceNo
+    })
+
     return {
       firmId: this.config.firmId,
-      invoiceNo: options.customInvoiceNumber || order.orderNumber,
+      invoiceNo: uniqueInvoiceNo,
       invoiceType,
       note: order.note,
       dates: {
@@ -235,13 +244,18 @@ export class BizimHesapService {
         }
       }
 
-      console.log('✅ Fatura başarıyla oluşturuldu:', { guid: response.data.guid, url: response.data.url })
+      console.log('✅ Fatura başarıyla oluşturuldu:', { 
+        guid: response.data.guid, 
+        url: response.data.url,
+        invoiceNumber: invoiceData.invoiceNo
+      })
 
       return {
         success: true,
         data: response.data,
         guid: response.data.guid,
-        invoiceUrl: response.data.url
+        invoiceUrl: response.data.url,
+        invoiceNumber: invoiceData.invoiceNo
       }
 
     } catch (error: any) {
