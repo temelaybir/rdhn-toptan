@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('customers')
       .update({
-        password: hashedPassword,
+        password_hash: hashedPassword, // ✅ Doğru field ismi
         password_reset_token: null,
         password_reset_expires: null,
         updated_at: new Date().toISOString()

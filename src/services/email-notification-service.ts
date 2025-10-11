@@ -71,6 +71,7 @@ Tel: ${data.shippingAddress.phone}`
 
 /**
  * Site ayarlarından e-mail bildirim ayarlarını getirir
+ * Önce admin panelden okur, yoksa .env'den fallback yapar
  */
 async function getEmailSettings(): Promise<EmailSettings | null> {
   try {
@@ -95,12 +96,38 @@ async function getEmailSettings(): Promise<EmailSettings | null> {
       .eq('is_active', true)
       .single()
 
-    if (error) {
-      console.error('E-mail ayarları alınamadı:', error)
+    // Admin panelden ayarlar varsa kullan
+    if (!error && data) {
+      return data
+    }
+
+    // Admin panel ayarları yoksa .env'den fallback yap
+    console.log('⚠️ Admin panel ayarları yok, .env fallback kullanılıyor')
+    
+    const envSettings: EmailSettings = {
+      order_notification_emails: process.env.SMTP_ADMIN_EMAIL || null,
+      enable_order_notifications: process.env.SMTP_ENABLED === 'true',
+      order_email_subject: null,
+      order_email_template: null,
+      smtp_host: process.env.SMTP_HOST || null,
+      smtp_port: parseInt(process.env.SMTP_PORT || '587'),
+      smtp_username: process.env.SMTP_USERNAME || null,
+      smtp_password: process.env.SMTP_PASSWORD || null,
+      smtp_from_email: process.env.SMTP_FROM_EMAIL || null,
+      smtp_from_name: process.env.SMTP_FROM_NAME || 'CatKapında',
+      smtp_secure: process.env.SMTP_SECURE === 'true',
+      smtp_enabled: process.env.SMTP_ENABLED === 'true'
+    }
+
+    // .env'de de ayar yoksa null dön
+    if (!envSettings.smtp_host || !envSettings.smtp_from_email) {
+      console.error('❌ SMTP ayarları bulunamadı (admin panel ve .env boş)')
       return null
     }
 
-    return data
+    console.log('✅ .env SMTP ayarları kullanılıyor')
+    return envSettings
+
   } catch (error) {
     console.error('E-mail ayarları getirme hatası:', error)
     return null

@@ -450,8 +450,6 @@ export async function PATCH(request: NextRequest) {
     // ✅ Banka havalesi ödemesi onaylandıysa - BizimHesap faturası oluştur
     if (paymentStatus === 'paid' && order) {
       try {
-        console.log('🧾 Banka havalesi onaylandı, fatura oluşturuluyor:', order.order_number)
-        
         const { getBizimHesapInvoiceService, InvoiceType } = await import('@/services/invoice/bizimhesap-invoice-service')
         const invoiceService = getBizimHesapInvoiceService()
         
