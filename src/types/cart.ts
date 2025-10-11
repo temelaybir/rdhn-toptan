@@ -1,4 +1,4 @@
-import type { Product } from '@/data/mock-products'
+import type { Product } from '@/types/admin/product'
 
 // Cart Item Variant for product customization
 export interface CartItemVariant {
@@ -12,9 +12,9 @@ export interface CartItemVariant {
 // Enhanced CartItem with embedded product data
 export interface CartItem {
   id: string                    // Cart item UUID (string kalacak)
-  productId: number             // Product reference (number oldu)
+  productId: string             // Product reference (UUID string)
   product: {                    // Embedded product data
-    id: number
+    id: string                  // UUID string
     name: string
     price: number
     image_url: string
@@ -62,10 +62,10 @@ export interface CartContextType {
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>
   clearCart: () => Promise<void>
   
-  // Product utilities with number product IDs
-  isInCart: (productId: number) => boolean
-  getCartItem: (productId: number) => CartItem | undefined
-  canAddToCart: (productId: number, requestedQty: number) => boolean
+  // Product utilities with string product IDs (UUID)
+  isInCart: (productId: string) => boolean
+  getCartItem: (productId: string) => CartItem | undefined
+  canAddToCart: (productId: string, requestedQty: number) => boolean
   getCartItemById: (cartItemId: string) => CartItem | undefined
   
   // Computed values

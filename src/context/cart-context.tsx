@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Cart, CartItem, CartContextType, CartItemVariant } from '@/types/cart'
-import type { Product } from '@/data/mock-products'
+import type { Product } from '@/types/admin/product'
 
 // Cart Actions
 type CartAction =
@@ -55,7 +55,7 @@ const calculateCartTotals = (items: CartItem[]) => {
   }
 }
 
-const generateCartItemId = (productId: number, variantId?: string): string => {
+const generateCartItemId = (productId: string, variantId?: string): string => {
   const timestamp = Date.now()
   const random = Math.random().toString(36).substr(2, 9)
   return `cart_${productId}_${variantId || 'default'}_${timestamp}_${random}`
@@ -354,15 +354,15 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
   // Product utilities
-  const isInCart = (productId: number): boolean => {
+  const isInCart = (productId: string): boolean => {
     return state.cart.items.some(item => item.productId === productId)
   }
 
-  const getCartItem = (productId: number): CartItem | undefined => {
+  const getCartItem = (productId: string): CartItem | undefined => {
     return state.cart.items.find(item => item.productId === productId)
   }
 
-  const canAddToCart = (productId: number, requestedQty: number): boolean => {
+  const canAddToCart = (productId: string, requestedQty: number): boolean => {
     const existingItem = getCartItem(productId)
     const currentQty = existingItem?.quantity || 0
     const maxStock = existingItem?.product.stock || 999
