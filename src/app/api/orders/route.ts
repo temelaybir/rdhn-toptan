@@ -191,10 +191,7 @@ export async function POST(request: NextRequest) {
         }
         
         customer = await createCustomer(customerData)
-        console.log('✅ New customer created:', customer?.id)
         isNewCustomer = true
-      } else {
-        console.log('✅ Existing customer found:', customer.id)
       }
       
       customerId = customer?.id || null
@@ -342,13 +339,6 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('📧 Email data hazırlandı:', {
-      orderNumber,
-      customerName,
-      customerEmail: email,
-      hasItems: (items?.length || 0) > 0
-    })
-    
     // Admin'lere bildirim gönder (background'da)
     sendOrderNotification(emailData).catch(error => {
       console.error('Admin e-mail bildirimi gönderilemedi:', error)
@@ -368,10 +358,6 @@ export async function POST(request: NextRequest) {
 
     // Yeni müşteri oluşturuldu - magic login linki gönderilmez
     // Magic link sadece mevcut üyelere ve sipariş vermiş olanlara gönderilir
-    if (isNewCustomer && customerId) {
-      console.log('✅ Yeni müşteri kaydı oluşturuldu:', email)
-      console.log('ℹ️ Magic login linki sadece mevcut üyelere gönderilir')
-    }
 
     return NextResponse.json({
       success: true,

@@ -125,9 +125,6 @@ function createHtmlRedirect(path: string, message: string = 'Redirecting...', pa
               // Decode payment result securely
               const paymentResultB64 = '${Buffer.from(JSON.stringify(paymentResult || {})).toString('base64')}';
               const paymentData = JSON.parse(atob(paymentResultB64));
-              
-              console.log('[💳 DECODED] Payment result:', paymentData);
-              
               // Environment detection
               const isInIframe = window.parent && window.parent !== window;
               const isInModal = !!window.frameElement || window.top !== window;
@@ -780,7 +777,6 @@ async function handleCallback(request: NextRequest) {
             threeDSCompleteResult.errorCode || 'THREEDS_COMPLETE_FAILED',
             threeDSCompleteResult.errorMessage || '3DS tamamlama başarısız')
           
-          console.log('[DEBUG] About to call createHtmlRedirect for failed payment')
               
           return createHtmlRedirect(
             `/odeme/hata?error=${encodeURIComponent(threeDSCompleteResult.errorCode || 'THREEDS_COMPLETE_FAILED')}&message=${encodeURIComponent(threeDSCompleteResult.errorMessage || '3DS tamamlama başarısız')}`,

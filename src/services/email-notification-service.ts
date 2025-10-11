@@ -116,18 +116,13 @@ async function sendEmail(to: string[], subject: string, body: string): Promise<b
     const emailSettings = await getEmailSettings()
     
     if (!emailSettings || !emailSettings.smtp_enabled) {
-      console.log('📧 SMTP devre dışı - E-mail gönderimi simülasyonu:')
-      console.log('Alıcılar:', to)
-      console.log('Konu:', subject)
-      console.log('İçerik:', body.substring(0, 200) + '...')
+      console.log('📧 SMTP devre dışı - E-mail gönderimi simüle edildi')
       return true
     }
 
     // SMTP ayarları eksikse simülasyon yap
     if (!emailSettings.smtp_host || !emailSettings.smtp_from_email) {
-      console.log('📧 SMTP ayarları eksik - Simülasyon:')
-      console.log('Alıcılar:', to)
-      console.log('Konu:', subject)
+      console.log('📧 SMTP ayarları eksik - E-mail gönderimi simüle edildi')
       return true
     }
 
@@ -275,7 +270,6 @@ Saygılarımızla,
  */
 export async function sendMagicLoginEmail(email: string, loginUrl: string): Promise<boolean> {
   try {
-    console.log('🔑 Magic login e-maili gönderiliyor:', email)
 
     const subject = 'Giriş Linkiniz - Çat Kapında'
     
@@ -315,7 +309,6 @@ Saygılarımızla,
  */
 export async function sendOrderConfirmationToCustomer(orderData: OrderEmailData): Promise<boolean> {
   try {
-    console.log('📧 Müşteriye sipariş onayı gönderiliyor:', orderData.customerEmail)
 
     // Magic login link oluştur
     const { generateMagicLoginLink } = require('./customer-auth-service')
@@ -423,7 +416,6 @@ export async function sendOrderStatusUpdateToCustomer(
   cargoCompany?: string
 ): Promise<boolean> {
   try {
-    console.log('📧 Sipariş durum güncelleme e-maili gönderiliyor:', orderData.customerEmail, newStatus)
 
     // Magic login link oluştur
     const { generateMagicLoginLink } = require('./customer-auth-service')
@@ -553,7 +545,6 @@ export async function sendPasswordResetEmail(
   customerName: string
 ): Promise<boolean> {
   try {
-    console.log('🔐 Şifre sıfırlama e-maili gönderiliyor:', email)
 
     const subject = 'Şifre Sıfırlama Talebi - CatKapinda.com.tr'
     

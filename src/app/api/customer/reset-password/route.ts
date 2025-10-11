@@ -70,8 +70,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('✅ Password reset successful for:', customer.email)
-
     return NextResponse.json({
       success: true,
       message: 'Şifreniz başarıyla güncellendi'

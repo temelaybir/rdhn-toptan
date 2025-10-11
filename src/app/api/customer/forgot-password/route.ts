@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
     // Güvenlik: Her zaman başarılı mesajı döndür (email enumeration attack'ları önlemek için)
     // Ama sadece gerçek kullanıcılara email gönder
     if (!customer || customerError) {
-      console.log('Customer not found for password reset:', email)
       // Yine de başarılı mesajı döndür
       return NextResponse.json({
         success: true,
@@ -76,21 +75,12 @@ export async function POST(request: NextRequest) {
                       'https://catkapinda.com.tr'
       
       const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
-      
-      console.log('🔐 Password reset link:', resetUrl)
-      console.log('👤 Customer:', customer.email)
 
       // ✅ Gerçek email gönderimi
       const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Değerli Müşterimiz'
       
       const { sendPasswordResetEmail } = await import('@/services/email-notification-service')
-      const emailSent = await sendPasswordResetEmail(customer.email, resetUrl, customerName)
-      
-      if (emailSent) {
-        console.log('✅ Şifre sıfırlama e-maili gönderildi:', customer.email)
-      } else {
-        console.warn('⚠️ Email gönderilemedi (SMTP ayarları kontrol edin)')
-      }
+      await sendPasswordResetEmail(customer.email, resetUrl, customerName)
 
     } catch (emailError) {
       console.error('❌ Error sending password reset email:', emailError)
