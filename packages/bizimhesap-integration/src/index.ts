@@ -7,7 +7,7 @@
 
 export { BizimHesapService, createBizimHesapService } from './bizimhesap-service'
 
-export {
+export type {
   BizimHesapConfig,
   BizimHesapInvoiceRequest,
   BizimHesapInvoiceResult,
@@ -16,13 +16,13 @@ export {
   OrderItem,
   OrderCustomer,
   InvoiceGenerationOptions,
-  InvoiceType,
-  Currency,
   InvoiceDates,
   Customer,
   InvoiceDetail,
   InvoiceAmounts
 } from './types'
+
+export { InvoiceType, Currency } from './types'
 
 export { 
   convertSupabaseOrderToBizimHesap,

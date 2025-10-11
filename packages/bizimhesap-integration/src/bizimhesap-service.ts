@@ -196,18 +196,28 @@ export class BizimHesapService {
       console.log('🧾 BizimHesap faturası oluşturuluyor...', {
         invoiceNo: invoiceData.invoiceNo,
         type: invoiceData.invoiceType === InvoiceType.SALES ? 'Satış' : 'Alış',
+        invoiceTypeValue: invoiceData.invoiceType,
         customer: invoiceData.customer.title,
         total: invoiceData.amounts.total
       })
 
+      // Detaylı request logging
+      console.log('📤 BizimHesap API Request Data:', JSON.stringify(invoiceData, null, 2))
+
       const response = await this.axiosInstance.post<BizimHesapApiResponse>('', invoiceData)
 
+      // Response logging
+      console.log('📥 BizimHesap API Response:', JSON.stringify(response.data, null, 2))
+
       if (response.data.error) {
+        console.error('❌ BizimHesap API Error Response:', response.data.error)
         return {
           success: false,
           error: response.data.error
         }
       }
+
+      console.log('✅ Fatura başarıyla oluşturuldu:', { guid: response.data.guid, url: response.data.url })
 
       return {
         success: true,
