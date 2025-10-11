@@ -1042,8 +1042,8 @@ export default function CheckoutPage() {
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price,
-          sku: item.product.sku,
-          image: item.product.images?.[0]
+          sku: item.product.sku || '',
+          image: item.product.images?.[0] || ''
         })),
         userId: null // TODO: Get from user context if logged in
       }

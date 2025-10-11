@@ -13,15 +13,14 @@ export interface CartItemVariant {
 export interface CartItem {
   id: string                    // Cart item UUID (string kalacak)
   productId: string             // Product reference (UUID string)
-  product: {                    // Embedded product data
+  product: {                    // Embedded product data (simplified from Product type)
     id: string                  // UUID string
     name: string
     price: number
-    image_url: string
     images: string[]
-    slug?: string
-    stock: number
-    brand?: string
+    slug: string
+    stockQuantity: number       // Product type'daki isim
+    sku: string | null
     tags?: string[]
     shipping?: {
       isOversized?: boolean

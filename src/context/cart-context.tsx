@@ -282,7 +282,7 @@ export function CartProvider({ children }: CartProviderProps) {
       }
       
       const safeQuantity = Math.max(1, Math.floor(quantity))
-      const maxQuantity = product.stock || 999
+      const maxQuantity = product.stockQuantity || 999
       
       if (safeQuantity > maxQuantity) {
         toast.error(`En fazla ${maxQuantity} adet ekleyebilirsiniz`)
@@ -298,11 +298,12 @@ export function CartProvider({ children }: CartProviderProps) {
           id: product.id,
           name: product.name,
           price: product.price,
-          image_url: product.image_url,
-          images: product.images || [product.image_url],
-          slug: product.name.toLowerCase().replace(/\s+/g, '-'),
-          stock: product.stock,
-          brand: product.brand
+          images: product.images.map(img => typeof img === 'string' ? img : img.url),
+          slug: product.slug,
+          stockQuantity: product.stockQuantity,
+          sku: product.sku,
+          tags: product.tags,
+          shipping: product.shipping ? { isOversized: product.shipping.isOversized } : undefined
         },
         quantity: safeQuantity,
         addedAt: new Date(),
@@ -381,7 +382,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const canAddToCart = (productId: string, requestedQty: number): boolean => {
     const existingItem = getCartItem(productId)
     const currentQty = existingItem?.quantity || 0
-    const maxStock = existingItem?.product.stock || 999
+    const maxStock = existingItem?.product.stockQuantity || 999
     
     return (currentQty + requestedQty) <= maxStock
   }
