@@ -23,6 +23,12 @@ interface OrderEmailData {
   }
 }
 
+interface PasswordResetEmailData {
+  email: string
+  name: string
+  resetUrl: string
+}
+
 interface EmailSettings {
   order_notification_emails: string | null
   enable_order_notifications: boolean
@@ -535,5 +541,51 @@ function getCargoCompanyName(company: string): string {
     case 'hepsijet': return 'HepsiJet'
     case 'trendyol': return 'Trendyol Express'
     default: return company || 'Kargo Şirketi'
+  }
+}
+
+/**
+ * Şifre sıfırlama e-maili gönderir
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  resetUrl: string,
+  customerName: string
+): Promise<boolean> {
+  try {
+    console.log('🔐 Şifre sıfırlama e-maili gönderiliyor:', email)
+
+    const subject = 'Şifre Sıfırlama Talebi - CatKapinda.com.tr'
+    
+    const body = `
+Merhaba ${customerName || 'Değerli Müşterimiz'},
+
+Şifrenizi sıfırlamak için bir talepte bulundunuz.
+
+Şifrenizi sıfırlamak için aşağıdaki linke tıklayın:
+${resetUrl}
+
+Bu link 1 saat süreyle geçerlidir.
+
+Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+Hesabınız güvendedir.
+
+---
+CatKapinda.com.tr
+E-Ticaret Platformu
+`
+
+    const sent = await sendEmail([email], subject, body)
+    
+    if (sent) {
+      console.log('✅ Şifre sıfırlama e-maili başarıyla gönderildi')
+      return true
+    }
+    
+    return false
+
+  } catch (error) {
+    console.error('❌ Şifre sıfırlama e-maili gönderilemedi:', error)
+    return false
   }
 } 

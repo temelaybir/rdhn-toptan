@@ -69,36 +69,31 @@ export async function POST(request: NextRequest) {
 
     // Send password reset email
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      // ✅ PRODUCTION: catkapinda.com.tr veya custom domain
+      // ✅ DEVELOPMENT: localhost:3000
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                      'https://catkapinda.com.tr'
+      
       const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
       
       console.log('🔐 Password reset link:', resetUrl)
       console.log('👤 Customer:', customer.email)
 
-      // TODO: Email service entegrasyonu
-      // Şimdilik console'a yazdır, daha sonra gerçek email service eklenecek
-      console.log(`
-        =============================================
-        ŞİFRE SIFIRLAMA EMAİLİ
-        =============================================
-        Alıcı: ${customer.email}
-        İsim: ${customer.first_name} ${customer.last_name}
-        
-        Şifrenizi sıfırlamak için aşağıdaki linke tıklayın:
-        ${resetUrl}
-        
-        Bu link 1 saat geçerlidir.
-        
-        Eğer şifre sıfırlama talebinde bulunmadıysanız, bu e-postayı görmezden gelebilirsiniz.
-        =============================================
-      `)
-
-      // Gerçek email gönderimi için email-notification-service'i kullanabilirsiniz:
-      // const { sendPasswordResetEmail } = await import('@/services/email-notification-service')
-      // await sendPasswordResetEmail(customer.email, resetUrl, `${customer.first_name} ${customer.last_name}`)
+      // ✅ Gerçek email gönderimi
+      const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Değerli Müşterimiz'
+      
+      const { sendPasswordResetEmail } = await import('@/services/email-notification-service')
+      const emailSent = await sendPasswordResetEmail(customer.email, resetUrl, customerName)
+      
+      if (emailSent) {
+        console.log('✅ Şifre sıfırlama e-maili gönderildi:', customer.email)
+      } else {
+        console.warn('⚠️ Email gönderilemedi (SMTP ayarları kontrol edin)')
+      }
 
     } catch (emailError) {
-      console.error('Error sending password reset email:', emailError)
+      console.error('❌ Error sending password reset email:', emailError)
       // Email hatası kullanıcıya bildirilmez (güvenlik)
     }
 

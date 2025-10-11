@@ -62,6 +62,15 @@ export default async function DynamicPage({ params }: PageProps) {
   const resolvedParams = await params
   const slug = resolvedParams.slug.join('/')
   
+  // ⚠️ Exclude auth, api, admin routes from catch-all
+  const excludedPrefixes = ['auth', 'api', 'admin', '_next', 'favicon']
+  const firstSegment = resolvedParams.slug[0]
+  
+  if (excludedPrefixes.includes(firstSegment)) {
+    console.log(`[CATCH-ALL] Skipping excluded route: ${slug}`)
+    notFound()
+  }
+  
   try {
     const supabase = await createClient()
     const { data: page, error } = await supabase
