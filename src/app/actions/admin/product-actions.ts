@@ -219,7 +219,9 @@ function mapDatabaseFieldsToForm(dbData: Record<string, unknown>): Record<string
 // Ürün listesini getir
 export async function getProducts(filters: ProductFilters = {}): Promise<ActionResponse<{ products: Product[]; total: number }>> {
   try {
+    console.log('🔍 [PRODUCTS] getProducts başladı, filters:', JSON.stringify(filters))
     const supabase = await createAdminSupabaseClient()
+    console.log('✅ [PRODUCTS] Supabase client oluşturuldu')
     
     let query = supabase
       .from('products')
@@ -228,6 +230,8 @@ export async function getProducts(filters: ProductFilters = {}): Promise<ActionR
         category:categories(id, name, slug),
         variants:product_variants(*)
       `, { count: 'exact' })
+    
+    console.log('✅ [PRODUCTS] Query oluşturuldu')
 
     // Filtreleme
     if (filters.search) {
@@ -271,11 +275,18 @@ export async function getProducts(filters: ProductFilters = {}): Promise<ActionR
     const to = from + pageSize - 1
     query = query.range(from, to)
 
+    console.log('🔄 [PRODUCTS] Query execute ediliyor...')
     const { data, error, count } = await query
+    console.log('📊 [PRODUCTS] Query sonuç:', { dataCount: data?.length, error: error?.message, count })
 
-    if (error) throw error
+    if (error) {
+      console.error('❌ [PRODUCTS] Query hatası:', error)
+      throw error
+    }
 
+    console.log('🔄 [PRODUCTS] Transform başlıyor...')
     const products = transformProducts(data || [])
+    console.log('✅ [PRODUCTS] Transform tamamlandı:', products.length)
     
     // İstatistikleri hesapla (pagination olmadan, sadece filtrelerle)
     let statsQuery = supabase
@@ -707,12 +718,28 @@ export async function checkSKU(sku: string, excludeId?: number) {
 
 // Transform functions
 function transformProducts(data: ProductRow[]): Product[] {
-  return data.map(transformProduct)
+  console.log('🔄 [TRANSFORM] transformProducts başladı, count:', data.length)
+  const result = []
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const transformed = transformProduct(data[i])
+      result.push(transformed)
+    } catch (error) {
+      console.error(`❌ [TRANSFORM] Ürün #${i} transform hatası:`, error)
+      console.error('Hatalı veri:', JSON.stringify(data[i], null, 2))
+      throw error
+    }
+  }
+  console.log('✅ [TRANSFORM] transformProducts tamamlandı')
+  return result
 }
 
 function transformProduct(data: ProductRow): Product {
+  console.log('🔄 [TRANSFORM] transformProduct başladı, id:', data.id, 'name:', data.name)
+  
   // Use helper function to map database fields to form fields
   const mappedData = mapDatabaseFieldsToForm(data) as any
+  console.log('✅ [TRANSFORM] mapDatabaseFieldsToForm tamamlandı')
   
   // Images'ı object array'e çevir (homepage servisindekiyle aynı logic)
   const transformedImages = (data.images && Array.isArray(data.images) && data.images.length > 0)
@@ -789,6 +816,7 @@ function transformProduct(data: ProductRow): Product {
     weight: mappedData.weight || null
   }
   
+  console.log('✅ [TRANSFORM] Product object oluşturuldu, id:', product.id)
   return product
 }
 

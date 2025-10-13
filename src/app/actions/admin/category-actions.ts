@@ -43,26 +43,36 @@ const CategorySchema = z.object({
 // Kategorileri getir
 export async function getCategories(): Promise<ActionResponse<Category[]>> {
   try {
-    console.log('🔍 Admin kategoriler getiriliyor...')
+    console.log('🔍 [CATEGORIES] getCategories başladı')
     const supabase = await createAdminSupabaseClient()
+    console.log('✅ [CATEGORIES] Supabase client oluşturuldu')
     
     // Simple query without complex chaining
+    console.log('🔄 [CATEGORIES] Query execute ediliyor...')
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('name', { ascending: true })
       
-    console.log('📋 Raw kategori data:', data?.length, data?.map(c => ({ id: c.id, name: c.name })))
-    console.log('🖼️ İlk kategorinin image_url:', data?.[0]?.image_url)
+    console.log('📋 [CATEGORIES] Raw kategori data:', { 
+      count: data?.length, 
+      hasError: !!error,
+      errorMsg: error?.message,
+      sampleIds: data?.slice(0, 3).map(c => ({ id: c.id, name: c.name }))
+    })
 
     if (error) {
-      console.error('❌ Kategori sorgu hatası:', error)
+      console.error('❌ [CATEGORIES] Kategori sorgu hatası:', error)
       throw error
     }
 
     // Kategorileri hiyerarşik yapıya dönüştür
+    console.log('🔄 [CATEGORIES] buildCategoryTree başlıyor...')
     const categories = buildCategoryTree(data || [])
-    console.log('🌲 Hiyerarşik kategoriler:', categories.length, categories.map(c => ({ id: c.id, name: c.name })))
+    console.log('✅ [CATEGORIES] buildCategoryTree tamamlandı:', {
+      count: categories.length,
+      sampleIds: categories.slice(0, 3).map(c => ({ id: c.id, name: c.name }))
+    })
     
     return { 
       success: true, 
