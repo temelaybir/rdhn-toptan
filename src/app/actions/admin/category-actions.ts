@@ -357,27 +357,47 @@ export async function getCategoryStats(categoryId: string | number): Promise<Act
 
 // Helper functions
 function buildCategoryTree(categories: CategoryRow[]): Category[] {
-  const categoryMap = new Map<string, Category>()
+  // Early return for empty array
+  if (!categories || categories.length === 0) {
+    return []
+  }
+
+  // Create map and root array explicitly
+  const categoryMap: Map<string, Category> = new Map()
   const rootCategories: Category[] = []
 
-  // Önce tüm kategorileri map'e ekle
-  categories.forEach(cat => {
-    categoryMap.set(cat.id, { ...cat, children: [] })
-  })
+  // First pass: Create all category objects
+  for (let i = 0; i < categories.length; i++) {
+    const cat = categories[i]
+    const categoryWithChildren: Category = {
+      ...cat,
+      children: []
+    }
+    categoryMap.set(cat.id, categoryWithChildren)
+  }
 
-  // Sonra parent-child ilişkilerini kur
-  categories.forEach(cat => {
-    const category = categoryMap.get(cat.id)!
+  // Second pass: Build parent-child relationships
+  for (let i = 0; i < categories.length; i++) {
+    const cat = categories[i]
+    const category = categoryMap.get(cat.id)
+    
+    if (!category) continue
+    
     if (cat.parent_id) {
       const parent = categoryMap.get(cat.parent_id)
       if (parent) {
-        parent.children = parent.children || []
+        if (!parent.children) {
+          parent.children = []
+        }
         parent.children.push(category)
+      } else {
+        // Parent not found, treat as root
+        rootCategories.push(category)
       }
     } else {
       rootCategories.push(category)
     }
-  })
+  }
 
   return rootCategories
 }
