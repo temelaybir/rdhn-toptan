@@ -55,13 +55,27 @@ const formSchema = z.object({
   shortDescription: z.string().max(160, 'Kısa açıklama maksimum 160 karakter olmalıdır'),
   
   // Fiyat ve Stok
-  price: z.number().min(0, "Fiyat 0&apos;dan büyük olmalıdır"),
+  price: z.number().min(0, "Fiyat 0'dan büyük olmalıdır"),
   comparePrice: z.number().optional(),
   costPrice: z.number().optional(),
   stockQuantity: z.number().int().min(0),
   trackStock: z.boolean(),
   allowBackorders: z.boolean(),
   lowStockThreshold: z.number().int().optional(),
+  
+  // Toptan Fiyatlandırma
+  isWholesale: z.boolean().optional(),
+  wholesaleOnly: z.boolean().optional(),
+  moq: z.number().int().optional(),
+  moqUnit: z.enum(['piece', 'package', 'koli']).optional(),
+  packageQuantity: z.number().int().optional(),
+  packageUnit: z.string().optional(),
+  tierPricing: z.array(z.object({
+    minQuantity: z.number().int().min(1),
+    maxQuantity: z.number().int().optional(),
+    price: z.number().min(0),
+    label: z.string()
+  })).optional(),
   
   // Ürün Detayları
   sku: z.string().optional(),
@@ -119,8 +133,37 @@ export function ProductForm({ product, onSuccess, onCancel, onError }: ProductFo
   const [images, setImages] = useState<ImageItem[]>([])
   const [currentTag, setCurrentTag] = useState('')
   const [showVariants, setShowVariants] = useState(false)
+  const [showWholesale, setShowWholesale] = useState(product?.isWholesale ?? true) // Default: Toptan bölümü açık
   const { currentCurrency } = useCurrency()
   const { create, update } = useProductActions()
+  
+  // Tier pricing helpers
+  const addTierPrice = () => {
+    const tiers = form.getValues('tierPricing') || []
+    const lastTier = tiers[tiers.length - 1]
+    const newMinQuantity = lastTier ? (lastTier.maxQuantity || 0) + 1 : 1
+    
+    form.setValue('tierPricing', [
+      ...tiers,
+      {
+        minQuantity: newMinQuantity,
+        maxQuantity: undefined,
+        price: 0,
+        label: `${newMinQuantity}+ adet`
+      }
+    ])
+  }
+  
+  const removeTierPrice = (index: number) => {
+    const tiers = form.getValues('tierPricing') || []
+    form.setValue('tierPricing', tiers.filter((_, i) => i !== index))
+  }
+  
+  const updateTierPrice = (index: number, field: string, value: any) => {
+    const tiers = form.getValues('tierPricing') || []
+    tiers[index] = { ...tiers[index], [field]: value }
+    form.setValue('tierPricing', tiers)
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -144,6 +187,17 @@ export function ProductForm({ product, onSuccess, onCancel, onError }: ProductFo
       isActive: product?.isActive ?? true,
       isFeatured: product?.isFeatured ?? false,
       hasVariants: false,
+      isWholesale: product?.isWholesale ?? true, // Default: Toptan satış aktif
+      wholesaleOnly: product?.wholesaleOnly ?? true, // Default: Sadece toptan
+      moq: product?.moq || 10, // Default: 10 adet minimum
+      moqUnit: product?.moqUnit || 'piece',
+      packageQuantity: product?.packageQuantity || 12, // Default: 12'li koli
+      packageUnit: product?.packageUnit || 'koli',
+      tierPricing: product?.tierPricing || [
+        { minQuantity: 10, maxQuantity: 49, price: 0, label: '10-49 adet' },
+        { minQuantity: 50, maxQuantity: 99, price: 0, label: '50-99 adet' },
+        { minQuantity: 100, maxQuantity: undefined, price: 0, label: '100+ adet' }
+      ], // Default kademeli fiyatlandırma şablonu
       shipping: {
         requiresShipping: true,
         shippingClass: 'standard',
@@ -770,6 +824,234 @@ export function ProductForm({ product, onSuccess, onCancel, onError }: ProductFo
                       </FormItem>
                     )}
                   />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Toptan Fiyatlandırma Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Toptan Fiyatlandırma</CardTitle>
+                <CardDescription>
+                  Kademeli fiyatlandırma ve minimum sipariş adedi ayarları
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="isWholesale"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          Toptan Satış
+                        </FormLabel>
+                        <FormDescription>
+                          Bu ürün toptan satışa uygun
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked)
+                            setShowWholesale(checked)
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {showWholesale && (
+                  <div className="space-y-4 border-l-4 border-blue-500 pl-4">
+                    <FormField
+                      control={form.control}
+                      name="wholesaleOnly"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Sadece Toptan
+                            </FormLabel>
+                            <FormDescription>
+                              Sadece toptan müşterilere sat (perakende yok)
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* MOQ Settings */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="moq"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Minimum Sipariş Adedi (MOQ)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Örn: 12"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Bu üründen en az kaç adet alınmalı
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="packageQuantity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Koli/Paket Adedi</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Örn: 12"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Bir kolideki ürün sayısı
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="packageUnit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Paket Türü</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Örn: koli, paket"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Paket birim adı
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Tier Pricing */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">Kademeli Fiyatlandırma</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Adet aralıklarına göre farklı fiyatlar belirleyin
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={addTierPrice}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Kademe Ekle
+                        </Button>
+                      </div>
+
+                      {form.watch('tierPricing')?.map((tier, index) => (
+                        <div key={index} className="grid grid-cols-5 gap-2 items-end">
+                          <div>
+                            <label className="text-sm font-medium">Min Adet</label>
+                            <Input
+                              type="number"
+                              value={tier.minQuantity}
+                              onChange={(e) => updateTierPrice(index, 'minQuantity', parseInt(e.target.value))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Max Adet</label>
+                            <Input
+                              type="number"
+                              placeholder="Sınırsız"
+                              value={tier.maxQuantity || ''}
+                              onChange={(e) => updateTierPrice(index, 'maxQuantity', e.target.value ? parseInt(e.target.value) : undefined)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Fiyat ({currentCurrency.symbol})</label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={tier.price}
+                              onChange={(e) => updateTierPrice(index, 'price', parseFloat(e.target.value))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Etiket</label>
+                            <Input
+                              value={tier.label}
+                              onChange={(e) => updateTierPrice(index, 'label', e.target.value)}
+                              placeholder="10-49 adet"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeTierPrice(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {(!form.watch('tierPricing') || form.watch('tierPricing')?.length === 0) && (
+                        <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Henüz kademe eklenmedi. &quot;Kademe Ekle&quot; butonuna tıklayın.
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Örnek: 10-49 adet → 140₺, 50-99 adet → 130₺, 100+ adet → 120₺
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Örnek Görünüm */}
+                    {form.watch('tierPricing') && form.watch('tierPricing')!.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h5 className="font-medium text-blue-900 mb-2">Müşterilere Böyle Görünecek:</h5>
+                        <div className="space-y-1">
+                          {form.watch('tierPricing')!.map((tier, idx) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <span className="text-blue-700">{tier.label}</span>
+                              <span className="font-medium text-blue-900">
+                                {tier.price.toFixed(2)} {currentCurrency.symbol}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

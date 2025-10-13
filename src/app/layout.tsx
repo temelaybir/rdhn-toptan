@@ -59,27 +59,27 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
     
     title: {
-      default: siteMetadata.title || 'catkapinda',
-      template: `%s | ${siteMetadata.title || 'catkapinda'}`
+      default: siteMetadata.title || 'Ardahan Ticaret',
+      template: `%s | ${siteMetadata.title || 'Ardahan Ticaret'}`
     },
-    description: siteMetadata.description || 'catkapinda - Kaliteli ürünler, uygun fiyatlar',
-    keywords: siteMetadata.keywords?.split(',').map(k => k.trim()) || ['e-ticaret', 'online alışveriş'],
-    authors: [{ name: siteMetadata.author || 'catkapinda' }],
+    description: siteMetadata.description || 'Ardahan Ticaret - Kaliteli ürünler, uygun fiyatlar',
+    keywords: siteMetadata.keywords?.split(',').map(k => k.trim()) || ['e-ticaret', 'online alışveriş', 'toptan ticaret'],
+    authors: [{ name: siteMetadata.author || 'Ardahan Ticaret' }],
     robots: siteMetadata.robots || 'index, follow',
     
     // OpenGraph
     openGraph: {
-      title: siteMetadata.title || 'catkapinda',
-      description: siteMetadata.description || 'catkapinda - Kaliteli ürünler, uygun fiyatlar',
+      title: siteMetadata.title || 'Ardahan Ticaret',
+      description: siteMetadata.description || 'Ardahan Ticaret - Kaliteli ürünler, uygun fiyatlar',
       type: 'website',
       locale: 'tr_TR',
-      siteName: siteMetadata.title || 'catkapinda',
+      siteName: siteMetadata.title || 'Ardahan Ticaret',
       images: siteMetadata.socialImage ? [
         {
           url: siteMetadata.socialImage,
           width: 1200,
           height: 630,
-          alt: siteMetadata.title || 'catkapinda'
+          alt: siteMetadata.title || 'Ardahan Ticaret'
         }
       ] : []
     },
@@ -87,8 +87,8 @@ export async function generateMetadata(): Promise<Metadata> {
     // Twitter
     twitter: {
       card: 'summary_large_image',
-      title: siteMetadata.title || 'catkapinda',
-      description: siteMetadata.description || 'catkapinda - Kaliteli ürünler, uygun fiyatlar',
+      title: siteMetadata.title || 'Ardahan Ticaret',
+      description: siteMetadata.description || 'Ardahan Ticaret - Kaliteli ürünler, uygun fiyatlar',
       images: siteMetadata.socialImage ? [siteMetadata.socialImage] : []
     },
     

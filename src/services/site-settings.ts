@@ -61,9 +61,9 @@ export interface SiteSettings {
 
 // Fallback site ayarları
 const defaultSettings: Partial<SiteSettings> = {
-  site_name: 'catkapinda',
-  site_description: 'Ardahan Ticaret - Kaliteli ürünler, uygun fiyatlar',
-  site_slogan: 'Kaçırılmayacak fırsatlar, en uygun fiyatlarla',
+  site_name: 'Ardahan Ticaret',
+  site_description: 'Ardahan Ticaret - Kaliteli ürünler, toptan ve perakende satış',
+  site_slogan: 'Güvenilir ticaret, kaliteli ürünler',
   site_logo_url: '/logo.svg',
   favicon_url: '/favicon.ico',
   social_image_url: '/social-preview.jpg',

@@ -99,6 +99,13 @@ export interface PaginationParams {
   sortOrder?: 'asc' | 'desc'
 }
 
+export interface TierPrice {
+  minQuantity: number
+  maxQuantity?: number
+  price: number
+  label: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -128,6 +135,14 @@ export interface Product {
   seo: ProductSEO | null
   shipping: ProductShipping | null
   taxRate: number | null
+  // Toptan Fiyatlandırma
+  isWholesale?: boolean
+  wholesaleOnly?: boolean
+  moq?: number
+  moqUnit?: 'piece' | 'package' | 'koli'
+  packageQuantity?: number
+  packageUnit?: string
+  tierPricing?: TierPrice[]
   createdAt: Date
   updatedAt: Date
 }
@@ -196,6 +211,15 @@ export interface ProductFormData {
   trackStock: boolean
   allowBackorders: boolean
   lowStockThreshold?: number
+  
+  // Toptan Fiyatlandırma
+  isWholesale?: boolean
+  wholesaleOnly?: boolean
+  moq?: number
+  moqUnit?: 'piece' | 'package' | 'koli'
+  packageQuantity?: number
+  packageUnit?: string
+  tierPricing?: TierPrice[]
   
   // Ürün Detayları
   sku?: string

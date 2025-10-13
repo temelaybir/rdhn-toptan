@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { SafeImage } from '@/components/ui/safe-image'
 import { Button } from '@/components/ui/button'
-import { Heart, ShoppingCart, Star, Eye, TrendingUp, Clock, Truck } from 'lucide-react'
+import { Heart, ShoppingCart, Star, Eye, TrendingUp, Clock, Truck, Package } from 'lucide-react'
 import { useCart } from '@/context/cart-context'
 import { useWishlist } from '@/context/wishlist-context'
 import { useCurrency } from '@/context/currency-context'
@@ -166,6 +166,11 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
             <div className="flex flex-col gap-2">
+              {/* Toptan Satış Badge - Her Ürün İçin */}
+              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                TOPTAN
+              </Badge>
               {mockData.isBestSeller && (
                 <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
                   Çok Satan
@@ -323,14 +328,20 @@ export function ProductCard({ product }: ProductCardProps) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
             
-            {/* Discount Badge */}
-            {discountPercentage > 0 && (
-              <div className="absolute top-2 left-2 z-10 pointer-events-none">
+            {/* Badges - Compact Layout */}
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+              {/* Toptan Badge */}
+              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none flex items-center gap-0.5 w-fit">
+                <Package className="h-2.5 w-2.5" />
+                TOPTAN
+              </Badge>
+              {/* Discount Badge */}
+              {discountPercentage > 0 && (
                 <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 pointer-events-none">
                   -{discountPercentage}%
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Quick Actions */}
             <div className="absolute top-2 right-2 flex flex-col gap-1 z-20">
@@ -459,25 +470,28 @@ export function ProductCard({ product }: ProductCardProps) {
             />
 
             {/* Badges */}
-            {(mockData.isBestSeller || mockData.isNew || discountPercentage > 0) && (
-              <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
-                {mockData.isBestSeller && (
-                  <Badge className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
-                    ÇOK SATAN
-                  </Badge>
-                )}
-                {mockData.isNew && (
-                  <Badge className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
-                    YENİ
-                  </Badge>
-                )}
-                {discountPercentage > 0 && (
-                  <Badge className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
-                    %{discountPercentage} İNDİRİM
-                  </Badge>
-                )}
-              </div>
-            )}
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+              {/* Toptan Badge - Her Zaman Göster */}
+              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none flex items-center gap-0.5 w-fit">
+                <Package className="h-2.5 w-2.5" />
+                TOPTAN
+              </Badge>
+              {mockData.isBestSeller && (
+                <Badge className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
+                  ÇOK SATAN
+                </Badge>
+              )}
+              {mockData.isNew && (
+                <Badge className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
+                  YENİ
+                </Badge>
+              )}
+              {discountPercentage > 0 && (
+                <Badge className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
+                  %{discountPercentage} İNDİRİM
+                </Badge>
+              )}
+            </div>
 
             {/* Wishlist */}
             <Button
@@ -734,6 +748,11 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10 pointer-events-none">
             <div className="flex flex-col gap-2">
+              {/* Toptan Badge - Modern Layout */}
+              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md pointer-events-none flex items-center gap-1.5 w-fit">
+                <Package className="h-3.5 w-3.5" />
+                TOPTAN SATIŞ
+              </Badge>
               {mockData.isBestSeller && (
                 <Badge className="bg-purple-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm pointer-events-none">
                   <TrendingUp className="h-3 w-3 mr-1" />
@@ -928,7 +947,12 @@ export function ProductCard({ product }: ProductCardProps) {
             />
             
             {/* Compact Badges */}
-            <div className="absolute top-1 left-1 flex gap-1 z-10 pointer-events-none">
+            <div className="absolute top-1 left-1 flex flex-col gap-0.5 z-10 pointer-events-none">
+              {/* Toptan Badge - Minimal */}
+              <Badge className="bg-blue-600 text-white text-[9px] font-bold px-1 py-0.5 pointer-events-none flex items-center gap-0.5 w-fit">
+                <Package className="h-2 w-2" />
+                TOPTAN
+              </Badge>
               {discountPercentage > 0 && (
                 <Badge className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 pointer-events-none">
                   -{discountPercentage}%
@@ -1015,6 +1039,11 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
           <div className="flex flex-col gap-2">
+            {/* Toptan Badge - Fallback Layout */}
+            <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              TOPTAN
+            </Badge>
             {mockData.isBestSeller && (
               <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
                 Çok Satan

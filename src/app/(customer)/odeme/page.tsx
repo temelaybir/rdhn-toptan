@@ -100,6 +100,9 @@ export default function CheckoutPage() {
   } | null>(null)
   // Order creation deduplication
   const orderCreationInProgressRef = useRef<Set<string>>(new Set())
+  // Minimum order value ve quantity
+  const [minimumOrderValue, setMinimumOrderValue] = useState<number>(0)
+  const [minimumOrderQuantity, setMinimumOrderQuantity] = useState<number>(10)
   
   // Customer autocomplete states
   const [isCheckingCustomer, setIsCheckingCustomer] = useState(false)
@@ -233,6 +236,23 @@ export default function CheckoutPage() {
     loadPaymentSettings()
   }, [])
 
+  // MOV ve MOQ'u site ayarlarından çek
+  useEffect(() => {
+    const fetchMinimumOrderSettings = async () => {
+      try {
+        const response = await fetch('/api/site-settings')
+        if (response.ok) {
+          const data = await response.json()
+          setMinimumOrderValue(data.minimumOrderValue || 0)
+          setMinimumOrderQuantity(data.minimumOrderQuantity || 10)
+        }
+      } catch (error) {
+        console.error('Minimum sipariş ayarları yüklenemedi:', error)
+      }
+    }
+    fetchMinimumOrderSettings()
+  }, [])
+
   // Price calculations
   const subtotal = getSubtotal() // Zaten KDV dahil
   const discount = 0 // İndirim sistemi henüz implement edilmedi
@@ -364,6 +384,27 @@ export default function CheckoutPage() {
           toast.error('Geçerli bir e-posta adresi girin')
           return false
         }
+        
+        // MOQ kontrolü - Toplam ürün adedi
+        const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+        if (minimumOrderQuantity > 0 && totalQuantity < minimumOrderQuantity) {
+          const remaining = minimumOrderQuantity - totalQuantity
+          toast.error(`Minimum sipariş adedi ${minimumOrderQuantity} adet. Sepetinize ${remaining} adet daha ürün eklemeniz gerekiyor.`)
+          return false
+        }
+        
+        // MOV kontrolü - Toplam tutar
+        if (minimumOrderValue > 0 && total < minimumOrderValue) {
+          const remaining = minimumOrderValue - total
+          const formatter = new Intl.NumberFormat('tr-TR', {
+            style: 'currency',
+            currency: 'TRY',
+            minimumFractionDigits: 2
+          })
+          toast.error(`Minimum sipariş tutarı ${formatter.format(minimumOrderValue)}. ${formatter.format(remaining)} daha ürün eklemeniz gerekiyor.`)
+          return false
+        }
+        
         return true
       
       case 2:

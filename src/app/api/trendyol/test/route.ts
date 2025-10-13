@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTrendyolClient } from '@catkapinda/trendyol-integration'
+import { getTrendyolClient } from '@ardahanticaret/trendyol-integration'
 
 export async function POST(request: NextRequest) {
   try {

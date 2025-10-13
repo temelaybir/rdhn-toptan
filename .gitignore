@@ -51,3 +51,9 @@ next-env.d.ts
 # documentation (internal)
 /docs
 *.md.backup
+
+# database backups
+scripts/supabase-backup-*/
+scripts/supabase-backup-custom-*/
+*.dump
+*.sql.backup

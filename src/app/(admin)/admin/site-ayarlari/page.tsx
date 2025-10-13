@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Save, Globe, Mail, Phone, Camera, Tag, Settings, Share2, Upload, X, Loader2, Bell } from 'lucide-react'
+import { Save, Globe, Mail, Phone, Camera, Tag, Settings, Share2, Upload, X, Loader2, Bell, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -70,6 +70,9 @@ interface SiteSettings {
   smtp_from_name: string | null
   smtp_secure: boolean
   smtp_enabled: boolean
+  // Toptan satış ayarları
+  minimum_order_value: number | null
+  minimum_order_quantity: number | null
 }
 
 export default function SiteSettingsPage() {
@@ -182,6 +185,9 @@ export default function SiteSettingsPage() {
         smtp_from_name: settings.smtp_from_name?.trim() || null,
         smtp_secure: settings.smtp_secure ?? true,
         smtp_enabled: settings.smtp_enabled ?? false,
+        // Toptan satış ayarları
+        minimum_order_value: settings.minimum_order_value || null,
+        minimum_order_quantity: settings.minimum_order_quantity || 10,
         updated_at: new Date().toISOString()
       }
 
@@ -450,6 +456,61 @@ export default function SiteSettingsPage() {
                     placeholder="index, follow"
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Toptan Satış Ayarları */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Toptan Satış Ayarları
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Minimum sipariş tutarı ve adedi ayarlarını yapın
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="minimum_order_value">Minimum Sipariş Tutarı (TL)</Label>
+                  <Input
+                    id="minimum_order_value"
+                    type="number"
+                    value={settings.minimum_order_value || ''}
+                    onChange={(e) => updateSetting('minimum_order_value', e.target.value ? parseFloat(e.target.value) : null)}
+                    placeholder="Örn: 5000"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sepet toplamının en az bu kadar olması gerekir (Boş bırakılabilir)
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="minimum_order_quantity">Minimum Sipariş Adedi *</Label>
+                  <Input
+                    id="minimum_order_quantity"
+                    type="number"
+                    value={settings.minimum_order_quantity || 10}
+                    onChange={(e) => updateSetting('minimum_order_quantity', e.target.value ? parseInt(e.target.value) : 10)}
+                    placeholder="Örn: 10"
+                    min="1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sepette toplam en az bu kadar ürün olması gerekir
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">💡 Toptan Satış Sistemi</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Tüm ürünler toptan satış için yapılandırılmıştır</li>
+                  <li>• Her ürün için kademeli fiyatlandırma tanımlayabilirsiniz</li>
+                  <li>• Müşteriler minimum sipariş adedinin altında sipariş veremez</li>
+                  <li>• Minimum tutarı aşmayan siparişler ödeme sayfasına geçemez</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
@@ -758,7 +819,7 @@ export default function SiteSettingsPage() {
                     type="email"
                     value={settings.contact_email || ''}
                     onChange={(e) => updateSetting('contact_email', e.target.value)}
-                    placeholder="info@catkapinda.com.tr"
+                    placeholder="info@ardahanticaret.com"
                   />
                 </div>
                 
@@ -968,7 +1029,7 @@ export default function SiteSettingsPage() {
                         id="smtp_host"
                         value={settings.smtp_host || ''}
                         onChange={(e) => updateSetting('smtp_host', e.target.value)}
-                        placeholder="mail.catkapinda.com.tr"
+                        placeholder="mail.ardahanticaret.com"
                       />
                     </div>
                     <div>
@@ -990,7 +1051,7 @@ export default function SiteSettingsPage() {
                         id="smtp_username"
                         value={settings.smtp_username || ''}
                         onChange={(e) => updateSetting('smtp_username', e.target.value)}
-                        placeholder="siparis@catkapinda.com.tr"
+                        placeholder="siparis@ardahanticaret.com"
                       />
                     </div>
                     <div>
@@ -1013,7 +1074,7 @@ export default function SiteSettingsPage() {
                         type="email"
                         value={settings.smtp_from_email || ''}
                         onChange={(e) => updateSetting('smtp_from_email', e.target.value)}
-                        placeholder="siparis@catkapinda.com.tr"
+                        placeholder="siparis@ardahanticaret.com"
                       />
                     </div>
                     <div>
@@ -1298,7 +1359,7 @@ export default function SiteSettingsPage() {
                       id="order_notification_emails"
                       value={settings.order_notification_emails || ''}
                       onChange={(e) => updateSetting('order_notification_emails', e.target.value)}
-                      placeholder="admin@catkapinda.com.tr&#10;satis@catkapinda.com.tr&#10;depo@catkapinda.com.tr"
+                      placeholder="admin@ardahanticaret.com&#10;satis@ardahanticaret.com&#10;depo@ardahanticaret.com"
                       rows={4}
                       className="mt-2"
                     />

@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
 
     // Send password reset email
     try {
-      // ✅ PRODUCTION: catkapinda.com.tr (HER ZAMAN production domain)
+      // ✅ PRODUCTION: ardahanticaret.com (HER ZAMAN production domain)
       // ✅ DEVELOPMENT: localhost:3000 veya .env'den
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://catkapinda.com.tr')
+                      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://ardahanticaret.com')
       
       const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
 

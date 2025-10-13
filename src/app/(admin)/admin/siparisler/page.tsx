@@ -83,6 +83,10 @@ interface Order {
   items: number
   payment: string
   currency: string
+  customerType?: 'individual' | 'corporate'
+  companyName?: string
+  taxNumber?: string
+  taxOffice?: string
   shippingAddress?: {
     fullName: string
     address: string
@@ -985,7 +989,26 @@ export default function OrdersPage() {
                     <p><span className="font-medium">Kargo Takip No:</span> {selectedOrder.trackingNumber || 'Belirtilmemiş'}</p>
                   </div>
                   <div>
-                    <p><span className="font-medium">Müşteri:</span> {selectedOrder.customer}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p><span className="font-medium">Müşteri:</span> {selectedOrder.customer}</p>
+                      {selectedOrder.customerType === 'corporate' && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                          <Package className="h-3 w-3 mr-1" />
+                          Kurumsal
+                        </Badge>
+                      )}
+                    </div>
+                    {selectedOrder.customerType === 'corporate' && selectedOrder.companyName && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                        <p className="text-sm"><span className="font-medium">Şirket Adı:</span> {selectedOrder.companyName}</p>
+                        {selectedOrder.taxNumber && (
+                          <p className="text-sm"><span className="font-medium">Vergi No:</span> {selectedOrder.taxNumber}</p>
+                        )}
+                        {selectedOrder.taxOffice && (
+                          <p className="text-sm"><span className="font-medium">Vergi Dairesi:</span> {selectedOrder.taxOffice}</p>
+                        )}
+                      </div>
+                    )}
                     <p><span className="font-medium">E-posta:</span> {selectedOrder.email}</p>
                     <p><span className="font-medium">Telefon:</span> {selectedOrder.phone}</p>
                     {selectedOrder.shippingAddress && (

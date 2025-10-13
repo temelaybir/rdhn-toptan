@@ -402,7 +402,7 @@ ${orderData.shippingAddress.address}
 ${orderData.shippingAddress.district} / ${orderData.shippingAddress.city}
 ${bankTransferSection}
 🔍 Sipariş Takibi:
-Siparişinizin durumunu takip etmek için: https://catkapinda.com.tr/siparis-takibi/${orderData.orderNumber}
+Siparişinizin durumunu takip etmek için: https://ardahanticaret.com/siparis-takibi/${orderData.orderNumber}
 
 👤 Hesabınıza Giriş:
 ${magicLinkResult.success && magicLinkResult.loginUrl ? 
@@ -410,7 +410,7 @@ ${magicLinkResult.success && magicLinkResult.loginUrl ?
 ${magicLinkResult.loginUrl}
 
 Bu giriş linki 30 dakika geçerlidir ve güvenli şekilde hesabınıza giriş yapmanızı sağlar.` : 
-'Hesabınıza giriş yapmak için https://catkapinda.com.tr/auth/login adresini ziyaret edin.'
+'Hesabınıza giriş yapmak için https://ardahanticaret.com/auth/login adresini ziyaret edin.'
 }
 
 📞 Sorularınız için bize ulaşabilirsiniz.
@@ -498,7 +498,7 @@ Kargo Takibi: https://kargotakip.com.tr/sorgula/${trackingNumber}
 ` : ''}
 
 🔍 Sipariş Detayları:
-Siparişinizin tüm detaylarını görmek için: https://catkapinda.com.tr/siparis-takibi/${orderData.orderNumber}
+Siparişinizin tüm detaylarını görmek için: https://ardahanticaret.com/siparis-takibi/${orderData.orderNumber}
 
 👤 Hesabınıza Giriş:
 ${magicLinkResult.success && magicLinkResult.loginUrl ? 
@@ -506,7 +506,7 @@ ${magicLinkResult.success && magicLinkResult.loginUrl ?
 ${magicLinkResult.loginUrl}
 
 Bu giriş linki 30 dakika geçerlidir.` : 
-'Hesabınıza giriş yapmak için https://catkapinda.com.tr/auth/login adresini ziyaret edin.'
+'Hesabınıza giriş yapmak için https://ardahanticaret.com/auth/login adresini ziyaret edin.'
 }
 
 Teşekkürler,
@@ -573,7 +573,7 @@ export async function sendPasswordResetEmail(
 ): Promise<boolean> {
   try {
 
-    const subject = 'Şifre Sıfırlama Talebi - CatKapinda.com.tr'
+    const subject = 'Şifre Sıfırlama Talebi - Ardahan Ticaret'
     
     const body = `
 Merhaba ${customerName || 'Değerli Müşterimiz'},
@@ -589,7 +589,7 @@ Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.
 Hesabınız güvendedir.
 
 ---
-CatKapinda.com.tr
+Ardahan Ticaret
 E-Ticaret Platformu
 `
 

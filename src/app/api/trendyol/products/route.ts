@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateAdminAuth } from '@/lib/auth/admin-api-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
-import { TrendyolAPIClient } from '@catkapinda/trendyol-integration'
+import { TrendyolAPIClient } from '@ardahanticaret/trendyol-integration'
 
 export async function GET(request: NextRequest) {
   try {

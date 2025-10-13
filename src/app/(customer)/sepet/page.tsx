@@ -23,9 +23,12 @@ import {
   ShieldCheck,
   ArrowLeft,
   CheckCircle,
-  Loader2
+  Loader2,
+  Package,
+  AlertTriangle
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useEffect } from 'react'
 
 export default function CartPage() {
   const router = useRouter()
@@ -47,6 +50,25 @@ export default function CartPage() {
   const [promoDiscount, setPromoDiscount] = useState(0)
   const [promoCodeId, setPromoCodeId] = useState<number | null>(null)
   const [isValidatingPromo, setIsValidatingPromo] = useState(false)
+  const [minimumOrderValue, setMinimumOrderValue] = useState<number>(0)
+  const [minimumOrderQuantity, setMinimumOrderQuantity] = useState<number>(10)
+
+  // MOV ve MOQ'u site ayarlarından çek
+  useEffect(() => {
+    const fetchMinimumOrderSettings = async () => {
+      try {
+        const response = await fetch('/api/site-settings')
+        if (response.ok) {
+          const data = await response.json()
+          setMinimumOrderValue(data.minimumOrderValue || 0)
+          setMinimumOrderQuantity(data.minimumOrderQuantity || 10)
+        }
+      } catch (error) {
+        console.error('Minimum sipariş ayarları yüklenemedi:', error)
+      }
+    }
+    fetchMinimumOrderSettings()
+  }, [])
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -122,6 +144,25 @@ export default function CartPage() {
       toast.error('Sepetinizde ürün bulunmuyor')
       return
     }
+    
+    // MOQ kontrolü - Toplam ürün adedi
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+    if (minimumOrderQuantity > 0 && totalQuantity < minimumOrderQuantity) {
+      const remaining = minimumOrderQuantity - totalQuantity
+      toast.error(`Minimum sipariş adedi ${minimumOrderQuantity} adet. Sepetinize ${remaining} adet daha ürün eklemeniz gerekiyor.`)
+      return
+    }
+    
+    // MOV kontrolü - Toplam tutar
+    const finalTotal = getFinalTotal()
+    const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
+    
+    if (minimumOrderValue > 0 && totalAfterPromo < minimumOrderValue) {
+      const remaining = minimumOrderValue - totalAfterPromo
+      toast.error(`Minimum sipariş tutarı ${formatPrice(minimumOrderValue)}. ${formatPrice(remaining)} daha ürün eklemeniz gerekiyor.`)
+      return
+    }
+    
     router.push('/odeme')
   }
 
@@ -490,6 +531,84 @@ export default function CartPage() {
                     )
                   })()}
                 </div>
+
+                {/* Minimum Sipariş Adedi Uyarısı */}
+                {minimumOrderQuantity > 0 && (() => {
+                  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+                  const remaining = minimumOrderQuantity - totalQuantity
+                  
+                  if (remaining > 0) {
+                    return (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-start gap-2">
+                          <Package className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs md:text-sm font-medium text-red-900">
+                              Minimum Sipariş Adedi
+                            </p>
+                            <p className="text-xs text-red-700 mt-1">
+                              Sepetinizde <strong>{totalQuantity} adet</strong> ürün var. 
+                              Minimum <strong>{minimumOrderQuantity} adet</strong> olmalı. 
+                              <strong className="block mt-1">{remaining} adet daha eklemelisiniz.</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+
+                {/* Minimum Sipariş Tutarı Uyarısı */}
+                {minimumOrderValue > 0 && (() => {
+                  const finalTotal = getFinalTotal()
+                  const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
+                  const remaining = minimumOrderValue - totalAfterPromo
+                  
+                  if (remaining > 0) {
+                    return (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs md:text-sm font-medium text-amber-900">
+                              Minimum Sipariş Tutarı
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              Minimum sipariş tutarı <strong>{formatPrice(minimumOrderValue)}</strong>. 
+                              Sepetinize <strong>{formatPrice(remaining)}</strong> değerinde daha ürün eklemelisiniz.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+
+                {/* Başarı Mesajı - Her iki koşul da sağlandıysa */}
+                {(() => {
+                  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+                  const finalTotal = getFinalTotal()
+                  const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
+                  
+                  const quantityOk = minimumOrderQuantity === 0 || totalQuantity >= minimumOrderQuantity
+                  const valueOk = minimumOrderValue === 0 || totalAfterPromo >= minimumOrderValue
+                  
+                  if (quantityOk && valueOk && (minimumOrderQuantity > 0 || minimumOrderValue > 0)) {
+                    return (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <p className="text-xs md:text-sm text-green-700 font-medium">
+                            ✓ Tüm minimum sipariş koşulları sağlandı!
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
 
                 <Separator />
 

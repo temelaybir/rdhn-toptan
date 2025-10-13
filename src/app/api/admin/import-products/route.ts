@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
         // Eğer hiç görsel yoksa varsayılan görsel ekle
         if (images.length === 0) {
-          images.push('https://catkapinda.com.tr/placeholder-product.svg')
+          images.push('https://ardahanticaret.com/placeholder-product.svg')
         }
 
         // Ürün slug'ı oluştur
