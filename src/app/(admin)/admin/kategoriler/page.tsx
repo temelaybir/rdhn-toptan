@@ -168,30 +168,62 @@ export default function CategoriesPage() {
 
   // Kategori ağacını filtrele
   const filterCategories = (categories: Category[]): Category[] => {
-    return categories
-      .filter(category => {
-        const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
-        const childrenMatch = category.children?.some(child => 
-          child.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        return matchesSearch || childrenMatch
-      })
-      .map(category => ({
-        ...category,
-        children: category.children ? filterCategories(category.children) : []
-      }))
+    const result: Category[] = []
+    const searchLower = searchTerm.toLowerCase()
+    
+    for (let i = 0; i < categories.length; i++) {
+      const category = categories[i]
+      const matchesSearch = category.name.toLowerCase().includes(searchLower)
+      
+      // Check if any children match
+      let childrenMatch = false
+      if (category.children && category.children.length > 0) {
+        for (let j = 0; j < category.children.length; j++) {
+          if (category.children[j].name.toLowerCase().includes(searchLower)) {
+            childrenMatch = true
+            break
+          }
+        }
+      }
+      
+      if (matchesSearch || childrenMatch) {
+        result.push({
+          ...category,
+          children: category.children ? filterCategories(category.children) : []
+        })
+      }
+    }
+    
+    return result
   }
 
   const filteredCategories = filterCategories(categories)
 
   // İstatistikleri hesapla
-  const totalCategories = categories.reduce((acc, cat) => {
-    return acc + 1 + (cat.children?.length || 0)
-  }, 0)
+  let totalCategories = 0
+  for (let i = 0; i < categories.length; i++) {
+    totalCategories += 1
+    if (categories[i].children) {
+      totalCategories += categories[i].children!.length
+    }
+  }
 
-  const totalProducts = Array.from(categoryStats.values()).reduce((acc, stats) => {
-    return acc + (stats?.productCount || 0)
-  }, 0)
+  let totalProducts = 0
+  const statsArray = Array.from(categoryStats.values())
+  for (let i = 0; i < statsArray.length; i++) {
+    if (statsArray[i] && statsArray[i].productCount) {
+      totalProducts += statsArray[i].productCount
+    }
+  }
+
+  // Helper: Render children categories
+  const renderChildren = (children: Category[], level: number) => {
+    const elements = []
+    for (let i = 0; i < children.length; i++) {
+      elements.push(renderCategory(children[i], level))
+    }
+    return elements
+  }
 
   const renderCategory = (category: Category, level = 0) => {
     const isExpanded = expandedCategories.has(category.id.toString())
@@ -295,9 +327,9 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {isExpanded && hasChildren && (
+        {isExpanded && hasChildren && category.children && (
           <div className="border-l ml-6">
-            {category.children?.map(child => renderCategory(child, level + 1))}
+            {renderChildren(category.children, level + 1)}
           </div>
         )}
       </div>
@@ -368,7 +400,13 @@ export default function CategoriesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {categories.filter(c => c.isActive).length}
+              {(() => {
+                let count = 0
+                for (let i = 0; i < categories.length; i++) {
+                  if (categories[i].isActive) count++
+                }
+                return count
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
               Sitede görünür
@@ -385,7 +423,14 @@ export default function CategoriesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Array.from(categoryStats.values()).filter(s => s?.productCount === 0).length}
+              {(() => {
+                let count = 0
+                const values = Array.from(categoryStats.values())
+                for (let i = 0; i < values.length; i++) {
+                  if (values[i]?.productCount === 0) count++
+                }
+                return count
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
               Ürün eklenmemiş
@@ -433,7 +478,7 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="border rounded-lg divide-y">
-              {filteredCategories.map(category => renderCategory(category))}
+              {renderChildren(filteredCategories, 0)}
             </div>
           )}
         </CardContent>
