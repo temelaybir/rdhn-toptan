@@ -712,56 +712,65 @@ function transformProducts(data: ProductRow[]): Product[] {
 
 function transformProduct(data: ProductRow): Product {
   // Use helper function to map database fields to form fields
-  const mappedData = mapDatabaseFieldsToForm(data)
+  const mappedData = mapDatabaseFieldsToForm(data) as any
   
   // Images'ı object array'e çevir (homepage servisindekiyle aynı logic)
-  let transformedImages = [];
-  if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-    transformedImages = data.images.map((url: string, index: number) => ({
-      url: url || '/placeholder-product.svg',
-      alt: data.name || 'Ürün',
-      is_main: index === 0
-    }));
-  } else {
-    transformedImages = [{
-      url: '/placeholder-product.svg',
-      alt: data.name || 'Ürün',
-      is_main: true
-    }];
-  }
+  const transformedImages = (data.images && Array.isArray(data.images) && data.images.length > 0)
+    ? data.images.map((url: string, index: number) => ({
+        url: url || '/placeholder-product.svg',
+        alt: data.name || 'Ürün',
+        is_main: index === 0,
+        id: index + 1,
+        position: index,
+        isMain: index === 0
+      }))
+    : [{
+        url: '/placeholder-product.svg',
+        alt: data.name || 'Ürün',
+        is_main: true,
+        id: 1,
+        position: 0,
+        isMain: true
+      }]
   
-  return {
-    id: mappedData.id,
-    name: mappedData.name,
-    slug: mappedData.slug,
-    sku: mappedData.sku,
-    barcode: mappedData.barcode,
-    price: mappedData.price,
-    description: mappedData.description,
-    tags: mappedData.tags || [],
-    images: transformedImages, // Transform edilmiş images kullan
-    variants: mappedData.variants || [],
-    category: mappedData.category,
-    created_at: mappedData.created_at,
-    updated_at: mappedData.updated_at,
+  const product: Product = {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    sku: data.sku || null,
+    barcode: data.barcode || null,
+    price: Number(data.price),
+    description: data.description || null,
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    images: transformedImages,
+    variants: Array.isArray(data.variants) ? data.variants.map(v => ({ 
+      ...v,
+      createdAt: new Date(v.created_at),
+      updatedAt: new Date(v.updated_at)
+    })) : [],
+    category: data.category || undefined,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
     
     // Mapped fields (now properly converted)
     allowBackorders: mappedData.allowBackorders || false,
     trackStock: mappedData.trackStock !== undefined ? mappedData.trackStock : true,
-    lowStockThreshold: mappedData.lowStockThreshold,
-    shortDescription: mappedData.shortDescription,
-    comparePrice: mappedData.comparePrice,
-    costPrice: mappedData.costPrice,
-    stockQuantity: mappedData.stockQuantity || 0,
-    categoryId: mappedData.categoryId,
+    lowStockThreshold: mappedData.lowStockThreshold || null,
+    shortDescription: mappedData.shortDescription || null,
+    comparePrice: mappedData.comparePrice || null,
+    costPrice: mappedData.costPrice || null,
+    stockQuantity: Number(mappedData.stockQuantity) || 0,
+    categoryId: data.category_id || null,
     isActive: mappedData.isActive !== undefined ? mappedData.isActive : true,
     isFeatured: mappedData.isFeatured || false,
-    taxRate: mappedData.taxRate,
+    taxRate: mappedData.taxRate || null,
     hasVariants: mappedData.hasVariants || false,
-    variantOptions: mappedData.variantOptions || [],
+    variantOptions: Array.isArray(mappedData.variantOptions) ? mappedData.variantOptions : [],
     
     // Tabloda mevcut olan tek JSON alanı
-    dimensions: mappedData.dimensions_detail || mappedData.dimensions,
+    dimensions: mappedData.dimensions_detail || mappedData.dimensions || null,
     
     // SEO alanları - tablodaki kolonlardan oluştur
     seo: {
@@ -773,12 +782,14 @@ function transformProduct(data: ProductRow): Product {
     // Shipping alanları - tablodaki kolonlardan oluştur  
     shipping: {
       requiresShipping: mappedData.requires_shipping !== undefined ? mappedData.requires_shipping : true,
-      shippingClass: mappedData.shipping_class || 'standard',
+      shippingClass: (mappedData.shipping_class || 'standard') as 'standard' | 'fragile' | 'oversized',
     },
     
     // Computed fields
-    weight: mappedData.weight
+    weight: mappedData.weight || null
   }
+  
+  return product
 }
 
 function createSlug(text: string): string {

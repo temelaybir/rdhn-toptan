@@ -36,6 +36,9 @@ export async function createAdminSupabaseClient() {
   const key = supabaseServiceRoleKey || supabaseAnonKey
   const keyType = supabaseServiceRoleKey ? 'service-role' : 'anon'
   
+  // Production'da hangi key kullanıldığını log'la
+  console.log(`🔑 Supabase Admin Client using: ${keyType} key`)
+  
   if (!key) {
     console.error('❌ Neither SUPABASE_SERVICE_ROLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is available')
     throw new Error('Either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required')

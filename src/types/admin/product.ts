@@ -107,7 +107,7 @@ export interface TierPrice {
 }
 
 export interface Product {
-  id: string
+  id: number
   name: string
   slug: string
   description: string | null
@@ -123,7 +123,7 @@ export interface Product {
   barcode: string | null
   weight: number | null
   dimensions: ProductDimensions | null
-  categoryId: string | null
+  categoryId: number | null
   category?: Category
   isActive: boolean
   isFeatured: boolean
@@ -145,6 +145,9 @@ export interface Product {
   tierPricing?: TierPrice[]
   createdAt: Date
   updatedAt: Date
+  // Ek veritabanı alanları
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ProductVariant {
@@ -182,12 +185,12 @@ export interface ProductDimensions {
 }
 
 export interface Category {
-  id: string
+  id: number
   name: string
   slug: string
   description: string | null
   imageUrl: string | null
-  parentId: string | null
+  parentId: number | null
   parent?: Category
   children?: Category[]
   isActive: boolean
@@ -228,7 +231,7 @@ export interface ProductFormData {
   dimensions?: ProductDimensions
   
   // Kategori ve Etiketler
-  categoryId?: string
+  categoryId?: number | string
   tags: string[]
   
   // Durum

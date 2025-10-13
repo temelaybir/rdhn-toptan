@@ -26,7 +26,8 @@ import {
   CreditCard,
   Banknote,
   FileEdit,
-  Tag
+  Tag,
+  Boxes
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -47,6 +48,11 @@ const menuItems = [
     title: 'Ürünler',
     href: '/admin/urunler',
     icon: Package
+  },
+  {
+    title: 'Toptan Paket Yönetimi',
+    href: '/admin/toptan-paket-yonetimi',
+    icon: Boxes
   },
   {
     title: 'Kategoriler',
