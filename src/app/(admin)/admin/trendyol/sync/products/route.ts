@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { SyncEngine, QueueManager } from '@catkapinda/trendyol-integration'
+import { SyncEngine, QueueManager } from '@ardahanticaret/trendyol-integration'
 import { z } from 'zod'
 
 // Validation schemas

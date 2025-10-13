@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
 import { validateAdminAuth } from '@/lib/auth/admin-api-auth'
-import { TrendyolAPIClient } from '@catkapinda/trendyol-integration'
+import { TrendyolAPIClient } from '@ardahanticaret/trendyol-integration'
 
 // Gelişmiş string eşleştirme fonksiyonu (Mock test'te %80 başarı)
 function improvedStringMatch(str1: string, str2: string): { score: number, reason: string } {

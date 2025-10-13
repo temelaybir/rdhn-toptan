@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { TrendyolSettings } from '@/types/trendyol'
-import { getTrendyolClient, updateTrendyolClient, ImageProcessor } from '@catkapinda/trendyol-integration'
+import { getTrendyolClient, updateTrendyolClient, ImageProcessor } from '@ardahanticaret/trendyol-integration'
 import { z } from 'zod'
 
 // Validation schema

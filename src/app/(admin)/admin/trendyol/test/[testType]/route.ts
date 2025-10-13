@@ -1,4 +1,4 @@
-import { getTrendyolClient } from '@catkapinda/trendyol-integration';
+import { getTrendyolClient } from '@ardahanticaret/trendyol-integration';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'

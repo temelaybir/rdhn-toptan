@@ -3,8 +3,8 @@ import type {
   BizimHesapService as IBizimHesapService,
   BizimHesapInvoiceResult,
   ECommerceOrder
-} from '@catkapinda/bizimhesap-integration'
-import { InvoiceType } from '@catkapinda/bizimhesap-integration'
+} from '@ardahanticaret/bizimhesap-integration'
+import { InvoiceType } from '@ardahanticaret/bizimhesap-integration'
 
 // Re-export InvoiceType for backwards compatibility
 export { InvoiceType }
@@ -29,7 +29,7 @@ export class BizimHesapInvoiceService {
   constructor() {
     // BizimHesap service'i lazy load ediyoruz
     try {
-      const { createBizimHesapService } = require('@catkapinda/bizimhesap-integration')
+      const { createBizimHesapService } = require('@ardahanticaret/bizimhesap-integration')
       this.bizimHesapService = createBizimHesapService()
     } catch (error) {
       console.warn('⚠️ BizimHesap integration yüklenemedi:', error)
@@ -66,7 +66,7 @@ export class BizimHesapInvoiceService {
       }
 
       // Sipariş formatını dönüştür
-      const { convertSupabaseOrderToBizimHesap } = require('@catkapinda/bizimhesap-integration')
+      const { convertSupabaseOrderToBizimHesap } = require('@ardahanticaret/bizimhesap-integration')
       const ecommerceOrder = convertSupabaseOrderToBizimHesap(order)
 
       // ✅ SALES (Satış faturası) olarak zorla
