@@ -89,10 +89,6 @@ export default function ProductsPage() {
   const [isBulkImageFixDialogOpen, setIsBulkImageFixDialogOpen] = useState(false)
   const [isBulkImageFixing, setIsBulkImageFixing] = useState(false)
   const formatPrice = (price: number) => `₺${price.toFixed(2)}`
-  const { execute: executeDelete } = useActionHandler({
-    successMessage: 'Ürün başarıyla silindi',
-    onSuccess: () => loadData()
-  })
   
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',
@@ -179,6 +175,12 @@ export default function ProductsPage() {
   }, [filters.search, filters.categoryId, filters.status, filters.sortBy, filters.sortOrder, filters.page])
 
   // Stats artık backend'den geliyor (loadData içinde set ediliyor)
+  
+  // Delete action handler
+  const { execute: executeDelete } = useActionHandler({
+    successMessage: 'Ürün başarıyla silindi',
+    onSuccess: () => loadData()
+  })
 
   // Ürün işlemleri
   const handleCreateProduct = () => {
