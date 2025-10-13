@@ -74,11 +74,9 @@ export class AdminAuthService {
   // Login işlemi
   async login(credentials: LoginCredentials, request?: Request): Promise<LoginResult> {
     try {
-      console.log('🔐 Login attempt:', { username: credentials.username })
       const supabase = await createAdminSupabaseClient()
       
       // Kullanıcıyı username veya email ile bul
-      console.log('📋 Querying admin_users...')
       const { data: user, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -86,15 +84,7 @@ export class AdminAuthService {
         .eq('is_active', true)
         .single()
 
-      console.log('📊 Query result:', { 
-        found: !!user, 
-        error: error?.message,
-        hasPasswordHash: user ? !!user.password_hash : false,
-        passwordHashLength: user?.password_hash?.length
-      })
-
       if (error || !user) {
-        console.error('❌ User not found or query error:', error)
         // Brute force koruması için delay
         await this.delay(1000)
         return { success: false, error: 'Geçersiz kullanıcı adı veya şifre' }
@@ -109,23 +99,14 @@ export class AdminAuthService {
       }
 
       // Şifre kontrolü
-      console.log('🔑 Verifying password...')
-      console.log('   Password length:', credentials.password.length)
-      console.log('   Hash prefix:', user.password_hash.substring(0, 10))
-      
       const isValidPassword = await bcrypt.compare(credentials.password, user.password_hash)
       
-      console.log('🔐 Password verification result:', isValidPassword)
-      
       if (!isValidPassword) {
-        console.error('❌ Invalid password')
         // Başarısız giriş denemesini kaydet
         await this.recordFailedLogin(user.id)
         await this.delay(1000)
         return { success: false, error: 'Geçersiz kullanıcı adı veya şifre' }
       }
-      
-      console.log('✅ Password valid, creating session...')
 
       // 2FA kontrolü
       if (user.two_factor_enabled) {

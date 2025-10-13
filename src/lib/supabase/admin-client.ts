@@ -11,12 +11,14 @@ export async function createAdminSupabaseClient() {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  console.log('🔍 Admin Supabase client oluşturuluyor...', {
-    hasUrl: !!supabaseUrl,
-    hasServiceRole: !!supabaseServiceRoleKey,
-    hasAnonKey: !!supabaseAnonKey,
-    urlLength: supabaseUrl?.length || 0
-  })
+  // Sadece hata durumunda log
+  if (!supabaseUrl || !key) {
+    console.log('🔍 Admin Supabase client check:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceRole: !!supabaseServiceRoleKey,
+      hasAnonKey: !!supabaseAnonKey
+    })
+  }
 
   // URL yoksa hata ver
   if (!supabaseUrl) {
@@ -46,8 +48,6 @@ export async function createAdminSupabaseClient() {
   }
 
   try {
-    console.log(`✅ Admin Supabase client oluşturuluyor with ${keyType} key`)
-
     // Dynamic import kullanarak createClient'ı al
     const { createClient } = await import('@supabase/supabase-js')
     
@@ -79,7 +79,6 @@ export async function createAdminSupabaseClient() {
       throw new Error('Supabase client initialization failed')
     }
 
-    console.log('✅ Admin Supabase client başarıyla oluşturuldu')
     return adminSupabaseInstance
 
   } catch (error) {
