@@ -802,8 +802,8 @@ export default function TrendyolUrunlerPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.barcode}>
+                    {filteredProducts.map((product, index) => (
+                      <TableRow key={`${product.barcode}-${index}`}>
                         <TableCell>
                           <Checkbox
                             checked={selectedProducts.has(product.barcode)}

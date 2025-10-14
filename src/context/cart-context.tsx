@@ -297,15 +297,19 @@ export function CartProvider({ children }: CartProviderProps) {
         product: {
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: product.price, // 1 paket fiyatı
           images: product.images.map(img => typeof img === 'string' ? img : img.url),
           slug: product.slug,
           stockQuantity: product.stockQuantity,
           sku: product.sku,
           tags: product.tags,
-          shipping: product.shipping ? { isOversized: product.shipping.isOversized } : undefined
+          shipping: product.shipping ? { isOversized: product.shipping.isOversized } : undefined,
+          // Toptan satış bilgileri
+          packageQuantity: product.packageQuantity,
+          packageUnit: product.packageUnit,
+          isWholesale: product.isWholesale
         },
-        quantity: safeQuantity,
+        quantity: safeQuantity, // Paket adedi
         addedAt: new Date(),
         variant,
         maxQuantity: maxQuantity

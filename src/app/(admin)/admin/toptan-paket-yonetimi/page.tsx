@@ -268,7 +268,27 @@ export default function WholesalePackageManagementPage() {
       })
 
       const results = await Promise.all(promises)
-      const allSuccess = results.every(async r => (await r.json()).success)
+      
+      // Her response'u kontrol et
+      let allSuccess = true
+      for (const response of results) {
+        if (!response.ok) {
+          allSuccess = false
+          console.error('Response not ok:', response.status, response.statusText)
+          continue
+        }
+        
+        try {
+          const data = await response.json()
+          if (!data.success) {
+            allSuccess = false
+            console.error('API error:', data.error)
+          }
+        } catch (error) {
+          allSuccess = false
+          console.error('JSON parse error:', error)
+        }
+      }
 
       if (allSuccess) {
         toast.success(`${changedProducts.length} ürün güncellendi`)
@@ -358,8 +378,8 @@ export default function WholesalePackageManagementPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tüm Kategoriler</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat?.id} value={cat?.id || ''}>
+                {categories.map((cat, index) => (
+                  <SelectItem key={`${cat?.id}-${index}`} value={cat?.id || ''}>
                     {cat?.name}
                   </SelectItem>
                 ))}
@@ -444,14 +464,14 @@ export default function WholesalePackageManagementPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.map((product) => {
+                  filteredProducts.map((product, index) => {
                     const edit = edits.get(product.id)
                     const hasChange = 
                       edit?.price !== product.price || 
                       (edit?.packageQuantity || null) !== (product.packageQuantity || null)
 
                     return (
-                      <TableRow key={product.id} className={hasChange ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
+                      <TableRow key={`${product.id}-${index}`} className={hasChange ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
                         <TableCell>
                           <Checkbox
                             checked={selectedProducts.has(product.id)}

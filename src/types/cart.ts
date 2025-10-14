@@ -16,7 +16,7 @@ export interface CartItem {
   product: {                    // Embedded product data (simplified from Product type)
     id: string                  // UUID string
     name: string
-    price: number
+    price: number               // 1 paket fiyatı (toptan ürünlerde)
     images: string[]
     slug: string
     stockQuantity: number       // Product type'daki isim
@@ -25,8 +25,12 @@ export interface CartItem {
     shipping?: {
       isOversized?: boolean
     }
+    // Toptan satış bilgileri
+    packageQuantity?: number    // Bir pakette kaç adet var
+    packageUnit?: string        // Paket birimi (adet, paket, koli)
+    isWholesale?: boolean       // Toptan ürün mü?
   }
-  quantity: number
+  quantity: number              // Paket adedi (toptan ürünlerde)
   addedAt: Date
   variant?: CartItemVariant
   maxQuantity?: number

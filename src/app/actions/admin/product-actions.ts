@@ -107,9 +107,13 @@ function mapFormFieldsToDatabase(formData: Record<string, unknown>): Record<stri
     isActive: 'is_active',
     isFeatured: 'is_featured',
     hasVariants: 'has_variants',
+    isWholesale: 'is_wholesale',
+    wholesaleOnly: 'wholesale_only',
     
     // String/Text fields
     shortDescription: 'short_description',
+    packageUnit: 'package_unit',
+    moqUnit: 'moq_unit',
     
     // Numeric fields
     comparePrice: 'compare_price',
@@ -117,12 +121,15 @@ function mapFormFieldsToDatabase(formData: Record<string, unknown>): Record<stri
     stockQuantity: 'stock_quantity',
     lowStockThreshold: 'low_stock_threshold',
     taxRate: 'tax_rate',
+    packageQuantity: 'package_quantity',
+    moq: 'moq',
     
     // UUID fields
     categoryId: 'category_id',
     
     // JSON fields
     variantOptions: 'variant_options',
+    tierPricing: 'tier_pricing',
   }
   
   // Apply mappings
@@ -187,9 +194,13 @@ function mapDatabaseFieldsToForm(dbData: Record<string, unknown>): Record<string
     is_active: 'isActive',
     is_featured: 'isFeatured',
     has_variants: 'hasVariants',
+    is_wholesale: 'isWholesale',
+    wholesale_only: 'wholesaleOnly',
     
     // String/Text fields
     short_description: 'shortDescription',
+    package_unit: 'packageUnit',
+    moq_unit: 'moqUnit',
     
     // Numeric fields
     compare_price: 'comparePrice',
@@ -197,12 +208,15 @@ function mapDatabaseFieldsToForm(dbData: Record<string, unknown>): Record<string
     stock_quantity: 'stockQuantity',
     low_stock_threshold: 'lowStockThreshold',
     tax_rate: 'taxRate',
+    package_quantity: 'packageQuantity',
+    moq: 'moq',
     
     // UUID fields
     category_id: 'categoryId',
     
     // JSON fields
     variant_options: 'variantOptions',
+    tier_pricing: 'tierPricing',
   }
   
   // Apply mappings
@@ -719,14 +733,24 @@ export async function checkSKU(sku: string, excludeId?: number) {
 // Transform functions
 function transformProducts(data: ProductRow[]): Product[] {
   console.log('🔄 [TRANSFORM] transformProducts başladı, count:', data.length)
+  
+  // Duplicate ID'leri filtrele
+  const uniqueData = data.filter((item, index, self) => 
+    index === self.findIndex(t => t.id === item.id)
+  )
+  
+  if (uniqueData.length !== data.length) {
+    console.warn(`⚠️ [TRANSFORM] ${data.length - uniqueData.length} duplicate ID filtrelendi`)
+  }
+  
   const result = []
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < uniqueData.length; i++) {
     try {
-      const transformed = transformProduct(data[i])
+      const transformed = transformProduct(uniqueData[i])
       result.push(transformed)
     } catch (error) {
       console.error(`❌ [TRANSFORM] Ürün #${i} transform hatası:`, error)
-      console.error('Hatalı veri:', JSON.stringify(data[i], null, 2))
+      console.error('Hatalı veri:', JSON.stringify(uniqueData[i], null, 2))
       throw error
     }
   }
@@ -795,6 +819,15 @@ function transformProduct(data: ProductRow): Product {
     taxRate: mappedData.taxRate || null,
     hasVariants: mappedData.hasVariants || false,
     variantOptions: Array.isArray(mappedData.variantOptions) ? mappedData.variantOptions : [],
+    
+    // Toptan satış alanları
+    isWholesale: mappedData.isWholesale || false,
+    wholesaleOnly: mappedData.wholesaleOnly || false,
+    packageQuantity: mappedData.packageQuantity || null,
+    packageUnit: mappedData.packageUnit || null,
+    moq: mappedData.moq || null,
+    moqUnit: mappedData.moqUnit || 'piece',
+    tierPricing: Array.isArray(mappedData.tierPricing) ? mappedData.tierPricing : [],
     
     // Tabloda mevcut olan tek JSON alanı
     dimensions: mappedData.dimensions_detail || mappedData.dimensions || null,

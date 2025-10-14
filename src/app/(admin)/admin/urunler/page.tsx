@@ -393,8 +393,8 @@ export default function ProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tüm Kategoriler</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
+                  {categories.map((category, index) => (
+                    <SelectItem key={`${category.id}-${index}`} value={category.id.toString()}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -527,8 +527,8 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                   </TableRow>
-                ) : displayedProducts.map((product) => (
-                  <TableRow key={product.id}>
+                ) : displayedProducts.map((product, index) => (
+                  <TableRow key={`${product.id}-${index}`}>
                     <TableCell className="sticky left-0 bg-background z-10">
                       <Checkbox
                         checked={selectedProducts.has(product.id)}

@@ -50,25 +50,6 @@ export default function CartPage() {
   const [promoDiscount, setPromoDiscount] = useState(0)
   const [promoCodeId, setPromoCodeId] = useState<number | null>(null)
   const [isValidatingPromo, setIsValidatingPromo] = useState(false)
-  const [minimumOrderValue, setMinimumOrderValue] = useState<number>(0)
-  const [minimumOrderQuantity, setMinimumOrderQuantity] = useState<number>(10)
-
-  // MOV ve MOQ'u site ayarlarından çek
-  useEffect(() => {
-    const fetchMinimumOrderSettings = async () => {
-      try {
-        const response = await fetch('/api/site-settings')
-        if (response.ok) {
-          const data = await response.json()
-          setMinimumOrderValue(data.minimumOrderValue || 0)
-          setMinimumOrderQuantity(data.minimumOrderQuantity || 10)
-        }
-      } catch (error) {
-        console.error('Minimum sipariş ayarları yüklenemedi:', error)
-      }
-    }
-    fetchMinimumOrderSettings()
-  }, [])
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -145,24 +126,7 @@ export default function CartPage() {
       return
     }
     
-    // MOQ kontrolü - Toplam ürün adedi
-    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-    if (minimumOrderQuantity > 0 && totalQuantity < minimumOrderQuantity) {
-      const remaining = minimumOrderQuantity - totalQuantity
-      toast.error(`Minimum sipariş adedi ${minimumOrderQuantity} adet. Sepetinize ${remaining} adet daha ürün eklemeniz gerekiyor.`)
-      return
-    }
-    
-    // MOV kontrolü - Toplam tutar
-    const finalTotal = getFinalTotal()
-    const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
-    
-    if (minimumOrderValue > 0 && totalAfterPromo < minimumOrderValue) {
-      const remaining = minimumOrderValue - totalAfterPromo
-      toast.error(`Minimum sipariş tutarı ${formatPrice(minimumOrderValue)}. ${formatPrice(remaining)} daha ürün eklemeniz gerekiyor.`)
-      return
-    }
-    
+    // Minimum sipariş kontrolü kaldırıldı - Toptan satışta yok
     router.push('/odeme')
   }
 
@@ -219,7 +183,10 @@ export default function CartPage() {
             {/* Ürün Listesi */}
             <div className="space-y-2 md:space-y-4">
               {items.map((item) => {
-                const itemTotal = item.product.price * item.quantity
+                // Paket bazlı hesaplamalar
+                const packageQty = item.product.packageQuantity || 1
+                const totalPieces = item.quantity * packageQty // Toplam adet
+                const itemTotal = item.product.price * item.quantity // Fiyat × paket sayısı
                 const itemDiscount = 0 // İndirim sistemi henüz eklenmedi
                 
                 return (
@@ -249,25 +216,24 @@ export default function CartPage() {
                             >
                               {item.product.name}
                             </Link>
-                            {item.product.brand && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {item.product.brand}
-                              </p>
+                            {/* Paket Bilgisi */}
+                            {item.product.isWholesale && item.product.packageQuantity && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Package className="h-3 w-3 text-blue-600" />
+                                <span className="text-xs text-blue-700 font-medium">
+                                  {packageQty} adet/{item.product.packageUnit || 'paket'}
+                                </span>
+                              </div>
                             )}
                             <div className="flex items-center justify-between mt-1">
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-sm font-bold">
                                   {formatPrice(item.product.price)}
+                                  {item.product.isWholesale && <span className="text-xs text-gray-600">/paket</span>}
                                 </span>
-                                {item.product.stockQuantity !== undefined && (
-                                  <span className={`text-xs font-medium ${
-                                    item.product.stockQuantity > 10 
-                                      ? 'text-green-600' 
-                                      : item.product.stockQuantity > 0 
-                                      ? 'text-orange-600' 
-                                      : 'text-red-600'
-                                  }`}>
-                                    Stok: {item.product.stockQuantity}
+                                {item.product.isWholesale && item.product.packageQuantity && (
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    {item.quantity} paket = {totalPieces} adet
                                   </span>
                                 )}
                               </div>
@@ -280,9 +246,10 @@ export default function CartPage() {
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="px-2 text-sm min-w-[2rem] text-center">
-                                  {item.quantity}
-                                </span>
+                                <div className="px-1 text-center">
+                                  <div className="text-xs font-bold">{item.quantity}</div>
+                                  <div className="text-[9px] text-blue-600">paket</div>
+                                </div>
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -336,21 +303,30 @@ export default function CartPage() {
                           >
                             {item.product.name}
                           </Link>
-                          {item.variant && (
-                            <p className="text-sm text-muted-foreground">
-                              {item.variant.title}
-                            </p>
+                          
+                          {/* Paket Bilgisi */}
+                          {item.product.isWholesale && item.product.packageQuantity && (
+                            <div className="flex items-center gap-1.5">
+                              <Package className="h-3.5 w-3.5 text-blue-600" />
+                              <span className="text-sm text-blue-700 font-medium">
+                                {packageQty} adet/{item.product.packageUnit || 'paket'}
+                              </span>
+                            </div>
                           )}
-                          {item.product.brand && (
-                            <p className="text-sm text-muted-foreground">
-                              Marka: {item.product.brand}
-                            </p>
-                          )}
+                          
                           <div className="flex items-center gap-2">
                             <span className="text-lg font-bold">
                               {formatPrice(item.product.price)}
+                              {item.product.isWholesale && <span className="text-sm text-gray-600">/paket</span>}
                             </span>
                           </div>
+                          
+                          {/* Toplam Adet Bilgisi */}
+                          {item.product.isWholesale && item.product.packageQuantity && (
+                            <div className="text-sm text-blue-600 font-medium">
+                              {item.quantity} paket = {totalPieces} adet
+                            </div>
+                          )}
                         </div>
 
                         {/* Miktar Kontrolü */}
@@ -375,9 +351,10 @@ export default function CartPage() {
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
-                            <span className="px-3 py-1 min-w-[3rem] text-center">
-                              {item.quantity}
-                            </span>
+                            <div className="px-3 py-1 min-w-[3rem] text-center">
+                              <div className="font-semibold">{item.quantity}</div>
+                              {item.product.isWholesale && <div className="text-xs text-blue-600">paket</div>}
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -532,83 +509,7 @@ export default function CartPage() {
                   })()}
                 </div>
 
-                {/* Minimum Sipariş Adedi Uyarısı */}
-                {minimumOrderQuantity > 0 && (() => {
-                  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-                  const remaining = minimumOrderQuantity - totalQuantity
-                  
-                  if (remaining > 0) {
-                    return (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
-                        <div className="flex items-start gap-2">
-                          <Package className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-xs md:text-sm font-medium text-red-900">
-                              Minimum Sipariş Adedi
-                            </p>
-                            <p className="text-xs text-red-700 mt-1">
-                              Sepetinizde <strong>{totalQuantity} adet</strong> ürün var. 
-                              Minimum <strong>{minimumOrderQuantity} adet</strong> olmalı. 
-                              <strong className="block mt-1">{remaining} adet daha eklemelisiniz.</strong>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
-
-                {/* Minimum Sipariş Tutarı Uyarısı */}
-                {minimumOrderValue > 0 && (() => {
-                  const finalTotal = getFinalTotal()
-                  const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
-                  const remaining = minimumOrderValue - totalAfterPromo
-                  
-                  if (remaining > 0) {
-                    return (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-xs md:text-sm font-medium text-amber-900">
-                              Minimum Sipariş Tutarı
-                            </p>
-                            <p className="text-xs text-amber-700 mt-1">
-                              Minimum sipariş tutarı <strong>{formatPrice(minimumOrderValue)}</strong>. 
-                              Sepetinize <strong>{formatPrice(remaining)}</strong> değerinde daha ürün eklemelisiniz.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
-
-                {/* Başarı Mesajı - Her iki koşul da sağlandıysa */}
-                {(() => {
-                  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-                  const finalTotal = getFinalTotal()
-                  const totalAfterPromo = Math.max(0, finalTotal - promoDiscount)
-                  
-                  const quantityOk = minimumOrderQuantity === 0 || totalQuantity >= minimumOrderQuantity
-                  const valueOk = minimumOrderValue === 0 || totalAfterPromo >= minimumOrderValue
-                  
-                  if (quantityOk && valueOk && (minimumOrderQuantity > 0 || minimumOrderValue > 0)) {
-                    return (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <p className="text-xs md:text-sm text-green-700 font-medium">
-                            ✓ Tüm minimum sipariş koşulları sağlandı!
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
+                {/* Minimum Sipariş Kontrolü Kaldırıldı - Toptan Satış */}
 
                 <Separator />
 

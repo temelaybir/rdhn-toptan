@@ -355,8 +355,8 @@ export default function CampaignsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPromoCodes.map((promo) => (
-                      <TableRow key={promo.id}>
+                    filteredPromoCodes.map((promo, index) => (
+                      <TableRow key={`${promo.id}-${index}`}>
                         <TableCell className="font-mono font-medium">
                           <div className="flex items-center gap-2">
                             {promo.code}

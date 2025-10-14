@@ -1088,9 +1088,9 @@ export default function CheckoutPage() {
         taxNumber: formData.taxNumber,
         taxOffice: formData.taxOffice,
         totalAmount: total,
-        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV dahil
+        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV dahil (quantity = paket sayısı)
         taxAmount: items.reduce((sum, item) => {
-          const itemTotal = item.product.price * item.quantity
+          const itemTotal = item.product.price * item.quantity // Paket × fiyat
           const taxAmount = itemTotal - (itemTotal / 1.2) // KDV tutarı
           return sum + taxAmount
         }, 0),
@@ -1102,14 +1102,18 @@ export default function CheckoutPage() {
         notes: formData.notes,
         paymentMethod: 'bank_transfer',
         paymentStatus: 'awaiting_payment',
-        items: items.map(item => ({
-          productId: item.product.id,
-          productName: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-          sku: item.product.sku || '',
-          image: item.product.images?.[0] || ''
-        })),
+        items: items.map(item => {
+          const packageQty = item.product.packageQuantity || 1
+          const totalPieces = item.quantity * packageQty
+          return {
+            productId: item.product.id,
+            productName: item.product.name + (item.product.isWholesale ? ` (${item.quantity} paket = ${totalPieces} adet)` : ''),
+            quantity: item.quantity, // Paket sayısı
+            price: item.product.price, // Paket fiyatı
+            sku: item.product.sku || '',
+            image: item.product.images?.[0] || ''
+          }
+        }),
         userId: null // TODO: Get from user context if logged in
       }
 
@@ -1188,13 +1192,17 @@ export default function CheckoutPage() {
         return
       }
       
-      // Prepare basket items from cart
-      const basketItems = items.map((item, index) => ({
-        id: item.product.id.toString(),
-        name: item.product.name,
-        category: 'Elektronik', // TODO: Get from product category
-        price: item.product.price
-      }))
+      // Prepare basket items from cart (Paket bilgisiyle)
+      const basketItems = items.map((item, index) => {
+        const packageQty = item.product.packageQuantity || 1
+        const totalPieces = item.quantity * packageQty
+        return {
+          id: item.product.id.toString(),
+          name: item.product.name + (item.product.isWholesale ? ` (${item.quantity} paket = ${totalPieces} adet)` : ''),
+          category: 'Toptan', // Toptan ürün
+          price: item.product.price // Paket fiyatı
+        }
+      })
 
       // Prepare buyer information
       const buyer = {
@@ -1221,9 +1229,9 @@ export default function CheckoutPage() {
         taxNumber: formData.taxNumber,
         taxOffice: formData.taxOffice,
         totalAmount: total,
-        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // Paket × fiyat
         taxAmount: items.reduce((sum, item) => {
-          const itemTotal = item.product.price * item.quantity
+          const itemTotal = item.product.price * item.quantity // Paket bazlı
           const taxAmount = itemTotal - (itemTotal / 1.2)
           return sum + taxAmount
         }, 0),
@@ -1235,14 +1243,18 @@ export default function CheckoutPage() {
         notes: `3D Secure ödeme - ${orderNumber}`,
         paymentMethod: 'credit_card',
         paymentStatus: 'pending', // 3DS tamamlandığında 'paid' olacak
-        items: items.map(item => ({
-          productId: item.product.id,
-          productName: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-          sku: item.product.sku || '',
-          image: item.product.images?.[0] || ''
-        })),
+        items: items.map(item => {
+          const packageQty = item.product.packageQuantity || 1
+          const totalPieces = item.quantity * packageQty
+          return {
+            productId: item.product.id,
+            productName: item.product.name + (item.product.isWholesale ? ` (${item.quantity} paket = ${totalPieces} adet)` : ''),
+            quantity: item.quantity, // Paket sayısı
+            price: item.product.price, // Paket fiyatı
+            sku: item.product.sku || '',
+            image: item.product.images?.[0] || ''
+          }
+        }),
         userId: null
       }
 

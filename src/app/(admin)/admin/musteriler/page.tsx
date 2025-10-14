@@ -432,8 +432,8 @@ export default function CustomersPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      customers.map((customer) => (
-                        <TableRow key={customer.id}>
+                      customers.map((customer, index) => (
+                        <TableRow key={`${customer.id}-${index}`}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
@@ -632,8 +632,8 @@ export default function CustomersPage() {
                 <CardContent>
                   {selectedCustomer?.orders && selectedCustomer.orders.length > 0 ? (
                     <div className="space-y-4">
-                      {selectedCustomer.orders.map((order) => (
-                        <div key={order.id} className="border rounded-lg p-4">
+                      {selectedCustomer.orders.map((order, index) => (
+                        <div key={`${order.id}-${index}`} className="border rounded-lg p-4">
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-medium">{order.id}</p>

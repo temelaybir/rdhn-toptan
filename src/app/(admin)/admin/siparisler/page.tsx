@@ -762,8 +762,8 @@ export default function OrdersPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
+                      filteredOrders.map((order, index) => (
+                        <TableRow key={`${order.id}-${index}`}>
                           <TableCell className="font-medium">{order.id}</TableCell>
                           <TableCell>
                             <div>
@@ -1037,8 +1037,8 @@ export default function OrdersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {selectedOrder.orderItems.map((item) => (
-                          <TableRow key={item.id}>
+                        {selectedOrder.orderItems.map((item, index) => (
+                          <TableRow key={`${item.id}-${index}`}>
                             <TableCell>
                               <div className="flex items-center">
                                 <SafeImage 

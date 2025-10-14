@@ -93,7 +93,17 @@ export function MiniCart() {
               </div>
             ) : (
               <div className="p-4 space-y-4">
-                {cart.items?.map((item) => (
+                {cart.items?.map((item) => {
+                  // Debug: Cart item paket bilgilerini kontrol et
+                  console.log('🛍️ Mini Cart Item:', {
+                    name: item.product.name,
+                    isWholesale: item.product.isWholesale,
+                    packageQuantity: item.product.packageQuantity,
+                    packageUnit: item.product.packageUnit,
+                    quantity: item.quantity
+                  })
+                  
+                  return (
                   <div key={item.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                     {/* Product Image */}
                     <div className="relative w-16 h-16 bg-white rounded-md overflow-hidden flex-shrink-0">
@@ -111,21 +121,28 @@ export function MiniCart() {
                         {item.product.name}
                       </h4>
                       
-                      {/* Variant Info */}
-                      {item.variant && (
-                        <div className="text-xs text-muted-foreground mb-2">
-                          {Object.entries(item.variant.options).map(([key, value]) => (
-                            <span key={key} className="mr-2">
-                              {key}: {value}
-                            </span>
-                          ))}
+                      {/* Paket Bilgisi */}
+                      {item.product.isWholesale && item.product.packageQuantity && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <Package className="h-3 w-3 text-blue-600" />
+                          <span className="text-xs text-blue-700 font-medium">
+                            {item.product.packageQuantity} adet/{item.product.packageUnit || 'paket'}
+                          </span>
                         </div>
                       )}
 
                       {/* Price */}
                       <div className="text-sm font-semibold text-primary mb-2">
                         {formatPrice(item.product.price || 0)}
+                        {item.product.isWholesale && <span className="text-xs text-gray-600">/paket</span>}
                       </div>
+
+                      {/* Toplam Adet Bilgisi */}
+                      {item.product.isWholesale && item.product.packageQuantity && (
+                        <div className="text-xs text-blue-600 font-medium mb-2">
+                          {item.quantity} paket = {item.quantity * item.product.packageQuantity} adet
+                        </div>
+                      )}
 
                       {/* Quantity Controls */}
                       <div className="flex items-center justify-between">
@@ -138,9 +155,10 @@ export function MiniCart() {
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="px-2 text-sm font-medium min-w-[2rem] text-center">
-                            {item.quantity || 0}
-                          </span>
+                          <div className="px-2 text-center">
+                            <div className="text-xs font-bold">{item.quantity || 0}</div>
+                            {item.product.isWholesale && <div className="text-[9px] text-blue-600">paket</div>}
+                          </div>
                           <Button
                             variant="outline"
                             size="icon"
@@ -164,7 +182,8 @@ export function MiniCart() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
 
                 {/* Clear Cart Button */}
                 {cart.items.length > 0 && (
