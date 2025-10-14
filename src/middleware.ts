@@ -111,10 +111,14 @@ const PUBLIC_API_ROUTES = [
 // Edge Runtime uyumlu session validation
 async function validateAdminSession(sessionToken: string) {
   try {
+    // Admin tabloları için service role key kullan
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    
     // Supabase client oluştur
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseKey,
       {
         cookies: {
           getAll() { return [] },
