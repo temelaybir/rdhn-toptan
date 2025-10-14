@@ -11,6 +11,10 @@ export async function createAdminSupabaseClient() {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  // Service role key varsa onu kullan, yoksa anon key kullan (development için)
+  const key = supabaseServiceRoleKey || supabaseAnonKey
+  const keyType = supabaseServiceRoleKey ? 'service-role' : 'anon'
+  
   // Sadece hata durumunda log
   if (!supabaseUrl || !key) {
     console.log('🔍 Admin Supabase client check:', {
@@ -32,10 +36,6 @@ export async function createAdminSupabaseClient() {
     throw new Error('Invalid Supabase URL format')
   }
 
-  // Service role key varsa onu kullan, yoksa anon key kullan (development için)
-  const key = supabaseServiceRoleKey || supabaseAnonKey
-  const keyType = supabaseServiceRoleKey ? 'service-role' : 'anon'
-  
   // Production'da hangi key kullanıldığını log'la
   console.log(`🔑 Supabase Admin Client using: ${keyType} key`)
   
