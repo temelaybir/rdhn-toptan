@@ -391,7 +391,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           {/* Başlık - Kompakt */}
           <div className="space-y-1.5">
             <div className="flex items-start gap-2">
-              <h1 className="text-xl font-bold leading-tight max-sm:text-lg max-sm:leading-tight flex-1">{product.name}</h1>
+              <h1 className="text-xl font-bold leading-tight max-sm:text-lg max-sm:leading-tight flex-1">
+                {product.name}
+                {product.package_quantity && product.package_quantity > 0 && (
+                  <span className="ml-2 text-blue-600 text-base max-sm:text-sm font-semibold">
+                    ({product.package_quantity}&apos;li paket)
+                  </span>
+                )}
+              </h1>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs px-2 py-0.5 flex-shrink-0">
                 Toptan
               </Badge>

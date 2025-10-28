@@ -30,7 +30,10 @@ import {
   CheckCircle,
   Search,
   DollarSign,
-  X
+  X,
+  Pencil,
+  Check,
+  XCircle
 } from 'lucide-react'
 
 // Paket varyasyonları
@@ -48,6 +51,8 @@ interface ProductEdit {
   id: string
   packageQuantity: number | null
   price: number
+  name?: string
+  unitPrice?: number // Adet fiyatı (paket seçilmeden önceki fiyat)
 }
 
 export default function WholesalePackageManagementPage() {
@@ -61,6 +66,10 @@ export default function WholesalePackageManagementPage() {
   
   // Düzenleme state'i - her ürün için ayrı
   const [edits, setEdits] = useState<Map<string, ProductEdit>>(new Map())
+  
+  // Ürün adı düzenleme state'i
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState<string>('')
 
   // Verileri yükle
   useEffect(() => {
@@ -83,10 +92,17 @@ export default function WholesalePackageManagementPage() {
         // Mevcut değerleri edits'e koy
         const initialEdits = new Map<string, ProductEdit>()
         result.data.products.forEach((p: Product) => {
+          // Eğer paketi varsa, birim fiyatı hesapla (mevcut fiyat / paket adedi)
+          const unitPrice = p.packageQuantity && p.packageQuantity > 0 
+            ? p.price / p.packageQuantity 
+            : p.price
+          
           initialEdits.set(p.id, {
             id: p.id,
             packageQuantity: p.packageQuantity || null,
-            price: p.price
+            price: p.price,
+            unitPrice: unitPrice,
+            name: p.name
           })
         })
         setEdits(initialEdits)
@@ -148,25 +164,82 @@ export default function WholesalePackageManagementPage() {
   // Paket adedi değiştir
   const updatePackageQuantity = (productId: string, quantity: number | null) => {
     const newEdits = new Map(edits)
+    const product = products.find(p => p.id === productId)
     const currentEdit = newEdits.get(productId) || { 
       id: productId, 
       packageQuantity: null, 
-      price: products.find(p => p.id === productId)?.price || 0 
+      price: product?.price || 0,
+      unitPrice: product?.price || 0,
+      name: product?.name || ''
     }
-    newEdits.set(productId, { ...currentEdit, packageQuantity: quantity })
+    
+    // Paket seçildiğinde fiyatı otomatik hesapla (birim fiyat x paket adedi)
+    const newPrice = quantity && quantity > 0 && currentEdit.unitPrice
+      ? currentEdit.unitPrice * quantity
+      : currentEdit.unitPrice || 0
+    
+    newEdits.set(productId, { 
+      ...currentEdit, 
+      packageQuantity: quantity,
+      price: newPrice
+    })
     setEdits(newEdits)
   }
 
-  // Fiyat değiştir
-  const updatePrice = (productId: string, price: number) => {
+  // Birim fiyat değiştir (adet fiyatı)
+  const updateUnitPrice = (productId: string, unitPrice: number) => {
+    const newEdits = new Map(edits)
+    const product = products.find(p => p.id === productId)
+    const currentEdit = newEdits.get(productId) || { 
+      id: productId, 
+      packageQuantity: product?.packageQuantity || null, 
+      price: 0,
+      unitPrice: 0,
+      name: product?.name || ''
+    }
+    
+    // Paket varsa otomatik olarak paket fiyatını hesapla
+    const newPrice = currentEdit.packageQuantity && currentEdit.packageQuantity > 0
+      ? unitPrice * currentEdit.packageQuantity
+      : unitPrice
+    
+    newEdits.set(productId, { 
+      ...currentEdit, 
+      unitPrice,
+      price: newPrice
+    })
+    setEdits(newEdits)
+  }
+
+  // Ürün adı düzenlemeye başla
+  const startEditingName = (productId: string, currentName: string) => {
+    setEditingProductId(productId)
+    setEditingName(currentName)
+  }
+
+  // Ürün adı düzenlemeyi iptal et
+  const cancelEditingName = () => {
+    setEditingProductId(null)
+    setEditingName('')
+  }
+
+  // Ürün adını kaydet
+  const saveProductName = (productId: string) => {
+    if (!editingName.trim()) {
+      toast.error('Ürün adı boş olamaz')
+      return
+    }
+
     const newEdits = new Map(edits)
     const currentEdit = newEdits.get(productId) || { 
       id: productId, 
       packageQuantity: products.find(p => p.id === productId)?.packageQuantity || null, 
-      price: 0 
+      price: products.find(p => p.id === productId)?.price || 0
     }
-    newEdits.set(productId, { ...currentEdit, price })
+    newEdits.set(productId, { ...currentEdit, name: editingName.trim() })
     setEdits(newEdits)
+    setEditingProductId(null)
+    setEditingName('')
   }
 
   // Toplu paket adedi atama
@@ -213,7 +286,8 @@ export default function WholesalePackageManagementPage() {
       if (!original) return false
       return (
         original.price !== edit.price ||
-        (original.packageQuantity || null) !== edit.packageQuantity
+        (original.packageQuantity || null) !== edit.packageQuantity ||
+        (edit.name && original.name !== edit.name)
       )
     })
 
@@ -233,6 +307,14 @@ export default function WholesalePackageManagementPage() {
         })
         .map(p => ({ id: p.id, price: p.price }))
 
+      // İsim güncellemeleri
+      const nameUpdates = changedProducts
+        .filter(p => {
+          const original = products.find(prod => prod.id === p.id)
+          return original && p.name && original.name !== p.name
+        })
+        .map(p => ({ id: p.id, name: p.name }))
+
       // Paket güncellemeleri
       const packageUpdates = changedProducts.filter(p => {
         const original = products.find(prod => prod.id === p.id)
@@ -248,6 +330,17 @@ export default function WholesalePackageManagementPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ updates: priceUpdates })
+          })
+        )
+      }
+
+      // İsim güncellemeleri
+      if (nameUpdates.length > 0) {
+        promises.push(
+          fetch('/api/admin/products/bulk-name-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: nameUpdates })
           })
         )
       }
@@ -311,7 +404,8 @@ export default function WholesalePackageManagementPage() {
     if (!original) return false
     return (
       original.price !== edit.price ||
-      (original.packageQuantity || null) !== edit.packageQuantity
+      (original.packageQuantity || null) !== edit.packageQuantity ||
+      (edit.name && original.name !== edit.name)
     )
   })
 
@@ -325,7 +419,10 @@ export default function WholesalePackageManagementPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Toptan Paket Yönetimi</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Ürünlere paket adedi atayın ve fiyatları düzenleyin
+            Birim fiyat (adet fiyatı) girin, paket seçtiğinizde otomatik olarak toplam fiyat hesaplanır
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            💡 Örnek: Adet fiyatı 45₺ → 12&apos;li paket seçildiğinde → Otomatik 540₺ olur
           </p>
         </div>
         {hasChanges && (
@@ -426,7 +523,7 @@ export default function WholesalePackageManagementPage() {
             Ürün Listesi ({filteredProducts.length})
           </CardTitle>
           <CardDescription>
-            Paket adedi ve fiyatları hızlıca düzenleyin
+            Önce birim fiyat (adet başı) girin, sonra paket seçin. Toplam fiyat otomatik hesaplanır.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -443,20 +540,21 @@ export default function WholesalePackageManagementPage() {
                   <TableHead className="min-w-[250px]">Ürün Adı</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead className="w-[200px]">Paket Adedi</TableHead>
-                  <TableHead className="w-[150px]">Fiyat (₺)</TableHead>
+                  <TableHead className="w-[150px]">Birim Fiyat (₺/adet)</TableHead>
+                  <TableHead className="w-[150px]">Toplam Fiyat (₺)</TableHead>
                   <TableHead className="w-[100px] text-center">Durum</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       Yükleniyor...
                     </TableCell>
                   </TableRow>
                 ) : filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">
                         Filtreye uygun ürün bulunamadı
@@ -468,7 +566,8 @@ export default function WholesalePackageManagementPage() {
                     const edit = edits.get(product.id)
                     const hasChange = 
                       edit?.price !== product.price || 
-                      (edit?.packageQuantity || null) !== (product.packageQuantity || null)
+                      (edit?.packageQuantity || null) !== (product.packageQuantity || null) ||
+                      (edit?.name && edit.name !== product.name)
 
                     return (
                       <TableRow key={`${product.id}-${index}`} className={hasChange ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
@@ -480,7 +579,58 @@ export default function WholesalePackageManagementPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{product.name}</p>
+                            {editingProductId === product.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  className="h-8"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      saveProductName(product.id)
+                                    } else if (e.key === 'Escape') {
+                                      cancelEditingName()
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => saveProductName(product.id)}
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={cancelEditingName}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <p className="font-medium flex-1">
+                                  {edit?.name || product.name}
+                                  {edit?.packageQuantity && edit.packageQuantity > 0 && (
+                                    <span className="ml-2 text-blue-600 font-semibold">
+                                      ({edit.packageQuantity}&apos;li paket)
+                                    </span>
+                                  )}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => startEditingName(product.id, edit?.name || product.name)}
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
                             {product.sku && (
                               <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
                             )}
@@ -520,10 +670,23 @@ export default function WholesalePackageManagementPage() {
                               type="number"
                               step="0.01"
                               min="0"
-                              value={edit?.price || 0}
-                              onChange={(e) => updatePrice(product.id, parseFloat(e.target.value) || 0)}
+                              value={edit?.unitPrice || 0}
+                              onChange={(e) => updateUnitPrice(product.id, parseFloat(e.target.value) || 0)}
                               className="w-full"
+                              placeholder="Adet fiyatı"
                             />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <div className="font-semibold text-green-600">
+                              {edit?.price ? `₺${edit.price.toFixed(2)}` : '₺0.00'}
+                            </div>
+                            {edit?.packageQuantity && edit.packageQuantity > 0 && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({edit.packageQuantity} paket)
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">

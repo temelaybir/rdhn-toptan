@@ -25,6 +25,8 @@ interface ProductCardProps {
     is_active: boolean
     is_featured?: boolean
     tags?: string[] | null
+    package_quantity?: number | null
+    package_unit?: string | null
   }
 }
 
@@ -523,6 +525,11 @@ export function ProductCard({ product }: ProductCardProps) {
               >
                 <h3 className="text-sm text-gray-800 line-clamp-2 hover:text-orange-600 transition-colors">
                   {product.name}
+                  {product.package_quantity && product.package_quantity > 0 && (
+                    <span className="ml-1 text-blue-600 text-xs font-semibold">
+                      ({product.package_quantity}&apos;li)
+                    </span>
+                  )}
                 </h3>
               </Link>
             </div>
