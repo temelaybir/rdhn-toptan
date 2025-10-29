@@ -94,15 +94,6 @@ export function MiniCart() {
             ) : (
               <div className="p-4 space-y-4">
                 {cart.items?.map((item) => {
-                  // Debug: Cart item paket bilgilerini kontrol et
-                  console.log('🛍️ Mini Cart Item:', {
-                    name: item.product.name,
-                    isWholesale: item.product.isWholesale,
-                    packageQuantity: item.product.packageQuantity,
-                    packageUnit: item.product.packageUnit,
-                    quantity: item.quantity
-                  })
-                  
                   return (
                   <div key={item.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                     {/* Product Image */}

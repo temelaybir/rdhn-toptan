@@ -28,20 +28,12 @@ interface ProductShowcaseProps {
 export function ProductShowcase({ products }: ProductShowcaseProps) {
   const { isLoading } = useThemeConfig()
   
-  // Debug log'ları
-  console.log('🎯 ProductShowcase render:', { 
-    productsCount: products?.length || 0, 
-    isLoading,
-    firstProduct: products?.[0]?.name 
-  })
-  
   // Split products into two rows
   const firstRow = products.slice(0, 4)
   const secondRow = products.slice(4, 8)
 
   // Ürün yoksa component'i render etme
   if (!products || products.length === 0) {
-    console.log('❌ ProductShowcase: No products found')
     return (
       <div>
         <div className="flex items-center justify-between mb-8">
@@ -91,11 +83,6 @@ export function ProductShowcase({ products }: ProductShowcaseProps) {
       </div>
     )
   }
-
-  console.log('✅ ProductShowcase: Rendering products', { 
-    firstRowCount: firstRow.length, 
-    secondRowCount: secondRow.length 
-  })
 
   return (
     <div>

@@ -282,8 +282,6 @@ export default function CheckoutPage() {
         if (result.success && result.customer) {
           setCustomerFound(result.customer)
           setShowLoginPrompt(true)
-          console.log('🔍 Customer found:', result.customer)
-          console.log('🏠 Available addresses:', result.addresses)
           
           // Store addresses for later use
           setCustomerFound({
@@ -315,8 +313,6 @@ export default function CheckoutPage() {
       toast.error('Kayıtlı adres bulunamadı')
       return
     }
-
-    console.log('🏠 Filling address:', shippingAddress)
 
     setFormData(prev => ({
       ...prev,
@@ -385,25 +381,7 @@ export default function CheckoutPage() {
           return false
         }
         
-        // MOQ kontrolü - Toplam ürün adedi
-        const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-        if (minimumOrderQuantity > 0 && totalQuantity < minimumOrderQuantity) {
-          const remaining = minimumOrderQuantity - totalQuantity
-          toast.error(`Minimum sipariş adedi ${minimumOrderQuantity} adet. Sepetinize ${remaining} adet daha ürün eklemeniz gerekiyor.`)
-          return false
-        }
-        
-        // MOV kontrolü - Toplam tutar
-        if (minimumOrderValue > 0 && total < minimumOrderValue) {
-          const remaining = minimumOrderValue - total
-          const formatter = new Intl.NumberFormat('tr-TR', {
-            style: 'currency',
-            currency: 'TRY',
-            minimumFractionDigits: 2
-          })
-          toast.error(`Minimum sipariş tutarı ${formatter.format(minimumOrderValue)}. ${formatter.format(remaining)} daha ürün eklemeniz gerekiyor.`)
-          return false
-        }
+        // Minimum tutar ve miktar kontrolü kaldırıldı - Kullanıcı sepette ne kadar varsa o kadar ödeme yapabilir
         
         return true
       
@@ -489,8 +467,6 @@ export default function CheckoutPage() {
   // Check payment status after 3DS completion
   const checkPaymentStatus = async (orderNumber: string, shouldCloseModal: boolean = true) => {
     try {
-      console.log('[API] Checking payment status for order:', orderNumber)
-      
       const response = await fetch(`/api/payment/status?orderNumber=${orderNumber}`)
       const result = await response.json()
       
@@ -498,8 +474,6 @@ export default function CheckoutPage() {
         const transaction = result.data
         
         if (transaction.status === 'SUCCESS') {
-          console.log('[SUCCESS] Payment successful, redirecting to success page')
-          
           // Modal ve timer'ları temizle
           if (shouldCloseModal) {
             cleanup3DSModal()
@@ -510,8 +484,6 @@ export default function CheckoutPage() {
           router.push(`/siparis-basarili?orderNumber=${orderNumber}&paymentId=${transaction.iyzico_payment_id}`)
           return true // Success indicator
         } else if (transaction.status === 'FAILURE') {
-          console.log('[ERROR] Payment failed, redirecting to error page')
-          
           // Modal ve timer'ları temizle
           if (shouldCloseModal) {
             cleanup3DSModal()
@@ -521,15 +493,12 @@ export default function CheckoutPage() {
           router.push(`/odeme/hata?orderNumber=${orderNumber}&error=${transaction.error_code}&message=${encodeURIComponent(transaction.error_message || 'Ödeme başarısız')}`)
           return true // Completed (even if failed)
         } else {
-          console.log('[PENDING] Payment still pending, will continue polling...')
           return false // Still pending, continue polling
         }
       } else {
-        console.log('[ERROR] Could not get payment status')
         return false // Continue polling
       }
     } catch (error) {
-      console.error('[ERROR] Error checking payment status:', error)
       return false // Continue polling
     }
   }
@@ -667,20 +636,10 @@ export default function CheckoutPage() {
     
     // Global function: Show final result in modal
     window.showModal3DSResult = (type: 'success' | 'failure', data: any) => {
-      console.log(`[MODAL_RESULT] Showing ${type} result:`, data)
-      console.log('[MODAL_DEBUG] Looking for modal elements...')
-      
       const iframe = document.getElementById('iyzico-3ds-frame') as HTMLIFrameElement
       const finalResult = document.getElementById('modal-final-result') as HTMLDivElement
       const modalTitle = document.getElementById('modal-title') as HTMLSpanElement
       const modalHeader = document.getElementById('modal-header') as HTMLDivElement
-      
-      console.log('[MODAL_DEBUG] Elements found:', {
-        iframe: !!iframe,
-        finalResult: !!finalResult,
-        modalTitle: !!modalTitle,
-        modalHeader: !!modalHeader
-      })
       
       if (!iframe || !finalResult || !modalTitle || !modalHeader) {
         console.error('[MODAL_RESULT] Modal elements not found')
@@ -691,8 +650,6 @@ export default function CheckoutPage() {
       iframe.style.display = 'none'
       finalResult.style.display = 'block'
       
-      console.log('[MODAL_DEBUG] Iframe hidden, final result shown')
-      
       if (type === 'success') {
         // SUCCESS STATE
         modalTitle.textContent = '✅ Ödeme Başarılı!'
@@ -700,10 +657,8 @@ export default function CheckoutPage() {
         
         // Update header buttons for success state
         const headerButtons = modalHeader.querySelector('div')
-        console.log('[MODAL_DEBUG] Header buttons container found:', !!headerButtons)
         
         if (headerButtons) {
-          console.log('[MODAL_DEBUG] Updating header buttons for success state...')
           headerButtons.innerHTML = 
             '<button onclick="window.redirectToOrderTracking(\'' + data.orderNumber + '\')" style="' +
               'background: #22c55e;' +
@@ -722,7 +677,6 @@ export default function CheckoutPage() {
               'font-size: 20px;' +
               'cursor: pointer;' +
             '">×</button>'
-          console.log('[MODAL_DEBUG] Header buttons updated successfully')
         } else {
           console.error('[MODAL_DEBUG] Header buttons container not found!')
         }
@@ -778,10 +732,8 @@ export default function CheckoutPage() {
         
         // Update header buttons for failure state
         const headerButtons = modalHeader.querySelector('div')
-        console.log('[MODAL_DEBUG] Header buttons container found (failure):', !!headerButtons)
         
         if (headerButtons) {
-          console.log('[MODAL_DEBUG] Updating header buttons for failure state...')
           headerButtons.innerHTML = 
             '<button onclick="window.backToCart()" style="' +
               'background: #3b82f6;' +
@@ -800,7 +752,6 @@ export default function CheckoutPage() {
               'font-size: 20px;' +
               'cursor: pointer;' +
             '">×</button>'
-          console.log('[MODAL_DEBUG] Header buttons updated for failure')
         } else {
           console.error('[MODAL_DEBUG] Header buttons container not found (failure)!')
         }
@@ -844,8 +795,6 @@ export default function CheckoutPage() {
     
     // Global function: Redirect to order tracking - ONLY called by user button click
     window.redirectToOrderTracking = (orderNumber: string) => {
-      console.log('[MODAL_REDIRECT] User clicked Sipariş Takibi button, redirecting to:', orderNumber)
-      
       // Clear sessionStorage since we're manually redirecting
       sessionStorage.removeItem('successfulOrder')
       
@@ -855,46 +804,30 @@ export default function CheckoutPage() {
       
       // Navigate to order tracking
       router.push(`/siparis-takibi/${orderNumber}`)
-      
-      console.log('[MODAL_REDIRECT] Successfully redirected to order tracking')
     }
     
     // Global function: Back to cart - ONLY called by user button click
     window.backToCart = () => {
-      console.log('[MODAL_REDIRECT] User clicked Sepete Dön button, going back to cart')
-      
       // Clean up modal
       cleanup3DSModal()
-      
-      console.log('[MODAL_REDIRECT] Successfully returned to cart')
     }
     
-    console.log('[3DS] Fast Refresh safe modal created with final result UI')
     return iframe
   }
 
   // Bank form auto-submit trigger function
   const triggerBankFormSubmit = (iframe: HTMLIFrameElement) => {
     try {
-      console.log('[3DS] Triggering bank form submit...')
-      
       // Method 1: postMessage to iframe - inject auto-submit script
       const autoSubmitScript = `
-        console.log('[BANK_FORM] Auto-submit script injected');
-        
         // Find bank form
         var form = document.querySelector('form[name="returnform"]') || 
                    document.querySelector('form[method="post"]') || 
                    document.querySelector('form');
         
         if (form) {
-          console.log('[BANK_FORM] Form found:', form);
-          console.log('[BANK_FORM] Form action:', form.action);
-          console.log('[BANK_FORM] Form method:', form.method);
-          
           // Submit form after 1 second
           setTimeout(function() {
-            console.log('[BANK_FORM] Auto-submitting form...');
             form.submit();
           }, 1000);
         } else {
@@ -906,10 +839,7 @@ export default function CheckoutPage() {
        if (iframe.contentWindow) {
          try {
            iframe.contentWindow.eval(autoSubmitScript);
-           console.log('[3DS] Auto-submit script executed successfully')
          } catch (evalError) {
-           console.log('[3DS] Direct eval failed, trying postMessage approach:', evalError)
-           
            // Fallback: inject script via postMessage
            iframe.contentWindow.postMessage({
              type: 'INJECT_AUTO_SUBMIT',
@@ -923,11 +853,8 @@ export default function CheckoutPage() {
              try {
                // Check iframe URL first
                const iframeUrl = iframe.contentWindow?.location?.href || iframe.src
-               console.log('[3DS] iframe URL check:', iframeUrl)
                
                if (iframeUrl && (iframeUrl.includes('/odeme/hata') || iframeUrl.includes('error'))) {
-                 console.log('[3DS] ERROR URL DETECTED in iframe - treating as error result')
-                 
                  // Extract error from URL parameters
                  const url = new URL(iframeUrl)
                  const errorCode = url.searchParams.get('error') || 'UNKNOWN_ERROR'
@@ -952,17 +879,6 @@ export default function CheckoutPage() {
                  const inputs = iframe.contentDocument.querySelectorAll('input');
                  const bodyHTML = iframe.contentDocument.body.innerHTML;
                  
-                 console.log('[3DS] iframe content inspection:', {
-                   bodyHTML: bodyHTML.substring(0, 200),
-                   formsCount: forms.length,
-                   inputsCount: inputs.length,
-                   forms: Array.from(forms).map(f => ({
-                     name: f.getAttribute('name'),
-                     action: f.getAttribute('action'),
-                     method: f.getAttribute('method')
-                   }))
-                 })
-                 
                  // Check for error pages in iframe content
                  const hasErrorPage = bodyHTML.includes('Ödeme Başarısız') || 
                                      bodyHTML.includes('Missing callback') ||
@@ -971,13 +887,9 @@ export default function CheckoutPage() {
                                      iframe.contentDocument.title.includes('Error')
                  
                  if (hasErrorPage) {
-                   console.log('[3DS] ERROR PAGE DETECTED in iframe - extracting error info')
-                   
                    // Try to extract error information from iframe
                    const errorContainer = iframe.contentDocument.querySelector('.container')
                    const errorMessage = errorContainer?.textContent || 'Ödeme işlemi başarısız'
-                   
-                   console.log('[3DS] Error extracted from iframe:', errorMessage)
                    
                    // Send error result to parent
                    window.postMessage({
@@ -995,7 +907,6 @@ export default function CheckoutPage() {
                  
                  // If form exists but auto-submit didn't work, try manual submit
                  if (forms.length > 0 && !bodyHTML.includes('FORM BULUNDU')) {
-                   console.log('[3DS] Manual form submit attempt...')
                    const form = forms[0] as HTMLFormElement
                    if (form) {
                      // Add manual submit button
@@ -1003,7 +914,6 @@ export default function CheckoutPage() {
                      manualButton.innerText = 'BANKA SAYFASINA GİT (MANUEL)'
                      manualButton.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:red;color:white;padding:20px;font-size:16px;z-index:99999;border:none;cursor:pointer;'
                      manualButton.onclick = () => {
-                       console.log('[3DS] Manual button clicked')
                        form.submit()
                      }
                      iframe.contentDocument.body.appendChild(manualButton)
@@ -1011,7 +921,7 @@ export default function CheckoutPage() {
                  }
                }
              } catch (inspectionError) {
-               console.log('[3DS] iframe content inspection failed (CORS):', inspectionError)
+               // CORS error, continue silently
              }
            }, 3000)
       
@@ -1022,8 +932,6 @@ export default function CheckoutPage() {
 
   // Clean up 3DS modal and timers
   const cleanup3DSModal = () => {
-    console.log('[CLEANUP] Cleaning up 3DS modal and timers')
-    
     // Modal'ı kapat (ref ile)
     if (modalContainerRef.current) {
       modalContainerRef.current.remove()
@@ -1131,8 +1039,6 @@ export default function CheckoutPage() {
       if (!result.success) {
         throw new Error(result.error || 'Sipariş oluşturulamadı')
       }
-
-              console.log('[SUCCESS] Bank transfer order created:', result.data)
       
       // E-posta gönderimi tetikle (opsiyonel)
       if (bankTransferSettings) {
@@ -1167,7 +1073,7 @@ export default function CheckoutPage() {
         deadline: settings.payment_deadline_hours
       }
       
-      console.log('Bank transfer email data:', emailData)
+      // Bank transfer email gönderiliyor
       // TODO: Gerçek e-posta gönderimi API'si entegre edilecek
       
     } catch (error) {
@@ -1218,7 +1124,6 @@ export default function CheckoutPage() {
       }
 
       // ✅ ÖNCELİKLE SİPARİŞİ OLUŞTUR (3DS öncesi)
-      console.log('[ORDER_CREATE] Sipariş oluşturuluyor (3DS öncesi)...')
       const orderDataForCreditCard = {
         orderNumber,
         email: formData.deliveryAddress.email,
@@ -1270,8 +1175,6 @@ export default function CheckoutPage() {
         throw new Error(orderCreateResult.error || 'Sipariş oluşturulamadı')
       }
 
-      console.log('[ORDER_CREATE] ✅ Sipariş başarıyla oluşturuldu:', orderCreateResult.data)
-
       // Prepare payment request
       const paymentRequest = {
         orderNumber,
@@ -1311,16 +1214,6 @@ export default function CheckoutPage() {
       }
 
              // 3DS başlatma işlemi - MODAL version (popup yerine)
-       console.log('[3DS] Starting 3D Secure payment with MODAL instead of popup')
-       
-       // Debug: Form data'yı kontrol et
-       console.log('[DEBUG] Form Data:', {
-         paymentMethod: formData.paymentMethod,
-         sameAsDelivery: formData.sameAsDelivery,
-         cardDetails: formData.cardDetails,
-         billingAddress: formData.billingAddress,
-         deliveryAddress: formData.deliveryAddress
-       })
        
        // Form validation - Zorunlu alanları kontrol et
        // Sadece kredi kartı seçiliyse kart bilgilerini kontrol et
@@ -1414,8 +1307,6 @@ export default function CheckoutPage() {
       const response = await result.json()
 
                  if (response.success && response.data) {
-                     console.log('[3DS] 3D Secure başlatıldı, PaymentId:', response.data.paymentId)
-        
         // MODAL'ı aç - popup yerine!
         setIs3DSecureWaiting(true)
         setCurrentOrderNumber(orderNumber)
@@ -1430,8 +1321,6 @@ export default function CheckoutPage() {
                setIsProcessing(false)
                return
              }
-             
-             console.log('[3DS] Kullanılan content source:', response.data.threeDSHtmlContent ? 'threeDSHtmlContent' : 'htmlContent')
         
         // Fast Refresh Safe Modal Creation
         const iframe = createModal3DS()
@@ -1446,67 +1335,48 @@ export default function CheckoutPage() {
              
              // Base64 decode kontrol et
              let htmlContent = threeDSContent
-             console.log('[3DS] Raw content type check:', typeof threeDSContent)
              
              // Base64 mi kontrol et (sadece base64 karakterleri içeriyorsa)
              if (threeDSContent && threeDSContent.match(/^[A-Za-z0-9+/]+=*$/)) {
-               console.log('[3DS] Base64 encoded content detected, decoding...')
                try {
                  htmlContent = atob(threeDSContent)
-                 console.log('[3DS] Base64 decode successful, length:', htmlContent.length)
                } catch (e) {
                  console.error('[3DS] Base64 decode failed:', e)
                  htmlContent = threeDSContent // fallback
                }
-             } else {
-               console.log('[3DS] HTML content direct kullanılıyor (Base64 değil)')
              }
-             
-             console.log('[3DS] Final HTML content length:', htmlContent.length)
-             console.log('[3DS] Final HTML preview:', htmlContent.substring(0, 300))
              
                      // Enhanced iframe content loading - Multiple fallback methods
         const loadContent = () => {
           try {
-            console.log('[3DS] Enhanced iframe content loading başlatılıyor...')
-            console.log('[3DS] HTML content preview (first 300 chars):', htmlContent.substring(0, 300))
-            
             // Method 1: Blob URL (most compatible with banking forms)
             try {
               const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
               const blobUrl = URL.createObjectURL(blob)
               
               iframe.onload = () => {
-                console.log('[3DS] ✅ Blob URL method başarılı')
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
               }
               
-              iframe.onerror = (e) => {
-                console.error('[3DS] ❌ Blob URL method başarısız:', e)
+              iframe.onerror = () => {
                 fallbackMethods()
               }
               
               iframe.src = blobUrl
-              console.log('[3DS] Blob URL set, loading...')
               return
             } catch (blobError) {
-              console.error('[3DS] Blob URL creation failed:', blobError)
               fallbackMethods()
             }
             
             function fallbackMethods() {
-              console.log('[3DS] Fallback methods denenecek')
               // Method 2: srcdoc
               try {
                 iframe.srcdoc = htmlContent
-                console.log('[3DS] ✅ srcdoc method kullanıldı')
               } catch (srcdocError) {
-                console.error('[3DS] srcdoc method başarısız:', srcdocError)
                 // Method 3: data URL
                 try {
                   const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
                   iframe.src = dataUrl
-                  console.log('[3DS] ✅ data URL method kullanıldı')
                 } catch (dataError) {
                   console.error('[3DS] ❌ Tüm methods başarısız:', dataError)
                   toast.error('3D Secure form yüklenemedi. Lütfen sayfayı yenileyin.')
@@ -1517,20 +1387,12 @@ export default function CheckoutPage() {
                          // Auto-submit script'i HEAD'e ekle
              const autoSubmitScript = `
                <script type="text/javascript">
-                 console.log('[BANK_FORM] Enhanced auto-submit script loaded');
-                 
                  function findAndSubmitForm() {
-                   console.log('[BANK_FORM] Looking for form to submit...');
-                   
                    var form = document.querySelector('form[name="returnform"]') || 
                               document.querySelector('form[method="post"]') || 
                               document.querySelector('form');
                    
                    if (form) {
-                     console.log('[BANK_FORM] Form found:', form);
-                     console.log('[BANK_FORM] Form action:', form.action);
-                     console.log('[BANK_FORM] Form inputs:', form.querySelectorAll('input').length);
-                     
                      // Visual indicator
                      document.body.style.backgroundColor = '#90EE90';
                      document.body.innerHTML += '<div style="position:fixed;top:10px;left:10px;background:green;color:white;padding:10px;z-index:99999;">FORM BULUNDU - 2 SANİYE SONRA SUBMIT</div>';
@@ -1543,13 +1405,11 @@ export default function CheckoutPage() {
                          timestamp: Date.now(),
                          message: 'Bank form found and will be submitted'
                        }, '*');
-                       console.log('[BANK_FORM] Form detection notified to parent');
                      } catch (e) {
-                       console.log('[BANK_FORM] Parent notification failed:', e);
+                       // Parent notification failed, continue silently
                      }
                      
                      setTimeout(function() {
-                       console.log('[BANK_FORM] Auto-submitting form NOW...');
                        try {
                          form.submit();
                          
@@ -1561,9 +1421,8 @@ export default function CheckoutPage() {
                              timestamp: Date.now(),
                              message: 'Bank form submitted successfully'
                            }, '*');
-                           console.log('[BANK_FORM] Form submission notified to parent');
                          } catch (e) {
-                           console.log('[BANK_FORM] Submit notification failed:', e);
+                           // Submit notification failed, continue silently
                          }
                        } catch (e) {
                          console.error('[BANK_FORM] Form submit error:', e);
@@ -1598,23 +1457,9 @@ export default function CheckoutPage() {
             
             // iframe load durumunu kontrol et
             setTimeout(() => {
-              console.log('[3DS] iframe load check:', {
-                src: iframe.src,
-                srcdoc: iframe.srcdoc ? 'set' : 'not set',
-                width: iframe.offsetWidth,
-                height: iframe.offsetHeight,
-                visible: iframe.offsetParent !== null,
-                style: iframe.style.cssText
-              })
-              
               // Modal visibility check
               if (modalContainerRef.current) {
-                console.log('[3DS] Modal visibility check:', {
-                  display: modalContainerRef.current.style.display,
-                  zIndex: modalContainerRef.current.style.zIndex,
-                  visible: modalContainerRef.current.offsetParent !== null,
-                  bounds: modalContainerRef.current.getBoundingClientRect()
-                })
+                // Modal ready
               }
             }, 1000)
             
@@ -1631,17 +1476,12 @@ export default function CheckoutPage() {
               // Auto-submit script'i fallback için de ekle
               const fallbackAutoSubmitScript = `
                 <script type="text/javascript">
-                  console.log('[BANK_FORM] Fallback auto-submit script loaded');
-                  
                   function findAndSubmitFormFallback() {
-                    console.log('[BANK_FORM] Fallback: Looking for form to submit...');
-                    
                     var form = document.querySelector('form[name="returnform"]') || 
                                document.querySelector('form[method="post"]') || 
                                document.querySelector('form');
                     
                                          if (form) {
-                       console.log('[BANK_FORM] Fallback: Form found:', form);
                        document.body.style.backgroundColor = '#87CEEB';
                        document.body.innerHTML += '<div style="position:fixed;top:10px;left:10px;background:blue;color:white;padding:10px;z-index:99999;">FALLBACK FORM BULUNDU - SUBMIT</div>';
                        
@@ -1882,8 +1722,6 @@ export default function CheckoutPage() {
 
   // ✨ ENHANCED MESSAGE HANDLER - Ultimate Solution ✨
   useEffect(() => {
-    console.log('[MESSAGE_SYSTEM] Enhanced message handler initialized')
-    
     const handleMessage = (event: MessageEvent) => {
       // 🔒 Security: Trusted origins check
       const trustedOrigins = [
@@ -1895,16 +1733,9 @@ export default function CheckoutPage() {
       ]
       
       if (!trustedOrigins.includes(event.origin) && event.origin !== 'null') {
-        console.warn('[🔒 SECURITY] Blocked untrusted origin:', event.origin)
+        // Security: Blocked untrusted origin
         return
       }
-      
-      console.log('[📨 MESSAGE] Received:', {
-        type: event.data?.type,
-        source: event.data?.source,
-        origin: event.origin,
-        timestamp: Date.now()
-      })
       
       // 🎯 İyzico Payment Result Handler
       if (event.data?.type === 'IYZICO_PAYMENT_RESULT' && 
@@ -1916,28 +1747,22 @@ export default function CheckoutPage() {
         // Deduplication check
         const messageId = `${event.data.orderNumber}_${event.data.paymentId}_${event.data.success ? 'success' : 'failure'}`
         if (processedMessagesRef.current.has(messageId)) {
-          console.log('[🔄 DEDUPE] Message already processed, ignoring:', messageId)
           return
         }
         processedMessagesRef.current.add(messageId)
-        
-        console.log('[💳 PAYMENT] İyzico callback received (NEW):', event.data)
         
         // Stop all timers immediately
         if (modalPollTimerRef.current) {
           clearInterval(modalPollTimerRef.current)
           modalPollTimerRef.current = null
-          console.log('[⏰ TIMER] Modal polling stopped by callback')
         }
         
         if (popupPollTimerRef.current) {
           clearInterval(popupPollTimerRef.current)
           popupPollTimerRef.current = null  
-          console.log('[⏰ TIMER] Popup polling stopped by callback')
         }
         
         if (event.data.success) {
-          console.log('[✅ SUCCESS] Payment successful - creating order in database...')
           setPaymentError(null) // Error state'i temizle
           
           // Success state'i set et ama modalı kapatma - kullanıcı görecek
@@ -1948,7 +1773,6 @@ export default function CheckoutPage() {
           const createOrderInDatabase = async () => {
             // Duplicate check: Bu order için zaten creation işlemi devam ediyor mu?
             if (orderCreationInProgressRef.current.has(event.data.orderNumber)) {
-              console.log('[🔄 ORDER_DEDUPE] Order creation already in progress for:', event.data.orderNumber)
               return
             }
             
@@ -1956,7 +1780,6 @@ export default function CheckoutPage() {
             orderCreationInProgressRef.current.add(event.data.orderNumber)
             
             try {
-              console.log('[📝 DATABASE] Creating order in database for:', event.data.orderNumber)
               
               // Prepare order data - same format as bank transfer
               const orderData = {
@@ -2001,8 +1824,6 @@ export default function CheckoutPage() {
               const result = await response.json()
 
               if (result.success) {
-                console.log('[✅ DATABASE] Order created successfully in database:', result.data)
-                
                 // Success data'sını store et - modal kapatıldığında kullanacağız
                 sessionStorage.setItem('successfulOrder', JSON.stringify({
                   orderNumber: event.data.orderNumber,
@@ -2012,7 +1833,6 @@ export default function CheckoutPage() {
                 
                 // Show success result in modal using new final state UI
                 if (window.showModal3DSResult) {
-                  console.log('[🎉 MODAL_SUCCESS] Showing success result in modal')
                   window.showModal3DSResult('success', {
                     orderNumber: event.data.orderNumber,
                     paymentId: event.data.paymentId,
@@ -2022,9 +1842,6 @@ export default function CheckoutPage() {
                 } else {
                   console.error('[❌ MODAL_ERROR] showModal3DSResult function not available')
                 }
-                
-                console.log('[📋 SUCCESS] Success final state shown in modal - user can click "Sipariş Takibi" button')
-                console.log('[🚨 CRITICAL] Modal must stay open - user will manually close by clicking buttons')
                 
               } else {
                 console.error('[❌ DATABASE] Order creation failed:', result.error)
@@ -2064,7 +1881,6 @@ export default function CheckoutPage() {
           createOrderInDatabase()
         } else {
           // Show failure result in modal instead of closing immediately
-          console.log('[❌ FAILED] Payment failed:', event.data.errorMessage)
           const errorMsg = event.data.errorMessage || 'Bilinmeyen hata'
           const errorCode = event.data.errorCode || 'UNKNOWN'
           
@@ -2108,7 +1924,6 @@ export default function CheckoutPage() {
             })
           }
           
-          console.log('[📝 FAILURE] Failure final state shown in modal - user can click "Sepete Dön" button')
         }
         return
       }
@@ -2116,7 +1931,6 @@ export default function CheckoutPage() {
       // 🔄 Form Submit Detection (for debugging)
       if (event.data?.type === 'FORM_SUBMITTED' || 
           event.data?.type === 'FORM_SUBMIT_DETECTED') {
-        console.log('[📋 FORM] Bank form activity detected:', event.data.message)
         toast.info('Banka formu işleniyor...')
         return
       }

@@ -39,13 +39,6 @@ export function ProductCarousel({
 }: ProductCarouselProps) {
   const { isLoading } = useThemeConfig()
   
-  // Debug log'ları
-  console.log(`🎠 ProductCarousel "${title}" render:`, { 
-    productsCount: products?.length || 0, 
-    isLoading,
-    firstProduct: products?.[0]?.name 
-  })
-  
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -108,11 +101,8 @@ export function ProductCarousel({
 
   // Ürün yoksa hiçbir şey render etme
   if (!products || products.length === 0) {
-    console.log(`❌ ProductCarousel "${title}": No products found`)
     return null
   }
-
-  console.log(`✅ ProductCarousel "${title}": Rendering ${products.length} products`)
 
   return (
     <div className="space-y-6">

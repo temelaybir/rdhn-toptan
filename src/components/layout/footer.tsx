@@ -87,7 +87,6 @@ export function Footer() {
   // Footer verilerini al
   const fetchFooterData = async () => {
     try {
-      console.log('Footer verisi yükleniyor...')
       const supabase = createClient()
       
       const [settingsResult, groupsResult, linksResult] = await Promise.all([
@@ -96,17 +95,11 @@ export function Footer() {
         supabase.from('footer_links').select('*').eq('is_active', true).order('order_position')
       ])
 
-      console.log('Footer Settings Result:', settingsResult)
-      console.log('Footer Groups Result:', groupsResult)
-      console.log('Footer Links Result:', linksResult)
-
       if (settingsResult.data) {
-        console.log('Footer ayarları güncelleniyor:', settingsResult.data)
         setFooterSettings(settingsResult.data)
       }
 
       if (groupsResult.data) {
-        console.log('Footer grupları güncelleniyor:', groupsResult.data)
         setLinkGroups(groupsResult.data)
       }
 
@@ -137,14 +130,11 @@ export function Footer() {
           organized[groupKey] = groupLinks
         })
         
-        console.log('Organize edilmiş linkler:', organized)
         setOrganizedLinks({ ...fallbackFooterLinks, ...organized })
       }
       
       setIsLoaded(true)
-      console.log('Footer verisi yükleme tamamlandı')
     } catch (error) {
-      console.error('Footer verisi yükleme hatası:', error)
       setIsLoaded(true)
       // Hata durumunda varsayılan değerleri kullan
     }

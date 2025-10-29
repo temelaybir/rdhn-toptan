@@ -195,15 +195,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       isWholesale: product.is_wholesale
     } as any
     
-    // Debug: Paket bilgilerini kontrol et
-    console.log('🛒 Sepete ekleniyor:', {
-      isWholesale: product.is_wholesale,
-      packageQuantity: product.package_quantity,
-      packageUnit: product.package_unit,
-      packageCount,
-      totalPieces: packageCount * (product.package_quantity || 1)
-    })
-    
     // Sepete paket sayısını gönder (quantity değil packageCount)
     addToCart(cartProduct, packageCount)
     setIsAddedToCart(true)
