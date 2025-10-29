@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Filter, Search, SortAsc } from 'lucide-react'
+import { Filter, Search, SortAsc, Package } from 'lucide-react'
 import { ProductCard } from '@/components/products/product-card'
+import { Button } from '@/components/ui/button'
 
 interface Product {
   id: string
@@ -20,6 +21,8 @@ interface Product {
   tags: string[]
   is_active: boolean
   is_featured: boolean
+  package_quantity?: number | null
+  package_unit?: string | null
   category: {
     id: string
     name: string
@@ -42,10 +45,18 @@ export default function ProductsClient({ products, categories }: ProductsClientP
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('featured')
   const [searchQuery, setSearchQuery] = useState('')
+  const [showOnlyPackaged, setShowOnlyPackaged] = useState(false)
 
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products.filter(product => product.is_active)
+
+    // Packaged products filter
+    if (showOnlyPackaged) {
+      filtered = filtered.filter(product => 
+        product.package_quantity && product.package_quantity > 0
+      )
+    }
 
     // Category filter
     if (selectedCategory !== 'all') {
@@ -79,7 +90,7 @@ export default function ProductsClient({ products, categories }: ProductsClientP
     }
 
     return filtered
-  }, [products, selectedCategory, sortBy, searchQuery])
+  }, [products, selectedCategory, sortBy, searchQuery, showOnlyPackaged])
 
   // Convert product to match ProductCard interface
   const convertProduct = (product: Product) => ({
@@ -114,6 +125,25 @@ export default function ProductsClient({ products, categories }: ProductsClientP
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
+
+        {/* Paketli Ürünler Butonu */}
+        <Button
+          variant={showOnlyPackaged ? "default" : "outline"}
+          onClick={() => setShowOnlyPackaged(!showOnlyPackaged)}
+          className={`${
+            showOnlyPackaged 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+              : 'hover:bg-blue-50'
+          }`}
+        >
+          <Package className="h-4 w-4 mr-2" />
+          Paketli Ürünler
+          {showOnlyPackaged && (
+            <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
+              {products.filter(p => p.package_quantity && p.package_quantity > 0).length}
+            </span>
+          )}
+        </Button>
 
         {/* Filters */}
         <div className="flex gap-4">
