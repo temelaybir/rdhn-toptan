@@ -15,18 +15,23 @@ export async function POST(request: NextRequest) {
         throw new Error('Ürün seçimi gerekli')
       }
 
-      if (!packageQuantity) {
-        throw new Error('Paket adedi gerekli')
+      // packageQuantity null olabilir (paket kaldırma durumu)
+      // undefined ise hata ver
+      if (packageQuantity === undefined) {
+        throw new Error('Paket adedi belirtilmeli (null = paket yok)')
       }
 
       // Toplu güncelleme
+      // Paket adedi varsa (>0) toptan ürün olarak işaretle, yoksa tekil ürün olarak bırak
+      const isWholesale = packageQuantity && packageQuantity > 0
+      
       const { data, error } = await supabase
         .from('products')
         .update({
           package_quantity: packageQuantity,
           package_unit: packageUnit || 'adet',
-          is_wholesale: true,
-          moq_unit: 'package',
+          is_wholesale: isWholesale,
+          moq_unit: isWholesale ? 'package' : null,
           updated_at: new Date().toISOString()
         })
         .in('id', productIds)
