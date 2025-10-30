@@ -401,15 +401,32 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
           {/* Fiyat - Kompakt */}
           <div className="bg-gray-50 rounded-lg p-3 max-sm:p-2.5 border">
+            {/* Adet Fiyatı - Büyük */}
             <div className="flex items-baseline gap-2 max-sm:gap-1.5">
-              <span className="text-xl font-bold text-primary max-sm:text-lg">{formatPrice(currentPrice)}</span>
+              <span className="text-2xl font-bold text-primary max-sm:text-xl">
+                {formatPrice(packageQty > 0 ? currentPrice / packageQty : currentPrice)}
+              </span>
+              <span className="text-base text-gray-600 max-sm:text-sm">/adet</span>
               {product.compare_price && product.compare_price > currentPrice ? (
-                <span className="text-base text-muted-foreground line-through max-sm:text-sm">
-                  {formatPrice(product.compare_price)}
+                <span className="text-sm text-muted-foreground line-through max-sm:text-xs">
+                  {formatPrice(packageQty > 0 ? product.compare_price / packageQty : product.compare_price)}
                 </span>
               ) : null}
             </div>
-            <p className="text-sm text-green-600 mt-0.5 max-sm:text-xs">KDV Dahil</p>
+            
+            {/* Paket Fiyatı - Hemen Altında */}
+            {packageQty > 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <p className="text-sm text-gray-700 max-sm:text-xs">
+                  <span className="font-semibold">Paket Fiyatı:</span> {formatPrice(currentPrice)}
+                </p>
+                <p className="text-xs text-blue-600 mt-0.5">
+                  (1 {product.package_unit || 'paket'} = {packageQty} adet)
+                </p>
+              </div>
+            )}
+            
+            <p className="text-sm text-green-600 mt-2 max-sm:text-xs">KDV Dahil</p>
             {product.tier_pricing && product.tier_pricing.length > 0 && currentPrice !== product.price && (
               <p className="text-xs text-blue-600 mt-1 max-sm:text-[10px]">
                 {quantity} adet için özel fiyat uygulandı
@@ -451,6 +468,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               <div className="space-y-2">
                 {product.tier_pricing.map((tier, index) => {
                   const isCurrentTier = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)
+                  const adetPrice = packageQty > 0 ? tier.price / packageQty : tier.price
                   return (
                     <div 
                       key={index} 
@@ -468,11 +486,16 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                       </div>
                       <div className="text-right">
                         <span className={`text-lg font-bold max-sm:text-base ${isCurrentTier ? 'text-white' : 'text-blue-900'}`}>
-                          {formatPrice(tier.price)}
+                          {formatPrice(adetPrice)}
                         </span>
                         <p className={`text-[10px] ${isCurrentTier ? 'text-white/90' : 'text-gray-600'}`}>
                           / adet
                         </p>
+                        {packageQty > 0 && (
+                          <p className={`text-[9px] mt-0.5 ${isCurrentTier ? 'text-white/80' : 'text-gray-500'}`}>
+                            ({formatPrice(tier.price)} / paket)
+                          </p>
+                        )}
                       </div>
                     </div>
                   )
@@ -485,11 +508,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   <Package className="h-4 w-4 text-blue-600" />
                   <p className="text-xs font-semibold text-blue-900">Sipariş Özeti</p>
                 </div>
-                <p className="text-sm text-gray-700">
-                  {packageCount} paket × {formatPrice(currentPrice)} = <span className="font-bold text-blue-900">{formatPrice(currentPrice * packageCount)}</span>
+                <p className="text-sm text-gray-700 mb-1">
+                  <strong>{packageCount} paket</strong> × <strong>{packageQty} adet</strong> = <span className="font-bold text-blue-900">{quantity} adet ürün</span>
                 </p>
-                <p className="text-[10px] text-gray-600 mt-1">
-                  Toplam {quantity} adet ürün
+                <p className="text-sm text-gray-700">
+                  {quantity} adet × {formatPrice(packageQty > 0 ? currentPrice / packageQty : currentPrice)} = <span className="font-bold text-blue-900">{formatPrice(currentPrice * packageCount)}</span>
                 </p>
               </div>
 
@@ -606,7 +629,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 ) : (
                   <>
                     <ShoppingCart className="mr-2 h-5 w-5 max-sm:mr-1.5 max-sm:h-4 max-sm:w-4" />
-                    Toptan Sipariş Ver ({formatPrice(currentPrice * packageCount)})
+                    Toptan Sipariş Ver
                   </>
                 )}
               </Button>

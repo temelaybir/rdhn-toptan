@@ -227,13 +227,15 @@ export default function CartPage() {
                             )}
                             <div className="flex items-center justify-between mt-1">
                               <div className="flex flex-col gap-0.5">
+                                {/* Adet Fiyatı */}
                                 <span className="text-sm font-bold">
-                                  {formatPrice(item.product.price)}
-                                  {item.product.isWholesale && <span className="text-xs text-gray-600">/paket</span>}
+                                  {formatPrice(packageQty > 0 ? item.product.price / packageQty : item.product.price)}
+                                  <span className="text-xs text-gray-600">/adet</span>
                                 </span>
+                                {/* Hesaplama */}
                                 {item.product.isWholesale && item.product.packageQuantity && (
-                                  <span className="text-xs text-blue-600 font-medium">
-                                    {item.quantity} paket = {totalPieces} adet
+                                  <span className="text-[10px] text-blue-600 font-medium">
+                                    {item.quantity} paket = {totalPieces} adet = {formatPrice(itemTotal)}
                                   </span>
                                 )}
                               </div>
@@ -314,17 +316,23 @@ export default function CartPage() {
                             </div>
                           )}
                           
+                          {/* Adet Fiyatı */}
                           <div className="flex items-center gap-2">
                             <span className="text-lg font-bold">
-                              {formatPrice(item.product.price)}
-                              {item.product.isWholesale && <span className="text-sm text-gray-600">/paket</span>}
+                              {formatPrice(packageQty > 0 ? item.product.price / packageQty : item.product.price)}
+                              <span className="text-sm text-gray-600">/adet</span>
                             </span>
                           </div>
                           
-                          {/* Toplam Adet Bilgisi */}
+                          {/* Toplam Hesaplama */}
                           {item.product.isWholesale && item.product.packageQuantity && (
-                            <div className="text-sm text-blue-600 font-medium">
-                              {item.quantity} paket = {totalPieces} adet
+                            <div className="text-sm space-y-1">
+                              <div className="text-blue-600 font-medium">
+                                {item.quantity} paket = {totalPieces} adet ürün
+                              </div>
+                              <div className="text-gray-700">
+                                {totalPieces} adet × {formatPrice(item.product.price / packageQty)} = <span className="font-bold text-blue-900">{formatPrice(itemTotal)}</span>
+                              </div>
                             </div>
                           )}
                         </div>

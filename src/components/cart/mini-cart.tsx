@@ -122,16 +122,21 @@ export function MiniCart() {
                         </div>
                       )}
 
-                      {/* Price */}
-                      <div className="text-sm font-semibold text-primary mb-2">
-                        {formatPrice(item.product.price || 0)}
-                        {item.product.isWholesale && <span className="text-xs text-gray-600">/paket</span>}
+                      {/* Adet Fiyatı */}
+                      <div className="text-sm font-semibold text-primary mb-1">
+                        {formatPrice(item.product.packageQuantity && item.product.packageQuantity > 0 
+                          ? (item.product.price || 0) / item.product.packageQuantity 
+                          : (item.product.price || 0))}
+                        <span className="text-xs text-gray-600">/adet</span>
                       </div>
 
-                      {/* Toplam Adet Bilgisi */}
+                      {/* Toplam Adet ve Hesaplama */}
                       {item.product.isWholesale && item.product.packageQuantity && (
-                        <div className="text-xs text-blue-600 font-medium mb-2">
-                          {item.quantity} paket = {item.quantity * item.product.packageQuantity} adet
+                        <div className="text-xs text-blue-600 font-medium mb-2 space-y-0.5">
+                          <div>{item.quantity} paket = {item.quantity * item.product.packageQuantity} adet</div>
+                          <div className="text-gray-700">
+                            {item.quantity * item.product.packageQuantity} adet × {formatPrice((item.product.price || 0) / item.product.packageQuantity)} = {formatPrice(item.product.price * item.quantity)}
+                          </div>
                         </div>
                       )}
 
