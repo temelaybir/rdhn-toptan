@@ -80,16 +80,19 @@ export function ProductCard({ product }: ProductCardProps) {
     ? product.package_quantity 
     : (product.is_wholesale ? 3 : 1)
   
+  // Ensure displayPackageQty is never 0
+  const safeDisplayPackageQty = displayPackageQty > 0 ? displayPackageQty : 1
+  
   const isPackageLess = !product.package_quantity || product.package_quantity === 0
   const isThreePack = product.is_wholesale && isPackageLess
   
   // Calculate unit price
-  const unitPrice = displayPackageQty > 1 && product.is_wholesale
-    ? product.price / displayPackageQty
+  const unitPrice = safeDisplayPackageQty > 1 && product.is_wholesale
+    ? product.price / safeDisplayPackageQty
     : product.price
 
   // Ensure unitPrice is valid (not 0, NaN, or Infinity)
-  const safeUnitPrice = unitPrice && !isNaN(unitPrice) && isFinite(unitPrice) ? unitPrice : product.price
+  const safeUnitPrice = unitPrice && !isNaN(unitPrice) && isFinite(unitPrice) && unitPrice > 0 ? unitPrice : product.price
 
   // Get main image or fallback
   const mainImage = product.images?.find(img => img.is_main) || product.images?.[0]
@@ -187,37 +190,37 @@ export function ProductCard({ product }: ProductCardProps) {
     return (
       <div className="group relative">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden h-[460px] md:h-[460px] sm:h-[380px] flex flex-col touch-manipulation">
-          {/* Badges - Fixed Position */}
-          <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-30 pointer-events-none">
-            <div className="flex flex-col gap-2 max-w-[60%]">
+          {/* Badges - Fixed Position with proper z-index */}
+          <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-40 pointer-events-none">
+            <div className="flex flex-col gap-2 max-w-[50%] z-40">
               {/* Toptan Satış Badge - Sadece is_wholesale true ise göster */}
               {product.is_wholesale && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit">
+                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit z-40">
                   <Package className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">TOPTAN</span>
                 </Badge>
               )}
               {mockData.isBestSeller && (
-                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit">
+                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit z-40">
                   <span className="truncate">Çok Satan</span>
                 </Badge>
               )}
               {mockData.isNew && (
-                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit">
+                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit z-40">
                   <span className="truncate">Yeni</span>
                 </Badge>
               )}
             </div>
-            <div className="flex flex-col gap-2 items-end z-30">
+            <div className="flex flex-col gap-2 items-end z-40">
               {discountPercentage > 0 && (
-                <Badge className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
+                <Badge className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm pointer-events-none z-40">
                   %{discountPercentage}
                 </Badge>
               )}
               <Button
                 size="icon"
                 variant="secondary"
-                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm border-0 shadow-sm opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 pointer-events-auto touch-manipulation"
+                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm border-0 shadow-sm opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 pointer-events-auto touch-manipulation z-50"
                 onClick={handleWishlist}
               >
                 <Heart className={cn("h-4 w-4", isWishlistItem ? "fill-red-500 text-red-500" : "text-gray-600")} />
@@ -237,12 +240,12 @@ export function ProductCard({ product }: ProductCardProps) {
               touchAction: 'manipulation'
             }}
           >
-            <div className="relative w-full h-48 sm:h-32 overflow-hidden rounded-xl bg-gray-50">
+            <div className="relative w-full h-48 sm:h-32 overflow-hidden rounded-xl bg-gray-50 z-10">
               <SafeImage
                 src={imageUrl}
                 alt={imageAlt}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover transition-transform duration-500 group-hover:scale-105 z-10"
               />
             </div>
           </Link>
@@ -290,7 +293,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm sm:text-xs text-gray-500 line-through">
-                      {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                     </span>
                   )}
                 </div>
@@ -438,7 +441,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-xs text-gray-500 line-through">
-                    {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                   </span>
                 )}
               </div>
@@ -613,7 +616,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="space-y-0.5 pointer-events-none">
               {product.compare_price && product.compare_price > product.price && (
                 <p className="text-xs text-gray-500 line-through">
-                  {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                 </p>
               )}
               <div className="flex items-baseline gap-1">
@@ -771,7 +774,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through">
-                      {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                     </span>
                   )}
                 </div>
@@ -980,7 +983,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through">
-                      {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                     </span>
                   )}
                 </div>
@@ -1133,7 +1136,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-xs text-gray-500 line-through">
-                    {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                   </span>
                 )}
               </div>
@@ -1283,33 +1286,33 @@ export function ProductCard({ product }: ProductCardProps) {
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-sm sm:text-xs text-gray-500 line-through">
-                    {formatPrice(product.compare_price / displayPackageQty)}
+                      {formatPrice(product.compare_price / safeDisplayPackageQty)}
                   </span>
                 )}
-              </div>
-              {/* Paket Bilgisi */}
-              {product.is_wholesale && (
-                <div className="space-y-0.5">
-                  {isThreePack ? (
-                    <>
-                      <p className="text-xs text-blue-600 font-medium">
-                        3&apos;lü Paket
-                      </p>
-                      <p className="text-[10px] text-blue-500">
-                        Üçlü olarak hesaplandı
-                      </p>
-                    </>
-                  ) : product.package_quantity && product.package_quantity > 0 ? (
-                    <p className="text-xs text-blue-600">
-                      1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                    </p>
-                  ) : null}
                 </div>
-              )}
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-2 sm:flex-col sm:gap-2 relative z-20">
+                {/* Paket Bilgisi */}
+                {product.is_wholesale && (
+                  <div className="space-y-0.5">
+                    {isThreePack ? (
+                      <>
+                        <p className="text-xs text-blue-600 font-medium">
+                          3&apos;lü Paket
+                        </p>
+                        <p className="text-[10px] text-blue-500">
+                          Üçlü olarak hesaplandı
+                        </p>
+                      </>
+                    ) : product.package_quantity && product.package_quantity > 0 ? (
+                      <p className="text-xs text-blue-600">
+                        1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2 sm:flex-col sm:gap-2 relative z-20">
               <Button 
                 variant="outline"
                 className="flex-1 sm:w-full text-sm touch-manipulation"
