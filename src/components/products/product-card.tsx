@@ -75,6 +75,19 @@ export function ProductCard({ product }: ProductCardProps) {
     ? Math.round((1 - (product.price / product.compare_price)) * 100)
     : 0
 
+  // Calculate package quantity for display (paketsiz ürünler 3'lü paket olarak kabul edilir)
+  const displayPackageQty = product.package_quantity && product.package_quantity > 0 
+    ? product.package_quantity 
+    : (product.is_wholesale ? 3 : 1)
+  
+  const isPackageLess = !product.package_quantity || product.package_quantity === 0
+  const isThreePack = product.is_wholesale && isPackageLess
+  
+  // Calculate unit price
+  const unitPrice = displayPackageQty > 1 && product.is_wholesale
+    ? product.price / displayPackageQty
+    : product.price
+
   // Get main image or fallback
   const mainImage = product.images?.find(img => img.is_main) || product.images?.[0]
   const imageUrl = mainImage?.url || '/placeholder-product.svg'
@@ -269,24 +282,33 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="flex items-baseline gap-2 flex-wrap">
                   {/* Adet Fiyatı */}
                   <span className="text-xl sm:text-lg font-bold text-gray-900">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.price / product.package_quantity 
-                      : product.price)}
+                    {formatPrice(unitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm sm:text-xs text-gray-500 line-through">
-                      {formatPrice(product.package_quantity && product.package_quantity > 0 
-                        ? product.compare_price / product.package_quantity 
-                        : product.compare_price)}
+                      {formatPrice(product.compare_price / displayPackageQty)}
                     </span>
                   )}
                 </div>
                 {/* Paket Bilgisi */}
-                {product.package_quantity && product.package_quantity > 0 && (
-                  <p className="text-xs text-blue-600">
-                    1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                  </p>
+                {product.is_wholesale && (
+                  <div className="space-y-0.5">
+                    {isThreePack ? (
+                      <>
+                        <p className="text-xs text-blue-600 font-medium">
+                          3&apos;lü Paket
+                        </p>
+                        <p className="text-[10px] text-blue-500">
+                          Üçlü olarak hesaplandı
+                        </p>
+                      </>
+                    ) : product.package_quantity && product.package_quantity > 0 ? (
+                      <p className="text-xs text-blue-600">
+                        1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
               
@@ -408,23 +430,33 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex flex-col gap-0.5 pointer-events-none">
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-bold text-gray-900">
-                  {formatPrice(product.package_quantity && product.package_quantity > 0 
-                    ? product.price / product.package_quantity 
-                    : product.price)}
+                  {formatPrice(unitPrice)}
                   <span className="text-xs text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-xs text-gray-500 line-through">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.compare_price / product.package_quantity 
-                      : product.compare_price)}
+                    {formatPrice(product.compare_price / displayPackageQty)}
                   </span>
                 )}
               </div>
-              {product.package_quantity && product.package_quantity > 0 && (
-                <p className="text-[10px] text-blue-600">
-                  1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                </p>
+              {/* Paket Bilgisi */}
+              {product.is_wholesale && (
+                <div className="space-y-0.5">
+                  {isThreePack ? (
+                    <>
+                      <p className="text-xs text-blue-600 font-medium">
+                        3&apos;lü Paket
+                      </p>
+                      <p className="text-[10px] text-blue-500">
+                        Üçlü olarak hesaplandı
+                      </p>
+                    </>
+                  ) : product.package_quantity && product.package_quantity > 0 ? (
+                    <p className="text-[10px] text-blue-600">
+                      1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                    </p>
+                  ) : null}
+                </div>
               )}
             </div>
 
@@ -584,23 +616,33 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="space-y-0.5 pointer-events-none">
               {product.compare_price && product.compare_price > product.price && (
                 <p className="text-xs text-gray-500 line-through">
-                  {formatPrice(product.package_quantity && product.package_quantity > 0 
-                    ? product.compare_price / product.package_quantity 
-                    : product.compare_price)}
+                  {formatPrice(product.compare_price / displayPackageQty)}
                 </p>
               )}
               <div className="flex items-baseline gap-1">
                 <p className="text-lg font-bold text-orange-600">
-                  {formatPrice(product.package_quantity && product.package_quantity > 0 
-                    ? product.price / product.package_quantity 
-                    : product.price)}
+                  {formatPrice(unitPrice)}
                 </p>
                 <span className="text-xs text-gray-600">/adet</span>
               </div>
-              {product.package_quantity && product.package_quantity > 0 && (
-                <p className="text-[10px] text-blue-600">
-                  1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                </p>
+              {/* Paket Bilgisi */}
+              {product.is_wholesale && (
+                <div className="space-y-0.5">
+                  {isThreePack ? (
+                    <>
+                      <p className="text-xs text-blue-600 font-medium">
+                        3&apos;lü Paket
+                      </p>
+                      <p className="text-[10px] text-blue-500">
+                        Üçlü olarak hesaplandı
+                      </p>
+                    </>
+                  ) : product.package_quantity && product.package_quantity > 0 ? (
+                    <p className="text-[10px] text-blue-600">
+                      1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                    </p>
+                  ) : null}
+                </div>
               )}
             </div>
 
@@ -732,23 +774,33 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="pointer-events-none">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-gray-900">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.price / product.package_quantity 
-                      : product.price)}
+                    {formatPrice(unitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through">
-                      {formatPrice(product.package_quantity && product.package_quantity > 0 
-                        ? product.compare_price / product.package_quantity 
-                        : product.compare_price)}
+                      {formatPrice(product.compare_price / displayPackageQty)}
                     </span>
                   )}
                 </div>
-                {product.package_quantity && product.package_quantity > 0 && (
-                  <p className="text-xs text-blue-600 font-medium mt-0.5">
-                    1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                  </p>
+                {/* Paket Bilgisi */}
+                {product.is_wholesale && (
+                  <div className="space-y-0.5 mt-0.5">
+                    {isThreePack ? (
+                      <>
+                        <p className="text-xs text-blue-600 font-medium">
+                          3&apos;lü Paket
+                        </p>
+                        <p className="text-[10px] text-blue-500">
+                          Üçlü olarak hesaplandı
+                        </p>
+                      </>
+                    ) : product.package_quantity && product.package_quantity > 0 ? (
+                      <p className="text-xs text-blue-600 font-medium mt-0.5">
+                        1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                      </p>
+                    ) : null}
+                  </div>
                 )}
                 {mockData.freeShipping && (
                   <p className="text-xs text-green-600 font-medium mt-0.5">
@@ -942,23 +994,33 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl sm:text-xl font-bold text-gray-900">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.price / product.package_quantity 
-                      : product.price)}
+                    {formatPrice(unitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through">
-                      {formatPrice(product.package_quantity && product.package_quantity > 0 
-                        ? product.compare_price / product.package_quantity 
-                        : product.compare_price)}
+                      {formatPrice(product.compare_price / displayPackageQty)}
                     </span>
                   )}
                 </div>
-                {product.package_quantity && product.package_quantity > 0 && (
-                  <p className="text-xs text-blue-600">
-                    1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                  </p>
+                {/* Paket Bilgisi */}
+                {product.is_wholesale && (
+                  <div className="space-y-0.5">
+                    {isThreePack ? (
+                      <>
+                        <p className="text-xs text-blue-600 font-medium">
+                          3&apos;lü Paket
+                        </p>
+                        <p className="text-[10px] text-blue-500">
+                          Üçlü olarak hesaplandı
+                        </p>
+                      </>
+                    ) : product.package_quantity && product.package_quantity > 0 ? (
+                      <p className="text-xs text-blue-600">
+                        1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                      </p>
+                    ) : null}
+                  </div>
                 )}
                 <p className="text-xs text-gray-500">KDV Dahil • Kargo: Ücretsiz</p>
               </div>
@@ -1085,23 +1147,33 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex flex-col gap-0.5 pointer-events-none">
               <div className="flex items-baseline gap-2">
                 <span className="text-base font-bold text-gray-900">
-                  {formatPrice(product.package_quantity && product.package_quantity > 0 
-                    ? product.price / product.package_quantity 
-                    : product.price)}
+                  {formatPrice(unitPrice)}
                   <span className="text-xs text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-xs text-gray-500 line-through">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.compare_price / product.package_quantity 
-                      : product.compare_price)}
+                    {formatPrice(product.compare_price / displayPackageQty)}
                   </span>
                 )}
               </div>
-              {product.package_quantity && product.package_quantity > 0 && (
-                <p className="text-[9px] text-blue-600">
-                  1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                </p>
+              {/* Paket Bilgisi */}
+              {product.is_wholesale && (
+                <div className="space-y-0.5">
+                  {isThreePack ? (
+                    <>
+                      <p className="text-xs text-blue-600 font-medium">
+                        3&apos;lü Paket
+                      </p>
+                      <p className="text-[9px] text-blue-500">
+                        Üçlü olarak hesaplandı
+                      </p>
+                    </>
+                  ) : product.package_quantity && product.package_quantity > 0 ? (
+                    <p className="text-[9px] text-blue-600">
+                      1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                    </p>
+                  ) : null}
+                </div>
               )}
             </div>
 
@@ -1225,24 +1297,33 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="flex items-baseline gap-2">
                 {/* Adet Fiyatı */}
                 <span className="text-xl sm:text-lg font-bold text-gray-900">
-                  {formatPrice(product.package_quantity && product.package_quantity > 0 
-                    ? product.price / product.package_quantity 
-                    : product.price)}
+                  {formatPrice(unitPrice)}
                   <span className="text-sm text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-sm sm:text-xs text-gray-500 line-through">
-                    {formatPrice(product.package_quantity && product.package_quantity > 0 
-                      ? product.compare_price / product.package_quantity 
-                      : product.compare_price)}
+                    {formatPrice(product.compare_price / displayPackageQty)}
                   </span>
                 )}
               </div>
               {/* Paket Bilgisi */}
-              {product.package_quantity && product.package_quantity > 0 && (
-                <p className="text-xs text-blue-600">
-                  1 {product.package_unit || 'paket'} = {product.package_quantity} adet
-                </p>
+              {product.is_wholesale && (
+                <div className="space-y-0.5">
+                  {isThreePack ? (
+                    <>
+                      <p className="text-xs text-blue-600 font-medium">
+                        3&apos;lü Paket
+                      </p>
+                      <p className="text-[10px] text-blue-500">
+                        Üçlü olarak hesaplandı
+                      </p>
+                    </>
+                  ) : product.package_quantity && product.package_quantity > 0 ? (
+                    <p className="text-xs text-blue-600">
+                      1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                    </p>
+                  ) : null}
+                </div>
               )}
             </div>
             
