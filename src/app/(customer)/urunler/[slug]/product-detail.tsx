@@ -123,11 +123,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const [selectedImage, setSelectedImage] = useState(0)
   
   // Paket bazlı miktar yönetimi
-  const packageQty = product.package_quantity || 1 // Bir pakette kaç adet var
-  
-  // Paket yok olan toptan ürünler için MOQ 3 adet, paket varsa paket bazlı MOQ
-  // Paket yok olan ürünler: package_quantity null veya 0
+  // Paket yok olan toptan ürünler için varsayılan 3 adet paket
   const isPackageLess = !product.package_quantity || product.package_quantity === 0
+  const packageQty = product.package_quantity || (product.is_wholesale && isPackageLess ? 3 : 1) // Paket yok olan toptan ürünler için 3 adet
   
   const minPackageCount = (() => {
     // Paketli ürünler için MOQ kontrolü
@@ -416,7 +414,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </p>
               </div>
             </div>
-            {product.package_quantity && product.package_quantity > 0 && (
+            {product.is_wholesale && (isPackageLess || product.package_quantity > 0) && (
               <div className="flex items-center gap-2 text-xs max-sm:text-[10px] bg-white/10 backdrop-blur-sm rounded-lg p-2.5">
                 <CheckCircle className="h-4 w-4 flex-shrink-0" />
                 <span>
@@ -431,9 +429,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             <div className="flex items-start gap-2">
               <h1 className="text-xl font-bold leading-tight max-sm:text-lg max-sm:leading-tight flex-1">
                 {product.name}
-                {product.package_quantity && product.package_quantity > 0 && (
+                {product.is_wholesale && (isPackageLess || product.package_quantity > 0) && (
                   <span className="ml-2 text-blue-600 text-base max-sm:text-sm font-semibold">
-                    ({product.package_quantity}&apos;li paket)
+                    ({packageQty}&apos;li paket)
                   </span>
                 )}
               </h1>
@@ -462,13 +460,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             </div>
             
             {/* Paket Fiyatı - Hemen Altında */}
-            {packageQty > 0 && (
+            {product.is_wholesale && (
               <div className="mt-2 pt-2 border-t border-gray-200">
                 <p className="text-sm text-gray-700 max-sm:text-xs">
-                  <span className="font-semibold">Paket Fiyatı:</span> {formatPrice(currentPrice)}
+                  <span className="font-semibold">Paket Fiyatı:</span> {formatPrice(isPackageLess ? currentPrice * 3 : currentPrice)}
                 </p>
                 <p className="text-xs text-blue-600 mt-0.5">
-                  (1 {product.package_unit || 'paket'} = {packageQty} adet)
+                  ({isPackageLess ? '1 paket' : `1 ${product.package_unit || 'paket'}`} = {packageQty} adet)
                 </p>
               </div>
             )}

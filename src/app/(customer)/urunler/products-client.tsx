@@ -68,11 +68,6 @@ export default function ProductsClient({ products, categories }: ProductsClientP
       filtered = filtered.filter(product => 
         product.package_quantity && product.package_quantity > 0
       )
-    } else if (selectedPackageFilter === 'unpackaged') {
-      // Sadece paketsiz ürünler
-      filtered = filtered.filter(product => 
-        !product.package_quantity || product.package_quantity === 0
-      )
     } else if (selectedPackageFilter !== 'all') {
       // Belirli bir paket miktarına göre filtrele
       const packageQty = parseInt(selectedPackageFilter)
@@ -158,7 +153,6 @@ export default function ProductsClient({ products, categories }: ProductsClientP
           <SelectContent>
             <SelectItem value="all">Tüm Ürünler</SelectItem>
             <SelectItem value="packaged">Paketli Ürünler</SelectItem>
-            <SelectItem value="unpackaged">Paketsiz Ürünler</SelectItem>
             {availablePackageQuantities.length > 0 && (
               <>
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t">
