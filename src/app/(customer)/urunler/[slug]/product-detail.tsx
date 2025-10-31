@@ -124,12 +124,26 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   
   // Paket bazlı miktar yönetimi
   const packageQty = product.package_quantity || 1 // Bir pakette kaç adet var
+  
   // Paket yok olan toptan ürünler için MOQ 3 adet, paket varsa paket bazlı MOQ
-  const minPackageCount = product.is_wholesale && product.package_quantity && product.package_quantity > 0 && product.moq 
-    ? product.moq 
-    : product.is_wholesale && (!product.package_quantity || product.package_quantity === 0) && product.moq
-    ? Math.ceil(product.moq / packageQty) // Paket yok olan ürünler için adet bazlı MOQ'yu paket sayısına çevir
-    : 1 // Varsayılan minimum 1 paket/adet
+  // Paket yok olan ürünler: package_quantity null veya 0
+  const isPackageLess = !product.package_quantity || product.package_quantity === 0
+  
+  const minPackageCount = (() => {
+    // Paketli ürünler için MOQ kontrolü
+    if (product.is_wholesale && !isPackageLess && product.moq) {
+      return product.moq
+    }
+    
+    // Paket yok olan toptan ürünler için varsayılan 3 adet
+    if (product.is_wholesale && isPackageLess) {
+      return product.moq || 3 // MOQ varsa onu kullan, yoksa varsayılan 3 adet
+    }
+    
+    // Diğer ürünler için varsayılan minimum 1 paket/adet
+    return 1
+  })()
+  
   const [packageCount, setPackageCount] = useState(minPackageCount) // Paket adedi
   const quantity = packageCount * packageQty // Gerçek ürün adedi (paket x adet)
   const [isAddedToCart, setIsAddedToCart] = useState(false)
