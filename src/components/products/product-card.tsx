@@ -11,6 +11,7 @@ import { useWishlist } from '@/context/wishlist-context'
 import { useCurrency } from '@/context/currency-context'
 import { useThemeConfig } from '@/context/theme-context'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface ProductCardProps {
   product: {
@@ -170,28 +171,28 @@ export function ProductCard({ product }: ProductCardProps) {
     return (
       <div className="group relative">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden h-[460px] md:h-[460px] sm:h-[380px] flex flex-col touch-manipulation">
-          {/* Badges */}
-          <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
-            <div className="flex flex-col gap-2">
+          {/* Badges - Fixed Position */}
+          <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-30 pointer-events-none">
+            <div className="flex flex-col gap-2 max-w-[60%]">
               {/* Toptan Satış Badge - Sadece is_wholesale true ise göster */}
               {product.is_wholesale && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1">
-                  <Package className="h-3 w-3" />
-                  TOPTAN
+                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit">
+                  <Package className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">TOPTAN</span>
                 </Badge>
               )}
               {mockData.isBestSeller && (
-                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
-                  Çok Satan
+                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit">
+                  <span className="truncate">Çok Satan</span>
                 </Badge>
               )}
               {mockData.isNew && (
-                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
-                  Yeni
+                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit">
+                  <span className="truncate">Yeni</span>
                 </Badge>
               )}
             </div>
-            <div className="flex flex-col gap-2 items-end">
+            <div className="flex flex-col gap-2 items-end z-30">
               {discountPercentage > 0 && (
                 <Badge className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
                   %{discountPercentage}
@@ -200,7 +201,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <Button
                 size="icon"
                 variant="secondary"
-                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm border-0 shadow-sm opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 pointer-events-auto touch-manipulation z-20"
+                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm border-0 shadow-sm opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 pointer-events-auto touch-manipulation"
                 onClick={handleWishlist}
               >
                 <Heart className={cn("h-4 w-4", isWishlistItem ? "fill-red-500 text-red-500" : "text-gray-600")} />
@@ -211,7 +212,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Product Image */}
           <Link 
             href={`/urunler/${product.slug}`} 
-            className="block px-6 pt-6 sm:px-4 sm:pt-4 touch-manipulation cursor-pointer" 
+            className="block px-6 pt-6 sm:px-4 sm:pt-4 touch-manipulation cursor-pointer relative z-10" 
             style={{ 
               WebkitTapHighlightColor: 'transparent',
               WebkitTouchCallout: 'none',
@@ -231,10 +232,10 @@ export function ProductCard({ product }: ProductCardProps) {
           </Link>
           
           {/* Product Info */}
-          <div className="flex-1 flex flex-col justify-between px-6 pb-6 sm:px-4 sm:pb-4 touch-manipulation">
-            <div className="space-y-3 sm:space-y-2">
+          <div className="flex-1 flex flex-col justify-between px-6 pb-6 sm:px-4 sm:pb-4 touch-manipulation min-h-0">
+            <div className="space-y-3 sm:space-y-2 flex-shrink-0">
               {product.category && (
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
                   {product.category.name}
                 </p>
               )}
@@ -249,32 +250,44 @@ export function ProductCard({ product }: ProductCardProps) {
                   userSelect: 'none'
                 }}
               >
-                <h3 className="text-base sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
+                <h3 className="text-base sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors min-h-[2.5rem]">
                   {product.name}
                 </h3>
               </Link>
               
-              <div className="flex items-center gap-2 pointer-events-none">
+              <div className="flex items-center gap-2 pointer-events-none flex-shrink-0">
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 sm:h-3 sm:w-3 fill-yellow-400 text-yellow-400" />
+                  <Star className="h-4 w-4 sm:h-3 sm:w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                   <span className="text-sm sm:text-xs font-medium text-gray-900">{mockData.rating}</span>
                 </div>
                 <span className="text-xs sm:text-xs text-gray-500">({mockData.reviewCount})</span>
               </div>
             </div>
             
-            <div className="space-y-4 sm:space-y-3 mt-4 sm:mt-3">
+            <div className="space-y-4 sm:space-y-3 mt-auto pt-4 sm:pt-3 flex-shrink-0">
               <div className="space-y-1 pointer-events-none">
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  {/* Adet Fiyatı */}
                   <span className="text-xl sm:text-lg font-bold text-gray-900">
-                    {formatPrice(product.price)}
+                    {formatPrice(product.package_quantity && product.package_quantity > 0 
+                      ? product.price / product.package_quantity 
+                      : product.price)}
+                    <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm sm:text-xs text-gray-500 line-through">
-                      {formatPrice(product.compare_price)}
+                      {formatPrice(product.package_quantity && product.package_quantity > 0 
+                        ? product.compare_price / product.package_quantity 
+                        : product.compare_price)}
                     </span>
                   )}
                 </div>
+                {/* Paket Bilgisi */}
+                {product.package_quantity && product.package_quantity > 0 && (
+                  <p className="text-xs text-blue-600">
+                    1 {product.package_unit || 'paket'} = {product.package_quantity} adet
+                  </p>
+                )}
               </div>
               
               {/* Action Buttons */}

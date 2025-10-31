@@ -21,6 +21,7 @@ interface Product {
   tags: string[]
   is_active: boolean
   is_featured: boolean
+  is_wholesale?: boolean
   package_quantity?: number | null
   package_unit?: string | null
   category: {
@@ -48,13 +49,19 @@ export default function ProductsClient({ products, categories }: ProductsClientP
   const [selectedPackageFilter, setSelectedPackageFilter] = useState<string>('all')
 
   // Tüm paket miktarlarını bul (benzersiz değerler)
+  // Paketsiz ürünler 3'lü paket olarak kabul edildiği için 3'ü her zaman ekle
   const availablePackageQuantities = useMemo(() => {
     const packages = new Set<number>()
+    
+    // Paketsiz ürünler 3'lü paket olarak kabul edildiği için 3'ü her zaman ekle
+    packages.add(3)
+    
     products.forEach(product => {
       if (product.package_quantity && product.package_quantity > 0) {
         packages.add(product.package_quantity)
       }
     })
+    
     return Array.from(packages).sort((a, b) => a - b)
   }, [products])
 
@@ -63,17 +70,17 @@ export default function ProductsClient({ products, categories }: ProductsClientP
     let filtered = products.filter(product => product.is_active)
 
     // Package filter
-    if (selectedPackageFilter === 'packaged') {
-      // Sadece paketli ürünler (paket miktarı > 0)
-      filtered = filtered.filter(product => 
-        product.package_quantity && product.package_quantity > 0
-      )
-    } else if (selectedPackageFilter !== 'all') {
+    if (selectedPackageFilter !== 'all') {
       // Belirli bir paket miktarına göre filtrele
       const packageQty = parseInt(selectedPackageFilter)
-      filtered = filtered.filter(product => 
-        product.package_quantity === packageQty
-      )
+      filtered = filtered.filter(product => {
+        // Eğer 3'lü paket seçildiyse, paketsiz ürünleri de dahil et
+        if (packageQty === 3) {
+          return !product.package_quantity || product.package_quantity === 0 || product.package_quantity === 3
+        }
+        // Diğer paket miktarları için normal kontrol
+        return product.package_quantity === packageQty
+      })
     }
 
     // Category filter
@@ -152,7 +159,6 @@ export default function ProductsClient({ products, categories }: ProductsClientP
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tüm Ürünler</SelectItem>
-            <SelectItem value="packaged">Paketli Ürünler</SelectItem>
             {availablePackageQuantities.length > 0 && (
               <>
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t">
