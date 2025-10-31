@@ -45,16 +45,39 @@ export default function ProductsClient({ products, categories }: ProductsClientP
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('featured')
   const [searchQuery, setSearchQuery] = useState('')
-  const [showOnlyPackaged, setShowOnlyPackaged] = useState(false)
+  const [selectedPackageFilter, setSelectedPackageFilter] = useState<string>('all')
+
+  // Tüm paket miktarlarını bul (benzersiz değerler)
+  const availablePackageQuantities = useMemo(() => {
+    const packages = new Set<number>()
+    products.forEach(product => {
+      if (product.package_quantity && product.package_quantity > 0) {
+        packages.add(product.package_quantity)
+      }
+    })
+    return Array.from(packages).sort((a, b) => a - b)
+  }, [products])
 
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products.filter(product => product.is_active)
 
-    // Packaged products filter
-    if (showOnlyPackaged) {
+    // Package filter
+    if (selectedPackageFilter === 'packaged') {
+      // Sadece paketli ürünler (paket miktarı > 0)
       filtered = filtered.filter(product => 
         product.package_quantity && product.package_quantity > 0
+      )
+    } else if (selectedPackageFilter === 'unpackaged') {
+      // Sadece paketsiz ürünler
+      filtered = filtered.filter(product => 
+        !product.package_quantity || product.package_quantity === 0
+      )
+    } else if (selectedPackageFilter !== 'all') {
+      // Belirli bir paket miktarına göre filtrele
+      const packageQty = parseInt(selectedPackageFilter)
+      filtered = filtered.filter(product => 
+        product.package_quantity === packageQty
       )
     }
 
@@ -90,7 +113,7 @@ export default function ProductsClient({ products, categories }: ProductsClientP
     }
 
     return filtered
-  }, [products, selectedCategory, sortBy, searchQuery, showOnlyPackaged])
+  }, [products, selectedCategory, sortBy, searchQuery, selectedPackageFilter])
 
   // Convert product to match ProductCard interface
   const convertProduct = (product: Product) => ({
@@ -126,24 +149,30 @@ export default function ProductsClient({ products, categories }: ProductsClientP
           />
         </div>
 
-        {/* Paketli Ürünler Butonu */}
-        <Button
-          variant={showOnlyPackaged ? "default" : "outline"}
-          onClick={() => setShowOnlyPackaged(!showOnlyPackaged)}
-          className={`${
-            showOnlyPackaged 
-              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'hover:bg-blue-50'
-          }`}
-        >
-          <Package className="h-4 w-4 mr-2" />
-          Paketli Ürünler
-          {showOnlyPackaged && (
-            <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-              {products.filter(p => p.package_quantity && p.package_quantity > 0).length}
-            </span>
-          )}
-        </Button>
+        {/* Paketli Ürünler Dropdown */}
+        <Select value={selectedPackageFilter} onValueChange={setSelectedPackageFilter}>
+          <SelectTrigger className="w-[200px]">
+            <Package className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Paket Filtresi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Ürünler</SelectItem>
+            <SelectItem value="packaged">Paketli Ürünler</SelectItem>
+            <SelectItem value="unpackaged">Paketsiz Ürünler</SelectItem>
+            {availablePackageQuantities.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t">
+                  Paket Miktarına Göre
+                </div>
+                {availablePackageQuantities.map((qty) => (
+                  <SelectItem key={qty} value={qty.toString()}>
+                    {qty}&apos;li Paket
+                  </SelectItem>
+                ))}
+              </>
+            )}
+          </SelectContent>
+        </Select>
 
         {/* Filters */}
         <div className="flex gap-4">

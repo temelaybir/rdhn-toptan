@@ -3031,16 +3031,18 @@ export default function CheckoutPage() {
                     <span>-{discount.toLocaleString('tr-TR')} ₺</span>
                   </div>
                 )}
-                <div className="flex justify-between text-xs md:text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <span>Kargo</span>
-                    <span className="text-[9px] md:text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
-                      ÜCRETSİZ
+                <div className="flex flex-col gap-1.5 text-xs md:text-sm">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <span>Kargo</span>
+                    </div>
+                    <span className="text-blue-600 font-medium">
+                      Alıcı Öder
                     </span>
                   </div>
-                  <span className="text-green-600 font-medium">
-                    Ücretsiz
-                  </span>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
+                    Kargo ücreti alıcı tarafından ödenir. Bilgi için Whatsapp hattımızdan bize ulaşabilirsiniz.
+                  </p>
                 </div>
 
               </div>

@@ -572,7 +572,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-700">
                   <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />
-                  <span>Ücretsiz kargo</span>
+                  <span>Kargo ücreti alıcı tarafından ödenir. Bilgi için Whatsapp hattımızdan bize ulaşabilirsiniz.</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-700">
                   <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />
@@ -754,8 +754,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <div className="flex flex-col items-center text-center gap-1.5 max-sm:gap-1">
           <Truck className="h-5 w-5 text-primary max-sm:h-4 max-sm:w-4" />
           <div>
-            <p className="text-[11px] font-medium max-sm:text-[9px]">Ücretsiz Kargo</p>
-            <p className="text-[10px] text-muted-foreground max-sm:text-[8px]">2-3 gün</p>
+            <p className="text-[11px] font-medium max-sm:text-[9px]">Kargo Ücreti</p>
+            <p className="text-[10px] text-muted-foreground max-sm:text-[8px]">Alıcı Öder</p>
           </div>
         </div>
         <div className="flex flex-col items-center text-center gap-1.5 max-sm:gap-1">

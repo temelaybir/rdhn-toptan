@@ -478,17 +478,19 @@ export default function CartPage() {
                         <Separator />
                         
                         {/* Kargo Bilgisi */}
-                        <div className="flex justify-between items-center text-xs md:text-sm">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="h-3.5 w-3.5 text-green-600" />
-                            <span>Kargo</span>
-                            <Badge variant="secondary" className="text-[10px] md:text-xs bg-green-100 text-green-700 px-1.5 py-0">
-                              ÜCRETSİZ
-                            </Badge>
+                        <div className="flex flex-col gap-1.5 text-xs md:text-sm">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-1.5">
+                              <Truck className="h-3.5 w-3.5 text-blue-600" />
+                              <span>Kargo</span>
+                            </div>
+                            <span className="text-blue-600 font-medium">
+                              Alıcı Öder
+                            </span>
                           </div>
-                          <span className="text-green-600 font-medium">
-                            Ücretsiz
-                          </span>
+                          <p className="text-[10px] md:text-xs text-muted-foreground pl-5">
+                            Kargo ücreti alıcı tarafından ödenir. Bilgi için Whatsapp hattımızdan bize ulaşabilirsiniz.
+                          </p>
                         </div>
                         
                         {isPromoApplied && promoDiscount > 0 && (
@@ -523,9 +525,9 @@ export default function CartPage() {
 
                 {/* Güven Göstergeleri - Desktop only */}
                 <div className="hidden md:flex flex-col space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
-                    <Truck className="h-4 w-4" />
-                    <span>Tüm siparişlerde ücretsiz kargo</span>
+                  <div className="flex items-start gap-2 text-sm text-blue-600 font-medium">
+                    <Truck className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>Kargo ücreti alıcı tarafından ödenir. Bilgi için Whatsapp hattımızdan bize ulaşabilirsiniz.</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ShieldCheck className="h-4 w-4" />
