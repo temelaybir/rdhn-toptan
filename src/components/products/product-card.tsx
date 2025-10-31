@@ -88,6 +88,9 @@ export function ProductCard({ product }: ProductCardProps) {
     ? product.price / displayPackageQty
     : product.price
 
+  // Ensure unitPrice is valid (not 0, NaN, or Infinity)
+  const safeUnitPrice = unitPrice && !isNaN(unitPrice) && isFinite(unitPrice) ? unitPrice : product.price
+
   // Get main image or fallback
   const mainImage = product.images?.find(img => img.is_main) || product.images?.[0]
   const imageUrl = mainImage?.url || '/placeholder-product.svg'
@@ -282,7 +285,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="flex items-baseline gap-2 flex-wrap">
                   {/* Adet Fiyatı */}
                   <span className="text-xl sm:text-lg font-bold text-gray-900">
-                    {formatPrice(unitPrice)}
+                    {formatPrice(safeUnitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
@@ -430,7 +433,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex flex-col gap-0.5 pointer-events-none">
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-bold text-gray-900">
-                  {formatPrice(unitPrice)}
+                  {formatPrice(safeUnitPrice)}
                   <span className="text-xs text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
@@ -462,12 +465,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1 pointer-events-none">
-              {mockData.freeShipping && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 pointer-events-none">
-                  <Truck className="h-2.5 w-2.5 mr-0.5" />
-                  Ücretsiz Kargo
-                </Badge>
-              )}
               {mockData.fastDelivery && (
                 <Badge variant="secondary" className="text-xs px-1.5 py-0 pointer-events-none">
                   <Clock className="h-2.5 w-2.5 mr-0.5" />
@@ -621,7 +618,7 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
               <div className="flex items-baseline gap-1">
                 <p className="text-lg font-bold text-orange-600">
-                  {formatPrice(unitPrice)}
+                  {formatPrice(safeUnitPrice)}
                 </p>
                 <span className="text-xs text-gray-600">/adet</span>
               </div>
@@ -647,16 +644,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
 
             {/* Shipping Info */}
-            <div className="flex items-center gap-1 text-[10px] pointer-events-none">
-              {mockData.freeShipping && (
-                <Badge variant="outline" className="border-green-500 text-green-600 px-1 py-0 pointer-events-none">
-                  Kargo Bedava
-                </Badge>
-              )}
-              {mockData.fastDelivery && (
+            {mockData.fastDelivery && (
+              <div className="flex items-center gap-1 text-[10px] pointer-events-none">
                 <span className="text-gray-500">• 2 gün içinde kargoda</span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2 mt-auto relative z-20">
@@ -774,7 +766,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="pointer-events-none">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-gray-900">
-                    {formatPrice(unitPrice)}
+                    {formatPrice(safeUnitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
@@ -801,11 +793,6 @@ export function ProductCard({ product }: ProductCardProps) {
                       </p>
                     ) : null}
                   </div>
-                )}
-                {mockData.freeShipping && (
-                  <p className="text-xs text-green-600 font-medium mt-0.5">
-                    Ücretsiz teslimat
-                  </p>
                 )}
               </div>
 
@@ -972,20 +959,14 @@ export function ProductCard({ product }: ProductCardProps) {
               </div>
 
               {/* Features - Compact */}
-              <div className="flex flex-wrap gap-1.5">
-                {mockData.isFreeShipping && (
-                  <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                    <Truck className="h-3 w-3" />
-                    Ücretsiz Kargo
-                  </div>
-                )}
-                {mockData.fastDelivery && (
+              {mockData.fastDelivery && (
+                <div className="flex flex-wrap gap-1.5">
                   <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
                     <Clock className="h-3 w-3" />
                     Hızlı Teslimat
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
             
             {/* Bottom Section - Fixed Height */}
@@ -994,7 +975,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl sm:text-xl font-bold text-gray-900">
-                    {formatPrice(unitPrice)}
+                    {formatPrice(safeUnitPrice)}
                     <span className="text-sm text-gray-600 ml-1">/adet</span>
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
@@ -1022,7 +1003,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     ) : null}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">KDV Dahil • Kargo: Ücretsiz</p>
+                <p className="text-xs text-gray-500">KDV Dahil</p>
               </div>
               
               {/* Action Buttons - Fixed Position */}
@@ -1147,7 +1128,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex flex-col gap-0.5 pointer-events-none">
               <div className="flex items-baseline gap-2">
                 <span className="text-base font-bold text-gray-900">
-                  {formatPrice(unitPrice)}
+                  {formatPrice(safeUnitPrice)}
                   <span className="text-xs text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
@@ -1297,7 +1278,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="flex items-baseline gap-2">
                 {/* Adet Fiyatı */}
                 <span className="text-xl sm:text-lg font-bold text-gray-900">
-                  {formatPrice(unitPrice)}
+                  {formatPrice(safeUnitPrice)}
                   <span className="text-sm text-gray-600 ml-1">/adet</span>
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
