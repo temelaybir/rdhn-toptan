@@ -33,7 +33,9 @@ import {
   X,
   Pencil,
   Check,
-  XCircle
+  XCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 
 // Paket varyasyonları
@@ -66,6 +68,7 @@ export default function WholesalePackageManagementPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [packageFilter, setPackageFilter] = useState<string>('all')
+  const [showInactive, setShowInactive] = useState(false) // Pasif ürünleri göster/gizle
   const [isSaving, setIsSaving] = useState(false)
   
   // Düzenleme state'i - her ürün için ayrı
@@ -137,6 +140,11 @@ export default function WholesalePackageManagementPage() {
 
   // Filtrelenmiş ürünler
   const filteredProducts = products.filter(product => {
+    // Aktif/Pasif filtresi - varsayılan olarak sadece aktif ürünler gösterilir
+    if (!showInactive && !product.isActive) {
+      return false
+    }
+    
     // Arama filtresi
     if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false
@@ -239,6 +247,36 @@ export default function WholesalePackageManagementPage() {
   const cancelEditingName = () => {
     setEditingProductId(null)
     setEditingName('')
+  }
+
+  // Ürün aktif/pasif durumunu değiştir
+  const toggleProductStatus = async (productId: string | number, currentStatus: boolean) => {
+    try {
+      setIsSaving(true)
+      const productIdNum = typeof productId === 'string' ? parseInt(productId) : productId
+      const response = await fetch('/api/admin/products/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productIds: [productIdNum],
+          isActive: !currentStatus
+        })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success(`Ürün ${!currentStatus ? 'aktif' : 'pasif'} edildi`)
+        await loadProducts()
+      } else {
+        toast.error(result.error || 'Durum güncellenemedi')
+      }
+    } catch (error) {
+      toast.error('Durum güncellenirken hata oluştu')
+      console.error('Toggle product status error:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Ürün adını kaydet
@@ -497,14 +535,35 @@ export default function WholesalePackageManagementPage() {
       {/* Filtreler ve Toplu İşlemler */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtreler ve Toplu İşlemler</CardTitle>
-          <CardDescription>
-            {selectedProducts.size > 0 && (
-              <span className="text-primary font-medium">
-                {selectedProducts.size} ürün seçili
-              </span>
-            )}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filtreler ve Toplu İşlemler</CardTitle>
+              <CardDescription>
+                {selectedProducts.size > 0 && (
+                  <span className="text-primary font-medium">
+                    {selectedProducts.size} ürün seçili
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            <Button
+              variant={showInactive ? "default" : "outline"}
+              onClick={() => setShowInactive(!showInactive)}
+              className="ml-auto"
+            >
+              {showInactive ? (
+                <>
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Pasif Ürünleri Gizle
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Pasif Ürünleri Göster
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filtreler */}
@@ -603,19 +662,20 @@ export default function WholesalePackageManagementPage() {
                   <TableHead className="w-[200px]">Paket Adedi</TableHead>
                   <TableHead className="w-[150px]">Birim Fiyat (₺/adet)</TableHead>
                   <TableHead className="w-[150px]">Toplam Fiyat (₺)</TableHead>
-                  <TableHead className="w-[100px] text-center">Durum</TableHead>
+                  <TableHead className="w-[120px] text-center">Durum</TableHead>
+                  <TableHead className="w-[100px] text-center">Aktif/Pasif</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Yükleniyor...
                     </TableCell>
                   </TableRow>
                 ) : filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">
                         Filtreye uygun ürün bulunamadı
@@ -771,6 +831,30 @@ export default function WholesalePackageManagementPage() {
                           ) : (
                             <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
                           )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            variant={product.isActive ? "default" : "outline"}
+                            onClick={() => toggleProductStatus(product.id, product.isActive)}
+                            disabled={isSaving}
+                            className={product.isActive 
+                              ? "bg-green-600 hover:bg-green-700 text-white" 
+                              : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                            }
+                          >
+                            {product.isActive ? (
+                              <>
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Aktif
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                Pasif
+                              </>
+                            )}
+                          </Button>
                         </TableCell>
                       </TableRow>
                     )
