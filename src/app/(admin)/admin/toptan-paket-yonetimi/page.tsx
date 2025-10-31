@@ -96,26 +96,30 @@ export default function WholesalePackageManagementPage() {
         // Mevcut değerleri edits'e koy
         const initialEdits = new Map<string, ProductEdit>()
         result.data.products.forEach((p: Product) => {
-          // Paket yok olan ürünler için varsayılan olarak 3 adet paket göster
-          // Birim fiyatı mevcut fiyattan hesapla (paket varsa fiyat/paket, yoksa fiyat direkt birim fiyat)
           let unitPrice: number
           let packageQty: number
+          let displayPrice: number
           
           if (p.packageQuantity && p.packageQuantity > 0) {
             // Paket varsa: birim fiyat = toplam fiyat / paket adedi
             packageQty = p.packageQuantity
             unitPrice = p.price / p.packageQuantity
+            displayPrice = p.price // Paket fiyatı = mevcut fiyat
           } else {
-            // Paket yok ise: mevcut fiyat birim fiyatıdır, paket adedi 3 olacak
+            // Paket yok ise: mevcut fiyat birim fiyatıdır
+            // Ancak önceki kod hatası nedeniyle veritabanında birim fiyat × 3 kaydedilmiş olabilir
+            // Bu durumu kontrol etmek için: eğer fiyat 3'ün katı gibi görünüyorsa ve birim fiyat olarak kaydedilmişse
+            // Ama genel mantık: paket yok ise mevcut fiyat = birim fiyat
             packageQty = 3
-            unitPrice = p.price // Mevcut fiyat birim fiyattır
+            unitPrice = p.price // Mevcut fiyat birim fiyattır (1 adet fiyatı)
+            displayPrice = p.price * 3 // Toplam fiyat = birim fiyat × 3
           }
           
           initialEdits.set(p.id, {
             id: p.id,
             packageQuantity: packageQty,
-            price: p.price,
-            unitPrice: unitPrice,
+            price: displayPrice, // Görüntüleme için toplam fiyat
+            unitPrice: unitPrice, // Birim fiyat (adet başı)
             name: p.name
           })
         })
@@ -301,8 +305,15 @@ export default function WholesalePackageManagementPage() {
       // Paket yok olan ürünler için 3 adet olarak karşılaştır
       const originalPackageQty = original.packageQuantity || 3
       const editPackageQty = edit.packageQuantity || 3
+      
+      // Paket yok olan ürünler için birim fiyatı kontrol et
+      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+      const priceChanged = isPackageLess
+        ? original.price !== (edit.unitPrice || original.price)
+        : original.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
+      
       return (
-        original.price !== edit.price ||
+        priceChanged ||
         originalPackageQty !== editPackageQty ||
         (edit.name && original.name !== edit.name)
       )
@@ -316,13 +327,31 @@ export default function WholesalePackageManagementPage() {
     try {
       setIsSaving(true)
       
-      // Fiyat güncellemeleri
+      // Fiyat güncellemeleri - Paket yok olan ürünler için birim fiyatı, paketli ürünler için toplam fiyatı kaydet
       const priceUpdates = changedProducts
         .filter(p => {
           const original = products.find(prod => prod.id === p.id)
-          return original && original.price !== p.price
+          if (!original) return false
+          
+          // Paket yok olan ürünler için birim fiyatı kontrol et
+          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0 || p.packageQuantity === 3
+          if (isPackageLess) {
+            // Birim fiyat değişmiş mi kontrol et
+            return original.price !== (p.unitPrice || original.price)
+          } else {
+            // Paketli ürün: toplam fiyatı kontrol et
+            const editTotalPrice = p.unitPrice && p.packageQuantity ? p.unitPrice * p.packageQuantity : p.price
+            return original.price !== editTotalPrice
+          }
         })
-        .map(p => ({ id: p.id, price: p.price }))
+        .map(p => {
+          // Paket yok olan ürünler için birim fiyatı kaydet, paketli ürünler için toplam fiyatı kaydet
+          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0 || p.packageQuantity === 3
+          const priceToSave = isPackageLess 
+            ? (p.unitPrice || p.price) // Paket yok: birim fiyatı kaydet
+            : (p.unitPrice && p.packageQuantity ? p.unitPrice * p.packageQuantity : p.price) // Paketli: toplam fiyatı kaydet
+          return { id: p.id, price: priceToSave }
+        })
 
       // İsim güncellemeleri
       const nameUpdates = changedProducts
@@ -427,8 +456,15 @@ export default function WholesalePackageManagementPage() {
     // Paket yok olan ürünler için 3 adet olarak karşılaştır
     const originalPackageQty = original.packageQuantity || 3
     const editPackageQty = edit.packageQuantity || 3
+    
+    // Paket yok olan ürünler için birim fiyatı kontrol et
+    const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+    const priceChanged = isPackageLess
+      ? original.price !== (edit.unitPrice || original.price)
+      : original.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
+    
     return (
-      original.price !== edit.price ||
+      priceChanged ||
       originalPackageQty !== editPackageQty ||
       (edit.name && original.name !== edit.name)
     )
@@ -592,8 +628,15 @@ export default function WholesalePackageManagementPage() {
                     // Paket yok olan ürünler için 3 adet olarak karşılaştır
                     const originalPackageQty = product.packageQuantity || 3
                     const editPackageQty = edit?.packageQuantity || 3
+                    
+                    // Paket yok olan ürünler için birim fiyatı kontrol et
+                    const isPackageLess = !edit?.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+                    const priceChanged = isPackageLess
+                      ? product.price !== (edit?.unitPrice || product.price)
+                      : product.price !== (edit?.unitPrice && edit?.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit?.price || product.price)
+                    
                     const hasChange = 
-                      edit?.price !== product.price || 
+                      priceChanged || 
                       originalPackageQty !== editPackageQty ||
                       (edit?.name && edit.name !== product.name)
 
@@ -707,7 +750,11 @@ export default function WholesalePackageManagementPage() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <div className="font-semibold text-green-600">
-                              {edit?.price ? `₺${edit.price.toFixed(2)}` : '₺0.00'}
+                              {edit?.unitPrice && edit?.packageQuantity 
+                                ? `₺${(edit.unitPrice * edit.packageQuantity).toFixed(2)}` 
+                                : edit?.price 
+                                ? `₺${edit.price.toFixed(2)}` 
+                                : '₺0.00'}
                             </div>
                             {edit?.packageQuantity && (
                               <span className="text-xs text-muted-foreground ml-1">
