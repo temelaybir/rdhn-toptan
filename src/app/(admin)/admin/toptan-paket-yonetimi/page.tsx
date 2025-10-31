@@ -38,6 +38,7 @@ import {
 
 // Paket varyasyonları
 const PACKAGE_OPTIONS = [
+  { value: 3, label: '1 paket (3 adet)' },
   { value: 5, label: '1 paket (5 adet)' },
   { value: 10, label: '1 paket (10 adet)' },
   { value: 12, label: '1 paket (12 adet)' },
@@ -96,13 +97,15 @@ export default function WholesalePackageManagementPage() {
         const initialEdits = new Map<string, ProductEdit>()
         result.data.products.forEach((p: Product) => {
           // Eğer paketi varsa, birim fiyatı hesapla (mevcut fiyat / paket adedi)
+          // Paket yok olan ürünler için varsayılan olarak 3 adet paket göster
+          const packageQty = p.packageQuantity && p.packageQuantity > 0 ? p.packageQuantity : 3
           const unitPrice = p.packageQuantity && p.packageQuantity > 0 
             ? p.price / p.packageQuantity 
-            : p.price
+            : p.price / 3 // Paket yok olan ürünler için birim fiyatı 3'e böl
           
           initialEdits.set(p.id, {
             id: p.id,
-            packageQuantity: p.packageQuantity || null,
+            packageQuantity: p.packageQuantity || 3, // Paket yok ise varsayılan 3
             price: p.price,
             unitPrice: unitPrice,
             name: p.name
@@ -165,14 +168,14 @@ export default function WholesalePackageManagementPage() {
   }
 
   // Paket adedi değiştir
-  const updatePackageQuantity = (productId: string, quantity: number | null) => {
+  const updatePackageQuantity = (productId: string, quantity: number) => {
     const newEdits = new Map(edits)
     const product = products.find(p => p.id === productId)
     const currentEdit = newEdits.get(productId) || { 
       id: productId, 
-      packageQuantity: null, 
+      packageQuantity: 3, // Varsayılan 3 adet
       price: product?.price || 0,
-      unitPrice: product?.price || 0,
+      unitPrice: (product?.price || 0) / 3, // Varsayılan birim fiyat
       name: product?.name || ''
     }
     
@@ -195,7 +198,7 @@ export default function WholesalePackageManagementPage() {
     const product = products.find(p => p.id === productId)
     const currentEdit = newEdits.get(productId) || { 
       id: productId, 
-      packageQuantity: product?.packageQuantity || null, 
+      packageQuantity: product?.packageQuantity || 3, // Varsayılan 3 adet
       price: 0,
       unitPrice: 0,
       name: product?.name || ''
@@ -204,7 +207,7 @@ export default function WholesalePackageManagementPage() {
     // Paket varsa otomatik olarak paket fiyatını hesapla
     const newPrice = currentEdit.packageQuantity && currentEdit.packageQuantity > 0
       ? unitPrice * currentEdit.packageQuantity
-      : unitPrice
+      : unitPrice * 3 // Paket yok ise varsayılan 3 adet için hesapla
     
     newEdits.set(productId, { 
       ...currentEdit, 
@@ -287,9 +290,12 @@ export default function WholesalePackageManagementPage() {
     const changedProducts = Array.from(edits.values()).filter(edit => {
       const original = products.find(p => p.id === edit.id)
       if (!original) return false
+      // Paket yok olan ürünler için 3 adet olarak karşılaştır
+      const originalPackageQty = original.packageQuantity || 3
+      const editPackageQty = edit.packageQuantity || 3
       return (
         original.price !== edit.price ||
-        (original.packageQuantity || null) !== edit.packageQuantity ||
+        originalPackageQty !== editPackageQty ||
         (edit.name && original.name !== edit.name)
       )
     })
@@ -321,7 +327,10 @@ export default function WholesalePackageManagementPage() {
       // Paket güncellemeleri
       const packageUpdates = changedProducts.filter(p => {
         const original = products.find(prod => prod.id === p.id)
-        return original && (original.packageQuantity || null) !== p.packageQuantity
+        // Paket yok olan ürünler için 3 adet olarak karşılaştır
+        const originalPackageQty = original?.packageQuantity || 3
+        const newPackageQty = p.packageQuantity || 3
+        return original && originalPackageQty !== newPackageQty
       })
 
       const promises = []
@@ -350,13 +359,15 @@ export default function WholesalePackageManagementPage() {
 
       // Her paket güncellemesi için ayrı istek
       packageUpdates.forEach(update => {
+        // Paket yok olan ürünler için 3 adet olarak kaydet
+        const packageQty = update.packageQuantity || 3
         promises.push(
           fetch('/api/admin/products/bulk-package-update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               productIds: [update.id],
-              packageQuantity: update.packageQuantity,
+              packageQuantity: packageQty === 3 && !products.find(p => p.id === update.id)?.packageQuantity ? null : packageQty,
               packageUnit: 'adet'
             })
           })
@@ -405,9 +416,12 @@ export default function WholesalePackageManagementPage() {
   const hasChanges = Array.from(edits.values()).some(edit => {
     const original = products.find(p => p.id === edit.id)
     if (!original) return false
+    // Paket yok olan ürünler için 3 adet olarak karşılaştır
+    const originalPackageQty = original.packageQuantity || 3
+    const editPackageQty = edit.packageQuantity || 3
     return (
       original.price !== edit.price ||
-      (original.packageQuantity || null) !== edit.packageQuantity ||
+      originalPackageQty !== editPackageQty ||
       (edit.name && original.name !== edit.name)
     )
   })
@@ -567,9 +581,12 @@ export default function WholesalePackageManagementPage() {
                 ) : (
                   filteredProducts.map((product, index) => {
                     const edit = edits.get(product.id)
+                    // Paket yok olan ürünler için 3 adet olarak karşılaştır
+                    const originalPackageQty = product.packageQuantity || 3
+                    const editPackageQty = edit?.packageQuantity || 3
                     const hasChange = 
                       edit?.price !== product.price || 
-                      (edit?.packageQuantity || null) !== (product.packageQuantity || null) ||
+                      originalPackageQty !== editPackageQty ||
                       (edit?.name && edit.name !== product.name)
 
                     return (
@@ -618,7 +635,7 @@ export default function WholesalePackageManagementPage() {
                               <div className="flex items-center gap-2 group">
                                 <p className="font-medium flex-1">
                                   {edit?.name || product.name}
-                                  {edit?.packageQuantity && edit.packageQuantity > 0 && (
+                                  {edit?.packageQuantity && (
                                     <span className="ml-2 text-blue-600 font-semibold">
                                       ({edit.packageQuantity}&apos;li paket)
                                     </span>
@@ -648,16 +665,15 @@ export default function WholesalePackageManagementPage() {
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={edit?.packageQuantity?.toString() || 'none'}
+                            value={edit?.packageQuantity?.toString() || '3'}
                             onValueChange={(value) => 
-                              updatePackageQuantity(product.id, value === 'none' ? null : parseInt(value))
+                              updatePackageQuantity(product.id, parseInt(value))
                             }
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Paket Yok</SelectItem>
                               {PACKAGE_OPTIONS.map((option) => (
                                 <SelectItem key={option.value} value={option.value.toString()}>
                                   {option.label}
@@ -685,7 +701,7 @@ export default function WholesalePackageManagementPage() {
                             <div className="font-semibold text-green-600">
                               {edit?.price ? `₺${edit.price.toFixed(2)}` : '₺0.00'}
                             </div>
-                            {edit?.packageQuantity && edit.packageQuantity > 0 && (
+                            {edit?.packageQuantity && (
                               <span className="text-xs text-muted-foreground ml-1">
                                 ({edit.packageQuantity} paket)
                               </span>
@@ -697,10 +713,8 @@ export default function WholesalePackageManagementPage() {
                             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                               Değişti
                             </Badge>
-                          ) : product.packageQuantity ? (
-                            <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
                           )}
                         </TableCell>
                       </TableRow>
