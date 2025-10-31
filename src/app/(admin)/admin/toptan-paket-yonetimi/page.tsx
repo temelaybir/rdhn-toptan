@@ -96,16 +96,24 @@ export default function WholesalePackageManagementPage() {
         // Mevcut değerleri edits'e koy
         const initialEdits = new Map<string, ProductEdit>()
         result.data.products.forEach((p: Product) => {
-          // Eğer paketi varsa, birim fiyatı hesapla (mevcut fiyat / paket adedi)
           // Paket yok olan ürünler için varsayılan olarak 3 adet paket göster
-          const packageQty = p.packageQuantity && p.packageQuantity > 0 ? p.packageQuantity : 3
-          const unitPrice = p.packageQuantity && p.packageQuantity > 0 
-            ? p.price / p.packageQuantity 
-            : p.price / 3 // Paket yok olan ürünler için birim fiyatı 3'e böl
+          // Birim fiyatı mevcut fiyattan hesapla (paket varsa fiyat/paket, yoksa fiyat direkt birim fiyat)
+          let unitPrice: number
+          let packageQty: number
+          
+          if (p.packageQuantity && p.packageQuantity > 0) {
+            // Paket varsa: birim fiyat = toplam fiyat / paket adedi
+            packageQty = p.packageQuantity
+            unitPrice = p.price / p.packageQuantity
+          } else {
+            // Paket yok ise: mevcut fiyat birim fiyatıdır, paket adedi 3 olacak
+            packageQty = 3
+            unitPrice = p.price // Mevcut fiyat birim fiyattır
+          }
           
           initialEdits.set(p.id, {
             id: p.id,
-            packageQuantity: p.packageQuantity || 3, // Paket yok ise varsayılan 3
+            packageQuantity: packageQty,
             price: p.price,
             unitPrice: unitPrice,
             name: p.name
@@ -175,7 +183,7 @@ export default function WholesalePackageManagementPage() {
       id: productId, 
       packageQuantity: 3, // Varsayılan 3 adet
       price: product?.price || 0,
-      unitPrice: (product?.price || 0) / 3, // Varsayılan birim fiyat
+      unitPrice: product?.price || 0, // Paket yok ise mevcut fiyat birim fiyattır
       name: product?.name || ''
     }
     
