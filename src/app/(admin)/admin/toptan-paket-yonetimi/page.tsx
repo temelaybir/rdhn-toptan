@@ -38,11 +38,14 @@ import {
 
 // Paket varyasyonları
 const PACKAGE_OPTIONS = [
+  { value: 5, label: '1 paket (5 adet)' },
   { value: 10, label: '1 paket (10 adet)' },
   { value: 12, label: '1 paket (12 adet)' },
   { value: 15, label: '1 paket (15 adet)' },
+  { value: 18, label: '1 paket (18 adet)' },
   { value: 20, label: '1 paket (20 adet)' },
   { value: 24, label: '1 paket (24 adet)' },
+  { value: 30, label: '1 paket (30 adet)' },
   { value: 48, label: '1 paket (48 adet)' },
   { value: 50, label: '1 paket (50 adet)' },
 ]

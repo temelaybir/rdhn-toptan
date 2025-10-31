@@ -22,18 +22,30 @@ export async function POST(request: NextRequest) {
       }
 
       // Toplu güncelleme
-      // Paket adedi varsa (>0) toptan ürün olarak işaretle, yoksa tekil ürün olarak bırak
-      const isWholesale = packageQuantity && packageQuantity > 0
+      // Paket adedi varsa (>0) toptan ürün olarak işaretle
+      // Paket yok olan ürünler de toptan ürün olabilir (is_wholesale true kalabilir)
+      // Sadece paket yok olan toptan ürünler için MOQ'yu 3 adet olarak ayarla
+      const isWholesale = packageQuantity && packageQuantity > 0 ? true : undefined // Paket varsa true, yoksa undefined (değiştirme)
+      const moq = packageQuantity && packageQuantity > 0 ? null : 3 // Paket varsa null (paket bazlı MOQ), yoksa 3 adet
+      const moqUnit = packageQuantity && packageQuantity > 0 ? null : 'piece' // Paket varsa null, yoksa 'piece'
+      
+      // Güncelleme objesi oluştur
+      const updateData: any = {
+        package_quantity: packageQuantity,
+        package_unit: packageUnit || 'adet',
+        moq: moq,
+        moq_unit: moqUnit,
+        updated_at: new Date().toISOString()
+      }
+      
+      // Sadece paket varsa is_wholesale'i true yap, yoksa mevcut değeri koru
+      if (isWholesale !== undefined) {
+        updateData.is_wholesale = isWholesale
+      }
       
       const { data, error } = await supabase
         .from('products')
-        .update({
-          package_quantity: packageQuantity,
-          package_unit: packageUnit || 'adet',
-          is_wholesale: isWholesale,
-          moq_unit: isWholesale ? 'package' : null,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .in('id', productIds)
         .select()
 

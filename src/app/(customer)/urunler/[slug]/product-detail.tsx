@@ -124,7 +124,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   
   // Paket bazlı miktar yönetimi
   const packageQty = product.package_quantity || 1 // Bir pakette kaç adet var
-  const minPackageCount = product.is_wholesale && product.moq ? product.moq : 1 // Minimum paket adedi
+  // Paket yok olan toptan ürünler için MOQ 3 adet, paket varsa paket bazlı MOQ
+  const minPackageCount = product.is_wholesale && product.package_quantity && product.package_quantity > 0 && product.moq 
+    ? product.moq 
+    : product.is_wholesale && (!product.package_quantity || product.package_quantity === 0) && product.moq
+    ? Math.ceil(product.moq / packageQty) // Paket yok olan ürünler için adet bazlı MOQ'yu paket sayısına çevir
+    : 1 // Varsayılan minimum 1 paket/adet
   const [packageCount, setPackageCount] = useState(minPackageCount) // Paket adedi
   const quantity = packageCount * packageQty // Gerçek ürün adedi (paket x adet)
   const [isAddedToCart, setIsAddedToCart] = useState(false)
@@ -162,10 +167,24 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const currentPrice = calculatePrice(quantity)
 
   const handleAddToCart = () => {
-    // MOQ kontrolü (paket bazlı)
-    if (product.is_wholesale && product.moq && packageCount < product.moq) {
-      toast.error(`Minimum sipariş adedi: ${product.moq} ${product.moq_unit === 'package' ? product.package_unit || 'paket' : product.moq_unit === 'koli' ? 'koli' : 'adet'}`)
-      return
+    // MOQ kontrolü
+    if (product.is_wholesale && product.moq) {
+      // Paket yok olan ürünler için adet bazlı MOQ kontrolü
+      if (!product.package_quantity || product.package_quantity === 0) {
+        if (quantity < product.moq) {
+          toast.error(`Minimum sipariş adedi: ${product.moq} adet`)
+          return
+        }
+      } else {
+        // Paket bazlı ürünler için paket bazlı MOQ kontrolü
+        if (product.moq_unit === 'package' && packageCount < product.moq) {
+          toast.error(`Minimum sipariş adedi: ${product.moq} ${product.package_unit || 'paket'}`)
+          return
+        } else if (product.moq_unit === 'piece' && quantity < product.moq) {
+          toast.error(`Minimum sipariş adedi: ${product.moq} adet`)
+          return
+        }
+      }
     }
 
     // Product objesini direkt kullan, sadece fiyatı güncelle
@@ -204,8 +223,18 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   const handleQuantityChange = (action: 'increase' | 'decrease') => {
     // Paket bazlı artış/azalış
-    if (action === 'increase' && quantity + packageQty <= product.stock_quantity) {
-      setPackageCount(packageCount + 1)
+    if (action === 'increase') {
+      // Paket yok olan ürünler için adet bazlı kontrol
+      if (!product.package_quantity || product.package_quantity === 0) {
+        if (quantity + 1 <= product.stock_quantity) {
+          setPackageCount(packageCount + 1)
+        }
+      } else {
+        // Paket bazlı ürünler için paket kontrolü
+        if (quantity + packageQty <= product.stock_quantity) {
+          setPackageCount(packageCount + 1)
+        }
+      }
     } else if (action === 'decrease' && packageCount > minPackageCount) {
       setPackageCount(packageCount - 1)
     }
@@ -368,15 +397,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </div>
               <div>
                 <p className="text-base font-bold max-sm:text-sm">TOPTAN SATIŞ</p>
-                <p className="text-xs opacity-90 max-sm:text-[10px]">Paket bazlı toptan fiyat</p>
+                <p className="text-xs opacity-90 max-sm:text-[10px]">
+                  {product.package_quantity && product.package_quantity > 0 ? 'Paket bazlı toptan fiyat' : 'Adet bazlı toptan fiyat'}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs max-sm:text-[10px] bg-white/10 backdrop-blur-sm rounded-lg p-2.5">
-              <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              <span>
-                1 {product.package_unit || 'paket'} = <strong>{packageQty} adet</strong> ürün
-              </span>
-            </div>
+            {product.package_quantity && product.package_quantity > 0 && (
+              <div className="flex items-center gap-2 text-xs max-sm:text-[10px] bg-white/10 backdrop-blur-sm rounded-lg p-2.5">
+                <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  1 {product.package_unit || 'paket'} = <strong>{packageQty} adet</strong> ürün
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Başlık - Kompakt */}
@@ -565,7 +598,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             {/* Miktar ve Stok */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-blue-900">Paket Adedi</span>
+                <span className="text-sm font-semibold text-blue-900">
+                  {product.package_quantity && product.package_quantity > 0 ? 'Paket Adedi' : 'Adet'}
+                </span>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0.5">
                   Toptan Fiyat
                 </Badge>
@@ -583,7 +618,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   </Button>
                   <div className="w-16 text-center max-sm:w-14">
                     <div className="text-base font-bold text-blue-900 max-sm:text-sm">{packageCount}</div>
-                    <div className="text-[10px] text-blue-600 max-sm:text-[9px]">({quantity} adet)</div>
+                    {product.package_quantity && product.package_quantity > 0 ? (
+                      <div className="text-[10px] text-blue-600 max-sm:text-[9px]">({quantity} adet)</div>
+                    ) : (
+                      <div className="text-[10px] text-blue-600 max-sm:text-[9px]">adet</div>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -613,7 +652,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-2.5 flex items-center gap-2">
                 <Package className="h-4 w-4 text-blue-600 flex-shrink-0" />
                 <p className="text-xs text-blue-800 font-medium">
-                  <strong>Toptan avantajı:</strong> {packageCount} paket = {quantity} adet ürün
+                  <strong>Toptan avantajı:</strong> {
+                    product.package_quantity && product.package_quantity > 0 
+                      ? `${packageCount} paket = ${quantity} adet ürün = ${formatPrice(currentPrice * packageCount)}`
+                      : `${quantity} adet ürün = ${formatPrice(currentPrice * packageCount)}`
+                  }
                 </p>
               </div>
               <Button 
