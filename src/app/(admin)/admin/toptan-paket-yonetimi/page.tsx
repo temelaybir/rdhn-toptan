@@ -195,52 +195,141 @@ export default function WholesalePackageManagementPage() {
 
   // Paket adedi değiştir
   const updatePackageQuantity = (productId: string, quantity: number) => {
+    console.log('🟠 updatePackageQuantity called:', { productId, quantity })
+    
     const newEdits = new Map(edits)
     const product = products.find(p => p.id === productId)
-    const currentEdit = newEdits.get(productId) || { 
+    const currentEdit = newEdits.get(productId)
+    
+    console.log('🟠 Current state:', { 
+      productPrice: product?.price, 
+      productPackageQuantity: product?.packageQuantity,
+      currentEditUnitPrice: currentEdit?.unitPrice,
+      currentEditPackageQuantity: currentEdit?.packageQuantity,
+      currentEditPrice: currentEdit?.price,
+      currentEditExists: !!currentEdit
+    })
+    
+    // Mevcut birim fiyatı belirle: edit'te varsa (undefined/null değilse) onu kullan, yoksa mevcut fiyattan hesapla
+    let currentUnitPrice: number
+    if (currentEdit && currentEdit.unitPrice !== undefined && currentEdit.unitPrice !== null) {
+      // Edit'te birim fiyat varsa (0 dahil) onu kullan (BÖLME YAPMA, KORU!)
+      currentUnitPrice = currentEdit.unitPrice
+      console.log('🟠 ✅ Using existing unitPrice from edit (NO DIVISION):', currentUnitPrice)
+    } else if (product) {
+      // Edit yoksa veya unitPrice yoksa, mevcut fiyattan birim fiyatı hesapla (SADECE BU DURUMDA BÖLME!)
+      if (product.packageQuantity && product.packageQuantity > 0) {
+        // Paketli ürün: toplam fiyat / paket adedi = birim fiyat
+        currentUnitPrice = product.price / product.packageQuantity
+        console.log('🟠 ⚠️ Calculating unitPrice from product (DIVISION - ONLY WHEN NO EDIT):', {
+          productPrice: product.price,
+          packageQuantity: product.packageQuantity,
+          calculated: currentUnitPrice
+        })
+      } else {
+        // Paket yok: mevcut fiyat birim fiyattır
+        currentUnitPrice = product.price
+        console.log('🟠 Using product.price as unitPrice (no package):', currentUnitPrice)
+      }
+    } else {
+      currentUnitPrice = 0
+      console.log('🟠 No product found, using 0')
+    }
+    
+    // Yeni paket adedi ile toplam fiyatı hesapla (birim fiyat × paket adedi - ÇARPMA!)
+    const newPrice = quantity && quantity > 0 && currentUnitPrice !== undefined && currentUnitPrice !== null
+      ? currentUnitPrice * quantity
+      : (currentUnitPrice || 0)
+    
+    console.log('🟠 Calculation (MULTIPLICATION):', { 
+      unitPrice: currentUnitPrice, 
+      packageQuantity: quantity, 
+      calculation: `${currentUnitPrice} × ${quantity}`,
+      result: newPrice
+    })
+    
+    const baseEdit = currentEdit || { 
       id: productId, 
-      packageQuantity: 3, // Varsayılan 3 adet
+      packageQuantity: product?.packageQuantity || 3,
       price: product?.price || 0,
-      unitPrice: product?.price || 0, // Paket yok ise mevcut fiyat birim fiyattır
+      unitPrice: currentUnitPrice,
       name: product?.name || ''
     }
     
-    // Paket seçildiğinde fiyatı otomatik hesapla (birim fiyat x paket adedi)
-    const newPrice = quantity && quantity > 0 && currentEdit.unitPrice
-      ? currentEdit.unitPrice * quantity
-      : currentEdit.unitPrice || 0
-    
-    newEdits.set(productId, { 
-      ...currentEdit, 
+    const updatedEdit = { 
+      ...baseEdit, 
       packageQuantity: quantity,
-      price: newPrice
-    })
+      unitPrice: currentUnitPrice, // Birim fiyatı KORU (BÖLME YAPMA!)
+      price: newPrice // Toplam fiyatı güncelle (birim fiyat × paket adedi)
+    }
+    
+    console.log('🟠 Updated edit:', updatedEdit)
+    
+    newEdits.set(productId, updatedEdit)
     setEdits(newEdits)
+    
+    console.log('🟠 Final edits state:', Array.from(newEdits.entries()).find(([id]) => id === productId))
   }
 
   // Birim fiyat değiştir (adet fiyatı)
   const updateUnitPrice = (productId: string, unitPrice: number) => {
+    console.log('🔵 updateUnitPrice called:', { productId, unitPrice })
+    
     const newEdits = new Map(edits)
     const product = products.find(p => p.id === productId)
-    const currentEdit = newEdits.get(productId) || { 
+    const currentEdit = newEdits.get(productId)
+    
+    console.log('🔵 Current state:', { 
+      productPrice: product?.price, 
+      productPackageQuantity: product?.packageQuantity,
+      currentEditUnitPrice: currentEdit?.unitPrice,
+      currentEditPackageQuantity: currentEdit?.packageQuantity,
+      currentEditPrice: currentEdit?.price,
+      currentEditExists: !!currentEdit
+    })
+    
+    // Mevcut paket adedini belirle: edit'te varsa onu kullan, yoksa product'tan al
+    const currentPackageQuantity = currentEdit?.packageQuantity 
+      ? currentEdit.packageQuantity 
+      : (product?.packageQuantity && product.packageQuantity > 0 
+          ? product.packageQuantity 
+          : 3) // Varsayılan 3 adet
+    
+    console.log('🔵 Package quantity determined:', currentPackageQuantity)
+    
+    // Birim fiyat x paket adedi = toplam fiyat (ÇARPMA, BÖLME DEĞİL!)
+    const newPrice = unitPrice !== undefined && unitPrice !== null && currentPackageQuantity > 0
+      ? unitPrice * currentPackageQuantity
+      : unitPrice
+    
+    console.log('🔵 Calculation (MULTIPLICATION - NO DIVISION):', { 
+      unitPrice, 
+      packageQuantity: currentPackageQuantity, 
+      calculation: `${unitPrice} × ${currentPackageQuantity}`,
+      result: newPrice
+    })
+    
+    const baseEdit = currentEdit || { 
       id: productId, 
-      packageQuantity: product?.packageQuantity || 3, // Varsayılan 3 adet
-      price: 0,
+      packageQuantity: product?.packageQuantity || 3,
+      price: product?.price || 0,
       unitPrice: 0,
       name: product?.name || ''
     }
     
-    // Paket varsa otomatik olarak paket fiyatını hesapla
-    const newPrice = currentEdit.packageQuantity && currentEdit.packageQuantity > 0
-      ? unitPrice * currentEdit.packageQuantity
-      : unitPrice * 3 // Paket yok ise varsayılan 3 adet için hesapla
+    const updatedEdit = { 
+      ...baseEdit, 
+      packageQuantity: currentPackageQuantity, // Paket adedini koru
+      unitPrice: unitPrice, // Birim fiyatı güncelle (BÖLME YAPMA, KORU!)
+      price: newPrice // Toplam fiyatı hesapla (birim fiyat × paket adedi)
+    }
     
-    newEdits.set(productId, { 
-      ...currentEdit, 
-      unitPrice,
-      price: newPrice
-    })
+    console.log('🔵 Updated edit:', updatedEdit)
+    
+    newEdits.set(productId, updatedEdit)
     setEdits(newEdits)
+    
+    console.log('🔵 Final edits state:', Array.from(newEdits.entries()).find(([id]) => id === productId))
   }
 
   // Ürün adı düzenlemeye başla
@@ -393,8 +482,8 @@ export default function WholesalePackageManagementPage() {
       
       const promises = []
 
-      // Paket yok olan ürünler için birim fiyatı kontrol et
-      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+      // Paket yok olan ürünler için birim fiyatı kontrol et (sadece null/undefined/0)
+      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0
       const priceChanged = isPackageLess
         ? product.price !== (edit.unitPrice || product.price)
         : product.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
@@ -405,9 +494,22 @@ export default function WholesalePackageManagementPage() {
 
       // Fiyat güncelleme
       if (priceChanged) {
+        // ÖNEMLİ: Paket varsa (packageQuantity > 0), birim fiyat × paket adedi = toplam fiyat kaydet
+        // Paket yoksa (packageQuantity null/0), direkt birim fiyatı kaydet
         const priceToSave = isPackageLess 
           ? (edit.unitPrice || edit.price)
           : (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
+        
+        console.log('💾 Saving price:', {
+          productId,
+          isPackageLess,
+          editUnitPrice: edit.unitPrice,
+          editPackageQuantity: edit.packageQuantity,
+          priceToSave,
+          calculation: isPackageLess 
+            ? `unitPrice (${edit.unitPrice})` 
+            : `unitPrice (${edit.unitPrice}) × packageQuantity (${edit.packageQuantity}) = ${priceToSave}`
+        })
         
         promises.push(
           fetch('/api/admin/products/bulk-price-update', {
@@ -545,7 +647,7 @@ export default function WholesalePackageManagementPage() {
       const editPackageQty = edit.packageQuantity || 3
       
       // Paket yok olan ürünler için birim fiyatı kontrol et
-      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0
       const priceChanged = isPackageLess
         ? original.price !== (edit.unitPrice || original.price)
         : original.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
@@ -572,7 +674,7 @@ export default function WholesalePackageManagementPage() {
           if (!original) return false
           
           // Paket yok olan ürünler için birim fiyatı kontrol et
-          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0 || p.packageQuantity === 3
+          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0
           if (isPackageLess) {
             // Birim fiyat değişmiş mi kontrol et
             return original.price !== (p.unitPrice || original.price)
@@ -584,7 +686,7 @@ export default function WholesalePackageManagementPage() {
         })
         .map(p => {
           // Paket yok olan ürünler için birim fiyatı kaydet, paketli ürünler için toplam fiyatı kaydet
-          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0 || p.packageQuantity === 3
+          const isPackageLess = !p.packageQuantity || p.packageQuantity === 0
           const priceToSave = isPackageLess 
             ? (p.unitPrice || p.price) // Paket yok: birim fiyatı kaydet
             : (p.unitPrice && p.packageQuantity ? p.unitPrice * p.packageQuantity : p.price) // Paketli: toplam fiyatı kaydet
@@ -718,7 +820,7 @@ export default function WholesalePackageManagementPage() {
     const editPackageQty = edit.packageQuantity || 3
     
     // Paket yok olan ürünler için birim fiyatı kontrol et
-    const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+    const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0
     const priceChanged = isPackageLess
       ? original.price !== (edit.unitPrice || original.price)
       : original.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
@@ -871,10 +973,10 @@ export default function WholesalePackageManagementPage() {
             Önce birim fiyat (adet başı) girin, sonra paket seçin. Toplam fiyat otomatik hesaplanır.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <div className="rounded-md border overflow-x-auto max-w-full">
-            <div className="min-w-[1200px]">
-              <Table>
+            <div className="min-w-[1400px]">
+              <Table className="w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]">
@@ -883,27 +985,26 @@ export default function WholesalePackageManagementPage() {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="min-w-[250px]">Ürün Adı</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead className="w-[200px]">Paket Adedi</TableHead>
-                  <TableHead className="w-[150px]">Birim Fiyat (₺/adet)</TableHead>
-                  <TableHead className="w-[150px]">Toplam Fiyat (₺)</TableHead>
-                  <TableHead className="w-[150px]">Min. Paket</TableHead>
-                  <TableHead className="w-[120px] text-center">Durum</TableHead>
-                  <TableHead className="w-[120px] text-center">Aktif/Pasif</TableHead>
-                  <TableHead className="w-[100px] text-center">İşlem</TableHead>
+                  <TableHead className="min-w-[400px] text-sm">Ürün Adı</TableHead>
+                  <TableHead className="w-[200px] text-sm">Paket Adedi</TableHead>
+                  <TableHead className="w-[150px] text-sm">Birim Fiyat (₺/adet)</TableHead>
+                  <TableHead className="w-[150px] text-sm">Toplam Fiyat (₺)</TableHead>
+                  <TableHead className="w-[150px] text-sm">Min. Paket</TableHead>
+                  <TableHead className="w-[120px] text-center text-sm">Durum</TableHead>
+                  <TableHead className="w-[120px] text-center text-sm">Aktif/Pasif</TableHead>
+                  <TableHead className="w-[100px] text-center text-sm">İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Yükleniyor...
                     </TableCell>
                   </TableRow>
                 ) : filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">
                         Filtreye uygun ürün bulunamadı
@@ -918,7 +1019,7 @@ export default function WholesalePackageManagementPage() {
                     const editPackageQty = edit?.packageQuantity || 3
                     
                     // Paket yok olan ürünler için birim fiyatı kontrol et
-                    const isPackageLess = !edit?.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+                    const isPackageLess = !edit?.packageQuantity || edit.packageQuantity === 0
                     const priceChanged = isPackageLess
                       ? product.price !== (edit?.unitPrice || product.price)
                       : product.price !== (edit?.unitPrice && edit?.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit?.price || product.price)
@@ -939,14 +1040,14 @@ export default function WholesalePackageManagementPage() {
                             onCheckedChange={() => toggleProductSelection(product.id)}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-left text-sm">
                           <div>
                             {editingProductId === product.id ? (
                               <div className="flex items-center gap-2">
                                 <Input
                                   value={editingName}
                                   onChange={(e) => setEditingName(e.target.value)}
-                                  className="h-8"
+                                  className="h-8 text-sm"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -975,10 +1076,10 @@ export default function WholesalePackageManagementPage() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 group">
-                                <p className="font-medium flex-1">
+                                <p className="font-medium flex-1 text-left text-sm truncate max-w-[350px]" title={edit?.name || product.name}>
                                   {edit?.name || product.name}
                                   {edit?.packageQuantity && (
-                                    <span className="ml-2 text-blue-600 font-semibold">
+                                    <span className="ml-2 text-blue-600 font-semibold text-xs">
                                       ({edit.packageQuantity}&apos;li paket)
                                     </span>
                                   )}
@@ -987,32 +1088,25 @@ export default function WholesalePackageManagementPage() {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => startEditingName(product.id, edit?.name || product.name)}
-                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
                             )}
                             {product.sku && (
-                              <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                              <p className="text-xs text-muted-foreground truncate">SKU: {product.sku}</p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {product.category ? (
-                            <Badge variant="outline">{product.category.name}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <Select
                             value={edit?.packageQuantity?.toString() || '3'}
                             onValueChange={(value) => 
                               updatePackageQuantity(product.id, parseInt(value))
                             }
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full text-sm h-8">
                               <SelectValue placeholder="Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1024,23 +1118,55 @@ export default function WholesalePackageManagementPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <div className="flex items-center gap-1">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                             <Input
                               type="number"
                               step="0.01"
                               min="0"
-                              value={edit?.unitPrice || 0}
-                              onChange={(e) => updateUnitPrice(product.id, parseFloat(e.target.value) || 0)}
-                              className="w-full"
+                              value={(() => {
+                                // ÖNEMLİ: Edit'te birim fiyat varsa (0 dahil, sadece undefined/null değilse) onu kullan
+                                if (edit?.unitPrice !== undefined && edit.unitPrice !== null) {
+                                  console.log('🟡 ✅ Input value from edit.unitPrice (NO DIVISION):', {
+                                    productId: product.id,
+                                    editExists: !!edit,
+                                    unitPrice: edit.unitPrice,
+                                    editPackageQuantity: edit?.packageQuantity
+                                  })
+                                  return edit.unitPrice
+                                }
+                                // Edit yoksa veya unitPrice yoksa, mevcut fiyattan birim fiyatı hesapla (SADECE BU DURUMDA BÖLME!)
+                                if (product.packageQuantity && product.packageQuantity > 0) {
+                                  const calculated = product.price / product.packageQuantity
+                                  console.log('🟡 ⚠️ Input value calculated from product (DIVISION - ONLY WHEN NO EDIT):', { 
+                                    productId: product.id,
+                                    editExists: !!edit,
+                                    productPrice: product.price, 
+                                    packageQuantity: product.packageQuantity, 
+                                    calculated 
+                                  })
+                                  return calculated
+                                }
+                                console.log('🟡 Input value from product.price (no package):', {
+                                  productId: product.id,
+                                  productPrice: product.price || 0
+                                })
+                                return product.price || 0
+                              })()}
+                              onChange={(e) => {
+                                const newUnitPrice = parseFloat(e.target.value) || 0
+                                console.log('🟢 Input onChange:', { productId: product.id, newUnitPrice })
+                                updateUnitPrice(product.id, newUnitPrice)
+                              }}
+                              className="w-full text-sm h-8"
                               placeholder="Adet fiyatı"
                             />
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <div className="flex items-center gap-1">
-                            <div className="font-semibold text-green-600">
+                            <div className="font-semibold text-green-600 text-sm">
                               {edit?.unitPrice && edit?.packageQuantity 
                                 ? `₺${(edit.unitPrice * edit.packageQuantity).toFixed(2)}` 
                                 : edit?.price 
@@ -1054,7 +1180,7 @@ export default function WholesalePackageManagementPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <Checkbox
@@ -1090,48 +1216,48 @@ export default function WholesalePackageManagementPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center text-sm">
                           {hasChange ? (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">
                               Değişti
                             </Badge>
                           ) : (
-                            <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
+                            <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
                           )}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center text-sm">
                           <Button
                             size="sm"
                             variant={product.isActive ? "default" : "outline"}
                             onClick={() => toggleProductStatus(product.id, product.isActive)}
                             disabled={isSaving}
-                            className={product.isActive 
+                            className={`text-xs h-7 ${product.isActive 
                               ? "bg-green-600 hover:bg-green-700 text-white" 
                               : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                            }
+                            }`}
                           >
                             {product.isActive ? (
                               <>
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                <CheckCircle className="h-3 w-3 mr-1" />
                                 Aktif
                               </>
                             ) : (
                               <>
-                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                <XCircle className="h-3 w-3 mr-1" />
                                 Pasif
                               </>
                             )}
                           </Button>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center text-sm">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => updateSingleProduct(product.id)}
                             disabled={isSaving || !hasChange}
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300 text-xs h-7"
                           >
-                            <Save className="h-3.5 w-3.5 mr-1" />
+                            <Save className="h-3 w-3 mr-1" />
                             Güncelle
                           </Button>
                         </TableCell>
