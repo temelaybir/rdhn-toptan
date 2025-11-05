@@ -737,7 +737,7 @@ export default function WholesalePackageManagementPage() {
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden max-w-full">
       {/* Başlık */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -872,8 +872,9 @@ export default function WholesalePackageManagementPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto max-w-full">
+            <div className="min-w-[1200px]">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]">
@@ -1140,6 +1141,7 @@ export default function WholesalePackageManagementPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* Alt Bilgi */}
