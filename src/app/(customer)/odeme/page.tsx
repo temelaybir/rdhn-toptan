@@ -3056,7 +3056,7 @@ export default function CheckoutPage() {
                   <p className="text-xl font-bold">
                     {total.toLocaleString('tr-TR')} ₺
                   </p>
-                  <p className="text-xs text-muted-foreground">KDV Dahil</p>
+                  <p className="text-xs text-muted-foreground">+KDV (%20)</p>
                 </div>
               </div>
 

@@ -1006,7 +1006,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     ) : null}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">KDV Dahil</p>
+                <p className="text-xs text-gray-500">+KDV (%20)</p>
               </div>
               
               {/* Action Buttons - Fixed Position */}

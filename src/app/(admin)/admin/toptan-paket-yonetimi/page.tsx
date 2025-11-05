@@ -59,6 +59,9 @@ interface ProductEdit {
   price: number
   name?: string
   unitPrice?: number // Adet fiyatı (paket seçilmeden önceki fiyat)
+  moq?: number | null // Minimum sipariş miktarı
+  moqUnit?: 'piece' | 'package' | 'koli' | null // Minimum sipariş birimi
+  hasMoq?: boolean // Minimum paket gerekli mi?
 }
 
 export default function WholesalePackageManagementPage() {
@@ -123,7 +126,10 @@ export default function WholesalePackageManagementPage() {
             packageQuantity: packageQty,
             price: displayPrice, // Görüntüleme için toplam fiyat
             unitPrice: unitPrice, // Birim fiyat (adet başı)
-            name: p.name
+            name: p.name,
+            moq: p.moq || null,
+            moqUnit: p.moqUnit || null,
+            hasMoq: (p.moq && p.moq > 0) || false
           })
         })
         setEdits(initialEdits)
@@ -298,6 +304,200 @@ export default function WholesalePackageManagementPage() {
     setEditingName('')
   }
 
+  // Minimum paket gerekli mi? toggle
+  const toggleHasMoq = (productId: string) => {
+    const newEdits = new Map(edits)
+    const product = products.find(p => p.id === productId)
+    const currentEdit = newEdits.get(productId) || { 
+      id: productId, 
+      packageQuantity: product?.packageQuantity || 3,
+      price: product?.price || 0,
+      unitPrice: product?.price || 0,
+      name: product?.name || '',
+      moq: product?.moq || null,
+      moqUnit: product?.moqUnit || null,
+      hasMoq: false
+    }
+    
+    const newHasMoq = !currentEdit.hasMoq
+    newEdits.set(productId, { 
+      ...currentEdit, 
+      hasMoq: newHasMoq,
+      moq: newHasMoq ? (currentEdit.moq || 1) : null,
+      moqUnit: newHasMoq ? (currentEdit.moqUnit || 'package') : null
+    })
+    setEdits(newEdits)
+  }
+
+  // Minimum paket adedi güncelle
+  const updateMoq = (productId: string, moq: number | null) => {
+    const newEdits = new Map(edits)
+    const product = products.find(p => p.id === productId)
+    const currentEdit = newEdits.get(productId) || { 
+      id: productId, 
+      packageQuantity: product?.packageQuantity || 3,
+      price: product?.price || 0,
+      unitPrice: product?.price || 0,
+      name: product?.name || '',
+      moq: product?.moq || null,
+      moqUnit: product?.moqUnit || null,
+      hasMoq: false
+    }
+    
+    newEdits.set(productId, { 
+      ...currentEdit, 
+      moq: moq,
+      hasMoq: moq !== null && moq > 0
+    })
+    setEdits(newEdits)
+  }
+
+  // Minimum paket birimi güncelle
+  const updateMoqUnit = (productId: string, moqUnit: 'piece' | 'package' | 'koli' | null) => {
+    const newEdits = new Map(edits)
+    const product = products.find(p => p.id === productId)
+    const currentEdit = newEdits.get(productId) || { 
+      id: productId, 
+      packageQuantity: product?.packageQuantity || 3,
+      price: product?.price || 0,
+      unitPrice: product?.price || 0,
+      name: product?.name || '',
+      moq: product?.moq || null,
+      moqUnit: product?.moqUnit || null,
+      hasMoq: false
+    }
+    
+    newEdits.set(productId, { 
+      ...currentEdit, 
+      moqUnit: moqUnit
+    })
+    setEdits(newEdits)
+  }
+
+  // Tek bir ürünü güncelle
+  const updateSingleProduct = async (productId: string) => {
+    const edit = edits.get(productId)
+    if (!edit) {
+      toast.error('Ürün bulunamadı')
+      return
+    }
+
+    const product = products.find(p => p.id === productId)
+    if (!product) {
+      toast.error('Ürün bulunamadı')
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      
+      const promises = []
+
+      // Paket yok olan ürünler için birim fiyatı kontrol et
+      const isPackageLess = !edit.packageQuantity || edit.packageQuantity === 0 || edit.packageQuantity === 3
+      const priceChanged = isPackageLess
+        ? product.price !== (edit.unitPrice || product.price)
+        : product.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
+      
+      const packageChanged = (product.packageQuantity || 3) !== (edit.packageQuantity || 3)
+      const nameChanged = edit.name && edit.name !== product.name
+      const moqChanged = (product.moq || null) !== (edit.moq || null) || (product.moqUnit || null) !== (edit.moqUnit || null)
+
+      // Fiyat güncelleme
+      if (priceChanged) {
+        const priceToSave = isPackageLess 
+          ? (edit.unitPrice || edit.price)
+          : (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
+        
+        promises.push(
+          fetch('/api/admin/products/bulk-price-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [{ id: productId, price: priceToSave }] })
+          })
+        )
+      }
+
+      // İsim güncelleme
+      if (nameChanged && edit.name) {
+        promises.push(
+          fetch('/api/admin/products/bulk-name-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [{ id: productId, name: edit.name }] })
+          })
+        )
+      }
+
+      // Paket güncelleme
+      if (packageChanged) {
+        const packageQty = edit.packageQuantity || 3
+        promises.push(
+          fetch('/api/admin/products/bulk-package-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productIds: [productId],
+              packageQuantity: packageQty === 3 && !product.packageQuantity ? null : packageQty,
+              packageUnit: 'adet'
+            })
+          })
+        )
+      }
+
+      // MOQ güncelleme
+      if (moqChanged) {
+        promises.push(
+          fetch('/api/admin/products/bulk-moq-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productIds: [productId],
+              moq: edit.moq || null,
+              moqUnit: edit.moqUnit || null
+            })
+          })
+        )
+      }
+
+      if (promises.length === 0) {
+        toast.info('Değişiklik yapılmadı')
+        return
+      }
+
+      const results = await Promise.all(promises)
+      
+      let allSuccess = true
+      for (const response of results) {
+        if (!response.ok) {
+          allSuccess = false
+          continue
+        }
+        
+        try {
+          const data = await response.json()
+          if (!data.success) {
+            allSuccess = false
+          }
+        } catch (error) {
+          allSuccess = false
+        }
+      }
+
+      if (allSuccess) {
+        toast.success('Ürün güncellendi')
+        await loadProducts()
+      } else {
+        toast.error('Güncelleme başarısız')
+      }
+    } catch (error) {
+      toast.error('Güncelleme sırasında hata oluştu')
+      console.error('Update single product error:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Toplu paket adedi atama
   const bulkAssignPackage = async (quantity: number) => {
     if (selectedProducts.size === 0) {
@@ -408,6 +608,13 @@ export default function WholesalePackageManagementPage() {
         return original && originalPackageQty !== newPackageQty
       })
 
+      // MOQ güncellemeleri
+      const moqUpdates = changedProducts.filter(p => {
+        const original = products.find(prod => prod.id === p.id)
+        if (!original) return false
+        return (original.moq || null) !== (p.moq || null) || (original.moqUnit || null) !== (p.moqUnit || null)
+      })
+
       const promises = []
 
       // Fiyat güncellemeleri
@@ -444,6 +651,21 @@ export default function WholesalePackageManagementPage() {
               productIds: [update.id],
               packageQuantity: packageQty === 3 && !products.find(p => p.id === update.id)?.packageQuantity ? null : packageQty,
               packageUnit: 'adet'
+            })
+          })
+        )
+      })
+
+      // MOQ güncellemeleri
+      moqUpdates.forEach(update => {
+        promises.push(
+          fetch('/api/admin/products/bulk-moq-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productIds: [update.id],
+              moq: update.moq || null,
+              moqUnit: update.moqUnit || null
             })
           })
         )
@@ -501,10 +723,13 @@ export default function WholesalePackageManagementPage() {
       ? original.price !== (edit.unitPrice || original.price)
       : original.price !== (edit.unitPrice && edit.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit.price)
     
+    const moqChanged = (original.moq || null) !== (edit.moq || null) || (original.moqUnit || null) !== (edit.moqUnit || null)
+    
     return (
       priceChanged ||
       originalPackageQty !== editPackageQty ||
-      (edit.name && original.name !== edit.name)
+      (edit.name && original.name !== edit.name) ||
+      moqChanged
     )
   })
 
@@ -662,20 +887,22 @@ export default function WholesalePackageManagementPage() {
                   <TableHead className="w-[200px]">Paket Adedi</TableHead>
                   <TableHead className="w-[150px]">Birim Fiyat (₺/adet)</TableHead>
                   <TableHead className="w-[150px]">Toplam Fiyat (₺)</TableHead>
+                  <TableHead className="w-[150px]">Min. Paket</TableHead>
                   <TableHead className="w-[120px] text-center">Durum</TableHead>
-                  <TableHead className="w-[100px] text-center">Aktif/Pasif</TableHead>
+                  <TableHead className="w-[120px] text-center">Aktif/Pasif</TableHead>
+                  <TableHead className="w-[100px] text-center">İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       Yükleniyor...
                     </TableCell>
                   </TableRow>
                 ) : filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">
                         Filtreye uygun ürün bulunamadı
@@ -695,10 +922,13 @@ export default function WholesalePackageManagementPage() {
                       ? product.price !== (edit?.unitPrice || product.price)
                       : product.price !== (edit?.unitPrice && edit?.packageQuantity ? edit.unitPrice * edit.packageQuantity : edit?.price || product.price)
                     
+                    const moqChanged = (product.moq || null) !== (edit?.moq || null) || (product.moqUnit || null) !== (edit?.moqUnit || null)
+                    
                     const hasChange = 
                       priceChanged || 
                       originalPackageQty !== editPackageQty ||
-                      (edit?.name && edit.name !== product.name)
+                      (edit?.name && edit.name !== product.name) ||
+                      moqChanged
 
                     return (
                       <TableRow key={`${product.id}-${index}`} className={hasChange ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
@@ -823,6 +1053,42 @@ export default function WholesalePackageManagementPage() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={edit?.hasMoq || false}
+                                onCheckedChange={() => toggleHasMoq(product.id)}
+                              />
+                              <span className="text-xs">Min. Paket Gerekli</span>
+                            </div>
+                            {edit?.hasMoq && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={edit?.moq || 1}
+                                  onChange={(e) => updateMoq(product.id, parseInt(e.target.value) || 1)}
+                                  className="w-16 h-7 text-xs"
+                                  placeholder="Min"
+                                />
+                                <Select
+                                  value={edit?.moqUnit || 'package'}
+                                  onValueChange={(value) => updateMoqUnit(product.id, value as 'piece' | 'package' | 'koli')}
+                                >
+                                  <SelectTrigger className="w-20 h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="package">Paket</SelectItem>
+                                    <SelectItem value="piece">Adet</SelectItem>
+                                    <SelectItem value="koli">Koli</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">
                           {hasChange ? (
                             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
@@ -854,6 +1120,18 @@ export default function WholesalePackageManagementPage() {
                                 Pasif
                               </>
                             )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateSingleProduct(product.id)}
+                            disabled={isSaving || !hasChange}
+                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                          >
+                            <Save className="h-3.5 w-3.5 mr-1" />
+                            Güncelle
                           </Button>
                         </TableCell>
                       </TableRow>

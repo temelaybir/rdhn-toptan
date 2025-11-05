@@ -471,7 +471,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </div>
             )}
             
-            <p className="text-sm text-green-600 mt-2 max-sm:text-xs">KDV Dahil</p>
+            <p className="text-sm text-green-600 mt-2 max-sm:text-xs">+KDV (%20)</p>
             {product.tier_pricing && product.tier_pricing.length > 0 && currentPrice !== product.price && (
               <p className="text-xs text-blue-600 mt-1 max-sm:text-[10px]">
                 {quantity} adet için özel fiyat uygulandı
