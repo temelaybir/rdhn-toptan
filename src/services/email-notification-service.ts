@@ -606,4 +606,16 @@ E-Ticaret Platformu
     console.error('❌ Şifre sıfırlama e-maili gönderilemedi:', error)
     return false
   }
+}
+
+/**
+ * EmailNotificationService - Class wrapper for email sending
+ */
+export class EmailNotificationService {
+  /**
+   * Send email using the service
+   */
+  async sendEmail(options: { to: string; subject: string; html: string }): Promise<boolean> {
+    return sendEmail([options.to], options.subject, options.html)
+  }
 } 

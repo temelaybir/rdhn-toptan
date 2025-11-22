@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/aras-cargo/*": ["./aras-copy/aras-cargo-integration/src/*"]
+      "@/aras-cargo/*": ["./aras-kargo/aras-cargo-integration/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "packages/**/*.ts", "aras-copy/**/*.ts"],

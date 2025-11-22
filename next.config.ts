@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       config.resolve.alias = {}
     }
     // Aras Kargo path alias
-    config.resolve.alias['@/aras-cargo'] = require('path').resolve(__dirname, 'aras-copy/aras-cargo-integration/src')
+    config.resolve.alias['@/aras-cargo'] = require('path').resolve(__dirname, 'aras-kargo/aras-cargo-integration/src')
     return config
   },
   eslint: {
