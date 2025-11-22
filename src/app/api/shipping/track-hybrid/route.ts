@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ArasKargoHybridService from '@/lib/aras-kargo-hybrid'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,14 +70,50 @@ export async function GET(request: NextRequest) {
       console.log(`📦 Integration Code: ${integrationCode}`)
       console.log('💡 Not: IntegrationCode, SetOrder API\'den dönen orgReceiverCustId olmalıdır (veritabanında kargo_talepno)')
       
+      // Veritabanından doğru IntegrationCode'u kontrol et (eğer orderNumber gibi bir şey gönderilmişse)
+      let actualIntegrationCode = integrationCode
+      let orderNumberFromDb: string | null = null
+      
+      // Eğer IntegrationCode 16 karakterden uzunsa veya order_number formatındaysa, veritabanından kontrol et
+      if (integrationCode.length > 15 || integrationCode.includes('-') || integrationCode.includes('SIP')) {
+        try {
+          const supabase = await createAdminSupabaseClient()
+          const cleanOrderNumber = integrationCode.replace('SIP-', '').trim()
+          
+          // Order number ile siparişi bul
+          const { data: order } = await supabase
+            .from('orders')
+            .select('order_number, kargo_talepno, kargo_takipno')
+            .or(`order_number.eq.${cleanOrderNumber},order_number.eq.SIP-${cleanOrderNumber},order_number.ilike.%${cleanOrderNumber}%`)
+            .limit(1)
+            .single()
+          
+          if (order?.kargo_talepno) {
+            console.log(`✅ Veritabanından IntegrationCode bulundu: ${order.kargo_talepno.substring(0, 10)}...`)
+            actualIntegrationCode = order.kargo_talepno
+            orderNumberFromDb = order.order_number
+            
+            // Eğer kargo_takipno varsa, onu da dene
+            if (order.kargo_takipno && !trackingNumber) {
+              console.log(`💡 Alternatif: TrackingNumber ile de sorgulanabilir: ${order.kargo_takipno}`)
+            }
+          } else {
+            console.warn(`⚠️ Veritabanında IntegrationCode bulunamadı. Gönderilen kod ile devam ediliyor.`)
+          }
+        } catch (dbError: any) {
+          console.warn('⚠️ Veritabanı kontrolü başarısız:', dbError.message)
+          // Veritabanı hatası olsa bile devam et
+        }
+      }
+      
       try {
-        trackingResult = await arasKargo.getTrackingInfo(integrationCode)
+        trackingResult = await arasKargo.getTrackingInfo(actualIntegrationCode)
       } catch (error: any) {
         lastError = error
         
         // Eğer IntegrationCode ile sorgu başarısız olursa ve formatı düzeltilebilirse tekrar dene
-        const cleanCode = integrationCode.trim().replace(/\D/g, '')
-        if (cleanCode !== integrationCode && cleanCode.length > 0) {
+        const cleanCode = actualIntegrationCode.trim().replace(/\D/g, '')
+        if (cleanCode !== actualIntegrationCode && cleanCode.length > 0) {
           console.log(`🔄 Temizlenmiş IntegrationCode ile tekrar deneniyor: ${cleanCode}`)
           try {
             trackingResult = await arasKargo.getTrackingInfo(cleanCode)
@@ -87,10 +124,35 @@ export async function GET(request: NextRequest) {
           }
         }
         
-        // 500 hatası için özel mesaj
+        // 500 hatası için özel mesaj ve alternatif yöntemler
         if (lastError && lastError.message.includes('500')) {
           console.warn('⚠️ 500 hatası - IntegrationCode sistemde kayıtlı olmayabilir veya yanlış format olabilir')
           console.warn('💡 İpucu: IntegrationCode, SetOrder API\'den dönen orgReceiverCustId olmalıdır')
+          
+          // Eğer veritabanından kargo_takipno varsa, onu dene
+          if (orderNumberFromDb) {
+            try {
+              const supabase = await createAdminSupabaseClient()
+              const { data: order } = await supabase
+                .from('orders')
+                .select('kargo_takipno')
+                .eq('order_number', orderNumberFromDb)
+                .single()
+              
+              if (order?.kargo_takipno) {
+                console.log(`🔄 Alternatif: TrackingNumber ile sorgulanıyor: ${order.kargo_takipno}`)
+                try {
+                  trackingResult = await arasKargo.getTrackingInfoByTrackingNumber(order.kargo_takipno)
+                  lastError = null
+                  console.log('✅ TrackingNumber ile sorgu başarılı!')
+                } catch (trackingError: any) {
+                  console.error('❌ TrackingNumber ile de sorgu başarısız:', trackingError.message)
+                }
+              }
+            } catch (altError: any) {
+              console.warn('⚠️ Alternatif sorgulama denemesi başarısız:', altError.message)
+            }
+          }
         }
         
         // Hala hata varsa fırlat
