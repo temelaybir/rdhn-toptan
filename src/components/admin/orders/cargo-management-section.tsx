@@ -19,8 +19,10 @@ import {
   CheckCircle,
   AlertCircle,
   Download,
-  Scan
+  Scan,
+  Link as LinkIcon
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface Order {
   id: string
@@ -47,6 +49,8 @@ export function CargoManagementSection({ order, onCargoCreated }: CargoManagemen
   const [isQuerying, setIsQuerying] = useState(false)
   const [cargoInfo, setCargoInfo] = useState<any>(null)
   const [barcodeInput, setBarcodeInput] = useState('')
+  const [showManualLinkDialog, setShowManualLinkDialog] = useState(false)
+  const [manualLinkOrderNumber, setManualLinkOrderNumber] = useState('')
 
   // Sipariş yüklendiğinde veritabanından kargo bilgilerini yükle
   useEffect(() => {
@@ -188,64 +192,135 @@ export function CargoManagementSection({ order, onCargoCreated }: CargoManagemen
 
       const result = await response.json()
 
-      // ✅ meta içindeki success'i kontrol et
-      if (!response.ok || !result.meta?.success) {
+      console.log('📦 Track-hybrid response:', {
+        ok: response.ok,
+        hasMeta: !!result.meta,
+        metaSuccess: result.meta?.success,
+        hasQueryResult: !!result.QueryResult,
+        hasCargo: !!result.QueryResult?.Cargo,
+        resultKeys: Object.keys(result)
+      })
+
+      // ✅ Response kontrolü - hem meta hem de QueryResult kontrolü
+      if (!response.ok) {
+        throw new Error(result.error || 'Kargo bilgisi sorgulanamadı')
+      }
+
+      // Meta success kontrolü (opsiyonel - QueryResult varsa devam et)
+      // Eğer meta.success false ise ama QueryResult varsa yine de devam et
+      const hasSuccessMeta = result.meta?.success === true
+      const hasQueryResult = !!result.QueryResult
+      
+      if (!hasSuccessMeta && !hasQueryResult) {
         throw new Error(result.error || 'Kargo bilgisi bulunamadı')
       }
 
-      // WCF response'unu parse et
+      // WCF response'unu parse et - QueryResult.Cargo veya direkt Cargo
+      const cargo = result.QueryResult?.Cargo || result.Cargo
       
-      const cargo = result.QueryResult?.Cargo
-      if (cargo) {
-        setCargoInfo({
-          receiverName: cargo.ALICI,
-          receiverAddress: `${cargo.VARIS_SUBE}`,
-          receiverCity: cargo.VARIS_SUBE,
-          senderName: cargo.GONDERICI,
-          status: cargo.DURUMU,
-          trackingNumber: cargo.KARGO_TAKIP_NO,
-          barcode: cargo.KARGO_KODU,
-          integrationCode: cargo.MUSTERI_OZEL_KODU
-        })
+      if (!cargo) {
+        // Eğer Cargo yoksa ama response başarılıysa, alternatif formatları kontrol et
+        console.warn('⚠️ Cargo bulunamadı, alternatif formatlar kontrol ediliyor...')
         
-        // ✅ KARGO_TAKIP_NO'yu veritabanına kaydet
-        if (cargo.KARGO_TAKIP_NO && order?.order_number) {
-          try {
-            const updateResponse = await fetch('/api/admin/orders/update-tracking', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                orderId: order.order_number,
-                trackingNumber: cargo.KARGO_TAKIP_NO,
-                cargoStatus: cargo.DURUMU,
-                cargoData: cargo
-              })
-            })
-            
-            const updateResult = await updateResponse.json()
-            if (updateResult.success) {
-              toast.success('Kargo bilgisi başarıyla alındı ve kaydedildi', {
-                description: `Takip No: ${cargo.KARGO_TAKIP_NO} - Durum: ${cargo.DURUMU}`
-              })
-            } else {
-              toast.success('Kargo bilgisi alındı', {
-                description: `Durum: ${cargo.DURUMU} (Kayıt hatası: ${updateResult.error})`
-              })
-            }
-          } catch (updateError) {
-            console.error('Takip numarası kaydetme hatası:', updateError)
-            toast.success('Kargo bilgisi alındı', {
-              description: `Durum: ${cargo.DURUMU} (Veritabanı güncellenemedi)`
-            })
-          }
-        } else {
-          toast.success('Kargo bilgisi alındı', {
-            description: `Durum: ${cargo.DURUMU}`
+        // Direkt result içinde cargo bilgileri olabilir
+        const altCargo = result.Cargo || result.cargo
+        
+        if (altCargo) {
+          console.log('✅ Alternatif format bulundu')
+          const cargoData = altCargo
+          
+          setCargoInfo({
+            receiverName: cargoData.ALICI || cargoData.receiverName,
+            receiverAddress: cargoData.VARIS_SUBE || cargoData.receiverAddress,
+            receiverCity: cargoData.VARIS_SUBE || cargoData.receiverCity,
+            senderName: cargoData.GONDERICI || cargoData.senderName,
+            status: cargoData.DURUMU || cargoData.status,
+            trackingNumber: cargoData.KARGO_TAKIP_NO || cargoData.trackingNumber,
+            barcode: cargoData.KARGO_KODU || cargoData.barcode,
+            integrationCode: cargoData.MUSTERI_OZEL_KODU || cargoData.integrationCode || barcodeInput.trim()
           })
+          
+          toast.success('Kargo bilgisi alındı (Alternatif format)', {
+            description: `Durum: ${cargoData.DURUMU || cargoData.status || 'Bilinmiyor'}`
+          })
+          
+          // Manuel eşleştirme için sipariş seçimi öner
+          if (order?.order_number) {
+            handleManualCargoLink(cargoData)
+          }
+          
+          return
         }
+        
+        throw new Error('Kargo bilgisi bulunamadı - Response formatı beklenmeyen')
+      }
+
+      // Normal Cargo formatı
+      setCargoInfo({
+        receiverName: cargo.ALICI,
+        receiverAddress: `${cargo.VARIS_SUBE || ''}`,
+        receiverCity: cargo.VARIS_SUBE || '',
+        senderName: cargo.GONDERICI,
+        status: cargo.DURUMU,
+        trackingNumber: cargo.KARGO_TAKIP_NO,
+        barcode: cargo.KARGO_KODU || cargo.KARGO_LINK_NO,
+        integrationCode: cargo.MUSTERI_OZEL_KODU || barcodeInput.trim()
+      })
+      
+      // ✅ KARGO_TAKIP_NO'yu veritabanına kaydet (manuel veya otomatik)
+      const shouldAutoLink = order?.order_number && (
+        !order.kargo_takipno || // Henüz takip numarası yoksa
+        order.kargo_takipno !== cargo.KARGO_TAKIP_NO // Farklı takip numarası varsa
+      )
+      
+      if (cargo.KARGO_TAKIP_NO && shouldAutoLink) {
+        try {
+          const updateResponse = await fetch('/api/admin/orders/update-tracking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              orderId: order.order_number,
+              trackingNumber: cargo.KARGO_TAKIP_NO,
+              cargoStatus: cargo.DURUMU,
+              cargoData: cargo,
+              integrationCode: cargo.MUSTERI_OZEL_KODU || barcodeInput.trim()
+            })
+          })
+          
+          const updateResult = await updateResponse.json()
+          if (updateResult.success) {
+            toast.success('Kargo bilgisi başarıyla alındı ve siparişle eşleştirildi', {
+              description: `Takip No: ${cargo.KARGO_TAKIP_NO} - Durum: ${cargo.DURUMU}`
+            })
+            // Sipariş bilgilerini yenile
+            if (onCargoCreated) {
+              onCargoCreated()
+            }
+          } else {
+            // Manuel eşleştirme öner
+            toast.warning('Kargo bilgisi alındı ancak otomatik eşleştirilemedi', {
+              description: 'Manuel olarak siparişle eşleştirmek ister misiniz?'
+            })
+            handleManualCargoLink(cargo)
+          }
+        } catch (updateError) {
+          console.error('Takip numarası kaydetme hatası:', updateError)
+          toast.warning('Kargo bilgisi alındı ancak kaydedilemedi', {
+            description: 'Manuel olarak siparişle eşleştirebilirsiniz'
+          })
+          handleManualCargoLink(cargo)
+        }
+      } else if (cargo.KARGO_TAKIP_NO && !order?.order_number) {
+        // Sipariş yoksa manuel eşleştirme öner
+        toast.info('Kargo bilgisi alındı', {
+          description: 'Bu kargoyu bir siparişle eşleştirmek ister misiniz?'
+        })
+        handleManualCargoLink(cargo)
       } else {
-        throw new Error('Kargo bilgisi bulunamadı')
+        toast.success('Kargo bilgisi alındı', {
+          description: `Durum: ${cargo.DURUMU || 'Bilinmiyor'}`
+        })
       }
     } catch (error: any) {
       console.error('Kargo bilgisi sorgulama hatası:', error)
@@ -255,6 +330,102 @@ export function CargoManagementSection({ order, onCargoCreated }: CargoManagemen
       setCargoInfo(null)
     } finally {
       setIsQuerying(false)
+    }
+  }
+
+  // Manuel kargo-sipariş eşleştirme fonksiyonu
+  const handleManualCargoLink = async (cargoData: any) => {
+    if (!cargoData) {
+      toast.error('Kargo bilgisi bulunamadı')
+      return
+    }
+
+    // Eğer mevcut sipariş varsa direkt eşleştir
+    if (order?.order_number) {
+      try {
+        const updateResponse = await fetch('/api/admin/orders/update-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            orderId: order.order_number,
+            trackingNumber: cargoData.KARGO_TAKIP_NO || cargoData.trackingNumber,
+            cargoStatus: cargoData.DURUMU || cargoData.status,
+            cargoData: cargoData,
+            integrationCode: cargoData.MUSTERI_OZEL_KODU || cargoData.integrationCode || barcodeInput.trim()
+          })
+        })
+        
+        const updateResult = await updateResponse.json()
+        if (updateResult.success) {
+          toast.success('Kargo başarıyla siparişle eşleştirildi', {
+            description: `Sipariş: ${order.order_number} - Takip No: ${cargoData.KARGO_TAKIP_NO || cargoData.trackingNumber}`
+          })
+          if (onCargoCreated) {
+            onCargoCreated()
+          }
+        } else {
+          // Manuel sipariş numarası girme dialogu göster
+          setManualLinkOrderNumber(order.order_number)
+          setShowManualLinkDialog(true)
+        }
+      } catch (error) {
+        console.error('Manuel eşleştirme hatası:', error)
+        setManualLinkOrderNumber(order.order_number || '')
+        setShowManualLinkDialog(true)
+      }
+    } else {
+      // Sipariş numarası yoksa dialog göster
+      setShowManualLinkDialog(true)
+    }
+  }
+
+  // Manuel sipariş numarası ile eşleştirme
+  const handleConfirmManualLink = async () => {
+    if (!manualLinkOrderNumber.trim()) {
+      toast.error('Lütfen sipariş numarası girin')
+      return
+    }
+
+    if (!cargoInfo) {
+      toast.error('Kargo bilgisi bulunamadı')
+      return
+    }
+
+    try {
+      const updateResponse = await fetch('/api/admin/orders/update-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          orderId: manualLinkOrderNumber.trim(),
+          trackingNumber: cargoInfo.trackingNumber,
+          cargoStatus: cargoInfo.status,
+          cargoData: cargoInfo,
+          integrationCode: cargoInfo.integrationCode || barcodeInput.trim()
+        })
+      })
+      
+      const updateResult = await updateResponse.json()
+      if (updateResult.success) {
+        toast.success('Kargo başarıyla siparişle eşleştirildi', {
+          description: `Sipariş: ${manualLinkOrderNumber} - Takip No: ${cargoInfo.trackingNumber}`
+        })
+        setShowManualLinkDialog(false)
+        setManualLinkOrderNumber('')
+        if (onCargoCreated) {
+          onCargoCreated()
+        }
+      } else {
+        toast.error('Eşleştirme başarısız', {
+          description: updateResult.error || 'Bilinmeyen bir hata oluştu'
+        })
+      }
+    } catch (error: any) {
+      console.error('Manuel eşleştirme hatası:', error)
+      toast.error('Eşleştirme başarısız', {
+        description: error.message || 'Bilinmeyen bir hata oluştu'
+      })
     }
   }
 
@@ -688,6 +859,80 @@ export function CargoManagementSection({ order, onCargoCreated }: CargoManagemen
           )}
         </CardContent>
       </Card>
+
+      {/* Manuel Kargo-Sipariş Eşleştirme Dialogu */}
+      <Dialog open={showManualLinkDialog} onOpenChange={setShowManualLinkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Kargoyu Siparişle Eşleştir
+            </DialogTitle>
+            <DialogDescription>
+              Bu kargo bilgisini bir siparişle eşleştirmek için sipariş numarasını girin.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {cargoInfo && (
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                <h4 className="font-medium mb-2 text-green-900">Kargo Bilgileri</h4>
+                <div className="space-y-1 text-sm">
+                  {cargoInfo.trackingNumber && (
+                    <div><strong>Takip No:</strong> {cargoInfo.trackingNumber}</div>
+                  )}
+                  {cargoInfo.integrationCode && (
+                    <div><strong>Integration Code:</strong> {cargoInfo.integrationCode}</div>
+                  )}
+                  {cargoInfo.status && (
+                    <div><strong>Durum:</strong> {cargoInfo.status}</div>
+                  )}
+                  {cargoInfo.receiverName && (
+                    <div><strong>Alıcı:</strong> {cargoInfo.receiverName}</div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="manualOrderNumber">Sipariş Numarası</Label>
+                <Input
+                  id="manualOrderNumber"
+                  placeholder="SIP-1762940574537 veya 1762940574537"
+                  value={manualLinkOrderNumber}
+                  onChange={(e) => setManualLinkOrderNumber(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleConfirmManualLink()
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mevcut sipariş: {order?.id || 'Yok'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowManualLinkDialog(false)
+                setManualLinkOrderNumber('')
+              }}
+            >
+              İptal
+            </Button>
+            <Button
+              onClick={handleConfirmManualLink}
+              disabled={!manualLinkOrderNumber.trim() || !cargoInfo}
+            >
+              <LinkIcon className="mr-2 h-4 w-4" />
+              Eşleştir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
