@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
       // Continue anyway, customer is created
     }
 
-    console.log('✅ New customer registered:', customer.email)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('✅ New customer registered')
 
     // Yeni üyelere giriş linki gönderilmez, sadece kayıt başarılı mesajı
     return NextResponse.json({

@@ -287,7 +287,8 @@ export class BizimHesapInvoiceService {
     try {
       // Email bildirim gönder (eğer email service varsa)
       if (order.customer.email && result.invoiceUrl) {
-        console.log(`📧 Fatura bildirimi gönderiliyor: ${order.customer.email}`)
+        // Minimal log - hassas bilgi (email adresi) log'lanmaz
+        console.log('📧 Fatura bildirimi gönderiliyor')
         
         // TODO: Email service entegrasyonu
         // await emailService.sendInvoiceNotification({

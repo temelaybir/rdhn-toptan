@@ -165,6 +165,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
   // Tema yüklenene kadar default style kullan
   const cardStyle = (!isLoading && theme?.productCardStyle) ? theme.productCardStyle : 'default'
+  
+  // KART STİLİ DEBUG
+  console.log('🎨 KART STİLİ:', cardStyle, '| ÜRÜN:', product.name.substring(0, 30))
 
   // Handler functions with preventDefault for proper touch handling
   const handleWishlist = (e: React.MouseEvent) => {
@@ -195,19 +198,19 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex flex-col gap-2 max-w-[50%] z-40">
               {/* Toptan Satış Badge - Sadece is_wholesale true ise göster */}
               {product.is_wholesale && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit z-40">
+                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit shrink-0 mb-0.5 z-40">
                   <Package className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">TOPTAN</span>
+                  <span className="whitespace-nowrap">TOPTAN</span>
                 </Badge>
               )}
               {mockData.isBestSeller && (
-                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit z-40">
-                  <span className="truncate">Çok Satan</span>
+                <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 mb-0.5 z-40">
+                  <span className="whitespace-nowrap">Çok Satan</span>
                 </Badge>
               )}
               {mockData.isNew && (
-                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit z-40">
-                  <span className="truncate">Yeni</span>
+                <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 mb-0.5 z-40">
+                  <span className="whitespace-nowrap">Yeni</span>
                 </Badge>
               )}
             </div>
@@ -287,10 +290,18 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="space-y-1 pointer-events-none">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   {/* Adet Fiyatı */}
-                  <span className="text-xl sm:text-lg font-bold text-gray-900">
-                    {formatPrice(safeUnitPrice)}
-                    <span className="text-sm text-gray-600 ml-1">/adet</span>
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl sm:text-lg font-bold text-gray-900">
+                      {(() => {
+                        let priceToFormat = safeUnitPrice && safeUnitPrice > 0 ? safeUnitPrice : product.price
+                        if (!priceToFormat || priceToFormat <= 0 || isNaN(priceToFormat) || !isFinite(priceToFormat)) {
+                          priceToFormat = product.price || 0
+                        }
+                        return formatPrice(priceToFormat)
+                      })()}
+                    </span>
+                    <span className="text-sm text-gray-600">/adet</span>
+                  </div>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm sm:text-xs text-gray-500 line-through">
                       {formatPrice(product.compare_price / safeDisplayPackageQty)}
@@ -853,25 +864,34 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="group relative">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden h-[520px] flex flex-col touch-manipulation">
           {/* Badges */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10 pointer-events-none">
-            <div className="flex flex-col gap-2">
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-20 pointer-events-none">
+            <div className="flex flex-col gap-2 items-start">
+              {(() => {
+                const badges = {
+                  toptan: product.is_wholesale,
+                  cokSatan: mockData.isBestSeller,
+                  yeni: mockData.isNew
+                }
+                console.log('🏷️ BADGE:', badges, '| ÜRÜN:', product.name.substring(0, 20))
+                return null
+              })()}
               {/* Toptan Badge - Sadece is_wholesale true ise göster */}
               {product.is_wholesale && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md pointer-events-none flex items-center gap-1.5 w-fit">
-                  <Package className="h-3.5 w-3.5" />
-                  TOPTAN SATIŞ
+                <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md pointer-events-none flex items-center gap-1.5 w-fit shrink-0 relative z-30 mb-0.5">
+                  <Package className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">TOPTAN SATIŞ</span>
                 </Badge>
               )}
               {mockData.isBestSeller && (
-                <Badge className="bg-purple-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm pointer-events-none">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  Çok Satan
+                <Badge className="bg-purple-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 relative z-30 mb-0.5">
+                  <TrendingUp className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Çok Satan</span>
                 </Badge>
               )}
               {mockData.isNew && (
-                <Badge className="bg-green-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm pointer-events-none">
-                  <Star className="h-3 w-3 mr-1 fill-white" />
-                  Yeni
+                <Badge className="bg-green-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 relative z-30 mb-0.5">
+                  <Star className="h-3 w-3 mr-1 fill-white flex-shrink-0" />
+                  <span className="whitespace-nowrap">Yeni</span>
                 </Badge>
               )}
             </div>
@@ -977,10 +997,20 @@ export function ProductCard({ product }: ProductCardProps) {
               {/* Price Section */}
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-xl font-bold text-gray-900">
-                    {formatPrice(safeUnitPrice)}
-                    <span className="text-sm text-gray-600 ml-1">/adet</span>
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl sm:text-xl font-bold text-gray-900">
+                      {(() => {
+                        let priceToFormat = safeUnitPrice && safeUnitPrice > 0 ? safeUnitPrice : product.price
+                        if (!priceToFormat || priceToFormat <= 0 || isNaN(priceToFormat) || !isFinite(priceToFormat)) {
+                          priceToFormat = product.price || 0
+                        }
+                        const result = formatPrice(priceToFormat)
+                        console.log('💰 FİYAT:', result, '| ÜRÜN:', product.name.substring(0, 20))
+                        return result
+                      })()}
+                    </span>
+                    <span className="text-sm text-gray-600">/adet</span>
+                  </div>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through">
                       {formatPrice(product.compare_price / safeDisplayPackageQty)}
@@ -1188,19 +1218,19 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex flex-col gap-2">
             {/* Toptan Badge - Sadece is_wholesale true ise göster */}
             {product.is_wholesale && (
-              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                TOPTAN
+              <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none flex items-center gap-1 w-fit shrink-0 mb-0.5">
+                <Package className="h-3 w-3 flex-shrink-0" />
+                <span className="whitespace-nowrap">TOPTAN</span>
               </Badge>
             )}
             {mockData.isBestSeller && (
-              <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
-                Çok Satan
+              <Badge className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 mb-0.5">
+                <span className="whitespace-nowrap">Çok Satan</span>
               </Badge>
             )}
             {mockData.isNew && (
-              <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none">
-                Yeni
+              <Badge className="bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm pointer-events-none w-fit shrink-0 mb-0.5">
+                <span className="whitespace-nowrap">Yeni</span>
               </Badge>
             )}
           </div>
@@ -1280,10 +1310,18 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="space-y-1 pointer-events-none">
               <div className="flex items-baseline gap-2">
                 {/* Adet Fiyatı */}
-                <span className="text-xl sm:text-lg font-bold text-gray-900">
-                  {formatPrice(safeUnitPrice)}
-                  <span className="text-sm text-gray-600 ml-1">/adet</span>
-                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl sm:text-lg font-bold text-gray-900">
+                    {(() => {
+                      let priceToFormat = safeUnitPrice && safeUnitPrice > 0 ? safeUnitPrice : product.price
+                      if (!priceToFormat || priceToFormat <= 0 || isNaN(priceToFormat) || !isFinite(priceToFormat)) {
+                        priceToFormat = product.price || 0
+                      }
+                      return formatPrice(priceToFormat)
+                    })()}
+                  </span>
+                  <span className="text-sm text-gray-600">/adet</span>
+                </div>
                 {product.compare_price && product.compare_price > product.price && (
                   <span className="text-sm sm:text-xs text-gray-500 line-through">
                       {formatPrice(product.compare_price / safeDisplayPackageQty)}

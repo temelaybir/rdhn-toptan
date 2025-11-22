@@ -16,11 +16,18 @@
     {
       "path": "/api/cron/sync-cargo",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/track-shipments",
+      "schedule": "0 */4 * * *"
     }
   ],
   "functions": {
     "app/api/cron/sync-cargo/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/track-shipments/route.ts": {
+      "maxDuration": 120
     }
   }
 } 

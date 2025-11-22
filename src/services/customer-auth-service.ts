@@ -128,10 +128,12 @@ export async function findCustomerByEmail(email: string): Promise<Customer | nul
       return null
     }
 
-    console.log(`✅ Customer bulundu: ${data.email}`)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('✅ Customer bulundu')
     return data as Customer
   } catch (error) {
-    console.error('Error finding customer by email:', error)
+    // Minimal log - hassas bilgi yok
+    console.error('Error finding customer by email')
     return null
   }
 }
@@ -182,7 +184,8 @@ export async function createCustomerFromOrder(orderData: {
       return null
     }
 
-    console.log('✅ Customer başarıyla oluşturuldu:', data.email)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('✅ Customer başarıyla oluşturuldu')
     return data as Customer
   } catch (error) {
     console.error('Error creating customer from order:', error)
@@ -252,7 +255,8 @@ export async function generateMagicLoginLink(email: string, baseUrl: string): Pr
     
     // 1. Önce müşteriyi bul
     let customer = await findCustomerByEmail(email)
-    console.log(`🔍 Customer arama: ${email} ->`, customer ? 'Bulundu' : 'Bulunamadı')
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('🔍 Customer arama:', customer ? 'Bulundu' : 'Bulunamadı')
     
     if (!customer) {
       // 2. Orders tablosunda bu email ile sipariş var mı kontrol et
@@ -266,7 +270,8 @@ export async function generateMagicLoginLink(email: string, baseUrl: string): Pr
       
       if (!ordersError && existingOrders && existingOrders.length > 0) {
         const latestOrder = existingOrders[0]
-        console.log(`✅ Email ile sipariş bulundu: ${latestOrder.order_number}`)
+        // Minimal log - hassas bilgi yok
+        console.log('✅ Email ile sipariş bulundu')
         
         // 3. Bu sipariş bilgilerinden customer oluştur (RLS bypass)
         console.log('👤 Sipariş bilgilerinden customer oluşturuluyor...')
@@ -279,7 +284,8 @@ export async function generateMagicLoginLink(email: string, baseUrl: string): Pr
         })
         
         if (customer) {
-          console.log('✅ Sipariş bilgilerinden customer oluşturuldu:', customer.email)
+          // Minimal log - hassas bilgi (email adresi) log'lanmaz
+          console.log('✅ Sipariş bilgilerinden customer oluşturuldu')
           
           // 4. Bu customer'a ait tüm siparişleri güncelle
           await supabase
@@ -309,13 +315,15 @@ export async function generateMagicLoginLink(email: string, baseUrl: string): Pr
           
           if (!latestError && latestCustomer) {
             customer = latestCustomer
-            console.log(`✅ Fallback: En son customer kullanılıyor: ${customer.email}`)
+            // Minimal log - hassas bilgi (email adresi) log'lanmaz
+            console.log('✅ Fallback: En son customer kullanılıyor')
           } else {
             console.log('❌ Hiç customer bulunamadı')
             return { success: false, error: 'Müşteri sistemi henüz aktif değil. Lütfen önce bir sipariş verin.' }
           }
         } else {
-          console.log('✅ Yeni customer oluşturuldu:', customer.email)
+          // Minimal log - hassas bilgi (email adresi) log'lanmaz
+          console.log('✅ Yeni customer oluşturuldu')
         }
       }
     }
@@ -350,7 +358,8 @@ export async function generateMagicLoginLink(email: string, baseUrl: string): Pr
 
     const loginUrl = `${baseUrl}/auth/magic-login?token=${token}`
     
-    console.log(`🔗 Magic login link oluşturuldu: ${customer.email} için`)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('🔗 Magic login link oluşturuldu')
     return { success: true, loginUrl }
   } catch (error) {
     console.error('Error generating magic login link:', error)
@@ -504,7 +513,8 @@ export async function getCustomerOrders(customerId: string): Promise<any[]> {
       return []
     }
 
-    console.log(`📦 Customer ${customer.email} için ${data?.length || 0} sipariş bulundu`)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log(`📦 Customer için ${data?.length || 0} sipariş bulundu`)
     return data || []
   } catch (error) {
     console.error('Error getting customer orders:', error)

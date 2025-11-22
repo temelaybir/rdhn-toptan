@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
 
     const { email } = validationResult.data
 
-    console.log('🔍 Customer autocomplete için:', email)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('🔍 Customer autocomplete sorgusu')
 
     // Müşteri bilgilerini getir
     const result = await getCustomerForAutocomplete(email)

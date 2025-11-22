@@ -172,6 +172,12 @@ export async function GET(request: NextRequest) {
         notes,
         created_at,
         updated_at,
+        kargo_barcode,
+        kargo_talepno,
+        kargo_takipno,
+        kargo_sonuc,
+        kargo_firma,
+        kargo_tarih,
         order_items (
           id,
           quantity,
@@ -277,8 +283,15 @@ export async function GET(request: NextRequest) {
           total: item.total
         })) || [],
         notes: order.notes,
-        trackingNumber: null, // Will be enabled after migration
-        cargoCompany: null // Will be enabled after migration
+        trackingNumber: order.kargo_takipno || null,
+        cargoCompany: order.kargo_firma || null,
+        // Aras Kargo fields
+        kargo_barcode: order.kargo_barcode || null,
+        kargo_talepno: order.kargo_talepno || null,
+        kargo_takipno: order.kargo_takipno || null,
+        kargo_sonuc: order.kargo_sonuc || null,
+        kargo_firma: order.kargo_firma || null,
+        kargo_tarih: order.kargo_tarih || null
       }
     }) || []
 

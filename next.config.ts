@@ -4,6 +4,17 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   transpilePackages: ['@catkapinda/bizimhesap-integration', '@catkapinda/trendyol-integration'],
+  webpack: (config, { isServer }) => {
+    if (!config.resolve) {
+      config.resolve = {}
+    }
+    if (!config.resolve.alias) {
+      config.resolve.alias = {}
+    }
+    // Aras Kargo path alias
+    config.resolve.alias['@/aras-cargo'] = require('path').resolve(__dirname, 'aras-copy/aras-cargo-integration/src')
+    return config
+  },
   eslint: {
     // Warning: Build sırasında ESLint hatalarını yoksay
     ignoreDuringBuilds: true,

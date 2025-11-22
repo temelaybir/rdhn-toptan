@@ -32,10 +32,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { SafeImage } from '@/components/ui/safe-image'
 import { toast } from 'sonner'
+import { CargoManagementSection } from '@/components/admin/orders/cargo-management-section'
 import { 
   Search, 
   Filter, 
@@ -105,6 +106,13 @@ interface Order {
   trackingNumber?: string
   cargoCompany?: string
   notes?: string
+  // Aras Kargo fields
+  kargo_barcode?: string
+  kargo_talepno?: string
+  kargo_takipno?: string
+  kargo_sonuc?: string
+  kargo_firma?: string
+  kargo_tarih?: string
 }
 
 interface OrderStats {
@@ -241,6 +249,42 @@ export default function OrdersPage() {
     setSelectedOrder(order)
     setNewStatus(order.status)
     setIsDetailDialogOpen(true)
+  }
+
+  // Seçili siparişi yeniden yükle (kargo oluşturulduktan sonra)
+  const refreshSelectedOrder = async (orderId: string) => {
+    try {
+      // Önce tüm siparişleri yeniden yükle
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '20',
+        search: searchTerm,
+        status: selectedStatus
+      })
+
+      const response = await fetch(`/api/admin/orders?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data.orders) {
+          // Orders listesini güncelle
+          setOrders(result.data.orders)
+          
+          // Seçili siparişi bul ve güncelle
+          const updatedOrder = result.data.orders.find((order: Order) => order.id === orderId)
+          if (updatedOrder) {
+            setSelectedOrder(updatedOrder)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Sipariş yeniden yüklenirken hata:', error)
+    }
   }
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -970,136 +1014,154 @@ export default function OrdersPage() {
           </DialogHeader>
           
           {selectedOrder && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">Sipariş Bilgileri</h3>
-                <Separator />
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <p><span className="font-medium">Sipariş No:</span> {selectedOrder.id}</p>
-                    <p><span className="font-medium">Tarih:</span> {formatDateTime(selectedOrder.date)}</p>
-                    <p><span className="font-medium">Toplam:</span> {selectedOrder.total.toLocaleString('tr-TR', { 
-                      style: 'currency', 
-                      currency: selectedOrder.currency || 'TRY',
-                      minimumFractionDigits: 2 
-                    })}</p>
-                    <p><span className="font-medium">Ödeme:</span> {selectedOrder.payment}</p>
-                    <p><span className="font-medium">Durum:</span> {getStatusText(selectedOrder.status)}</p>
-                    <p><span className="font-medium">Kargo Şirketi:</span> {selectedOrder.cargoCompany || 'Belirtilmemiş'}</p>
-                    <p><span className="font-medium">Kargo Takip No:</span> {selectedOrder.trackingNumber || 'Belirtilmemiş'}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <p><span className="font-medium">Müşteri:</span> {selectedOrder.customer}</p>
-                      {selectedOrder.customerType === 'corporate' && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                          <Package className="h-3 w-3 mr-1" />
-                          Kurumsal
-                        </Badge>
-                      )}
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Sipariş Detayları</TabsTrigger>
+                <TabsTrigger value="cargo">Kargolama</TabsTrigger>
+              </TabsList>
+
+              {/* Sipariş Detayları Tab */}
+              <TabsContent value="details" className="space-y-4 mt-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Sipariş Bilgileri</h3>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <p><span className="font-medium">Sipariş No:</span> {selectedOrder.id}</p>
+                      <p><span className="font-medium">Tarih:</span> {formatDateTime(selectedOrder.date)}</p>
+                      <p><span className="font-medium">Toplam:</span> {selectedOrder.total.toLocaleString('tr-TR', { 
+                        style: 'currency', 
+                        currency: selectedOrder.currency || 'TRY',
+                        minimumFractionDigits: 2 
+                      })}</p>
+                      <p><span className="font-medium">Ödeme:</span> {selectedOrder.payment}</p>
+                      <p><span className="font-medium">Durum:</span> {getStatusText(selectedOrder.status)}</p>
+                      <p><span className="font-medium">Kargo Şirketi:</span> {selectedOrder.cargoCompany || 'Belirtilmemiş'}</p>
+                      <p><span className="font-medium">Kargo Takip No:</span> {selectedOrder.trackingNumber || 'Belirtilmemiş'}</p>
                     </div>
-                    {selectedOrder.customerType === 'corporate' && selectedOrder.companyName && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
-                        <p className="text-sm"><span className="font-medium">Şirket Adı:</span> {selectedOrder.companyName}</p>
-                        {selectedOrder.taxNumber && (
-                          <p className="text-sm"><span className="font-medium">Vergi No:</span> {selectedOrder.taxNumber}</p>
-                        )}
-                        {selectedOrder.taxOffice && (
-                          <p className="text-sm"><span className="font-medium">Vergi Dairesi:</span> {selectedOrder.taxOffice}</p>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p><span className="font-medium">Müşteri:</span> {selectedOrder.customer}</p>
+                        {selectedOrder.customerType === 'corporate' && (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                            <Package className="h-3 w-3 mr-1" />
+                            Kurumsal
+                          </Badge>
                         )}
                       </div>
-                    )}
-                    <p><span className="font-medium">E-posta:</span> {selectedOrder.email}</p>
-                    <p><span className="font-medium">Telefon:</span> {selectedOrder.phone}</p>
-                    {selectedOrder.shippingAddress && (
-                      <>
-                        <p><span className="font-medium">Adres:</span> {selectedOrder.shippingAddress.fullName}</p>
-                        <p>{selectedOrder.shippingAddress.address}</p>
-                        <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.district} - {selectedOrder.shippingAddress.postalCode}</p>
-                      </>
-                    )}
+                      {selectedOrder.customerType === 'corporate' && selectedOrder.companyName && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                          <p className="text-sm"><span className="font-medium">Şirket Adı:</span> {selectedOrder.companyName}</p>
+                          {selectedOrder.taxNumber && (
+                            <p className="text-sm"><span className="font-medium">Vergi No:</span> {selectedOrder.taxNumber}</p>
+                          )}
+                          {selectedOrder.taxOffice && (
+                            <p className="text-sm"><span className="font-medium">Vergi Dairesi:</span> {selectedOrder.taxOffice}</p>
+                          )}
+                        </div>
+                      )}
+                      <p><span className="font-medium">E-posta:</span> {selectedOrder.email}</p>
+                      <p><span className="font-medium">Telefon:</span> {selectedOrder.phone}</p>
+                      {selectedOrder.shippingAddress && (
+                        <>
+                          <p><span className="font-medium">Adres:</span> {selectedOrder.shippingAddress.fullName}</p>
+                          <p>{selectedOrder.shippingAddress.address}</p>
+                          <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.district} - {selectedOrder.shippingAddress.postalCode}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {selectedOrder.orderItems && selectedOrder.orderItems.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold">Sipariş Öğeleri</h3>
-                  <Separator />
-                  <div className="overflow-x-auto mt-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Ürün</TableHead>
-                          <TableHead>Adet</TableHead>
-                          <TableHead>Fiyat</TableHead>
-                          <TableHead>Toplam</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedOrder.orderItems.map((item, index) => (
-                          <TableRow key={`${item.id}-${index}`}>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <SafeImage 
-                                  src={item.image} 
-                                  alt={item.name} 
-                                  width={50} 
-                                  height={50} 
-                                  className="mr-3 rounded-md" 
-                                />
-                                <span>{item.name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{item.quantity}</TableCell>
-                            <TableCell>{item.price.toLocaleString('tr-TR', { 
-                              style: 'currency', 
-                              currency: selectedOrder.currency || 'TRY',
-                              minimumFractionDigits: 2 
-                            })}</TableCell>
-                            <TableCell>{item.total.toLocaleString('tr-TR', { 
-                              style: 'currency', 
-                              currency: selectedOrder.currency || 'TRY',
-                              minimumFractionDigits: 2 
-                            })}</TableCell>
+                {selectedOrder.orderItems && selectedOrder.orderItems.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold">Sipariş Öğeleri</h3>
+                    <Separator />
+                    <div className="overflow-x-auto mt-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Ürün</TableHead>
+                            <TableHead>Adet</TableHead>
+                            <TableHead>Fiyat</TableHead>
+                            <TableHead>Toplam</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedOrder.orderItems.map((item, index) => (
+                            <TableRow key={`${item.id}-${index}`}>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <SafeImage 
+                                    src={item.image} 
+                                    alt={item.name} 
+                                    width={50} 
+                                    height={50} 
+                                    className="mr-3 rounded-md" 
+                                  />
+                                  <span>{item.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{item.price.toLocaleString('tr-TR', { 
+                                style: 'currency', 
+                                currency: selectedOrder.currency || 'TRY',
+                                minimumFractionDigits: 2 
+                              })}</TableCell>
+                              <TableCell>{item.total.toLocaleString('tr-TR', { 
+                                style: 'currency', 
+                                currency: selectedOrder.currency || 'TRY',
+                                minimumFractionDigits: 2 
+                              })}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-lg font-semibold">Notlar</h3>
-                <Separator />
-                <p>{selectedOrder.notes || 'Yok'}</p>
-              </div>
-
-              <div className="flex gap-2 mt-6">
-                <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
-                  Kapat
-                </Button>
-                <Button onClick={() => handleUpdateStatusClick(selectedOrder!)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Durumu Güncelle
-                </Button>
-                <Button onClick={() => {
-                  setTrackingNumber(selectedOrder?.trackingNumber || '')
-                  setCargoCompany(selectedOrder?.cargoCompany || '')
-                  setIsCargoDialogOpen(true)
-                }}>
-                  <Truck className="mr-2 h-4 w-4" />
-                  Kargo Bilgileri
-                </Button>
-                {selectedOrder?.trackingNumber && (
-                  <Button variant="outline" onClick={() => handleTrackCargo(selectedOrder.trackingNumber!)}>
-                    <Navigation className="mr-2 h-4 w-4" />
-                    Kargo Takip
-                  </Button>
                 )}
-              </div>
-            </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold">Notlar</h3>
+                  <Separator />
+                  <p>{selectedOrder.notes || 'Yok'}</p>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+                    Kapat
+                  </Button>
+                  <Button onClick={() => handleUpdateStatusClick(selectedOrder!)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Durumu Güncelle
+                  </Button>
+                  {selectedOrder?.trackingNumber && (
+                    <Button variant="outline" onClick={() => handleTrackCargo(selectedOrder.trackingNumber!)}>
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Kargo Takip
+                    </Button>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Kargolama Tab */}
+              <TabsContent value="cargo" className="space-y-4 mt-4">
+                {selectedOrder && (
+                  <CargoManagementSection 
+                    order={{
+                      ...selectedOrder,
+                      id: String(selectedOrder.id) // Ensure id is string
+                    }}
+                    onCargoCreated={async () => {
+                      // Kargo oluşturulduktan sonra siparişi yeniden yükle
+                      // refreshSelectedOrder hem orders listesini hem de selectedOrder'ı günceller
+                      await refreshSelectedOrder(String(selectedOrder.id))
+                      // Dialog'u kapatma, kullanıcı bilgileri görebilsin
+                    }}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>

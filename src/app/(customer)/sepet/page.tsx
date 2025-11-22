@@ -232,10 +232,11 @@ export default function CartPage() {
                                   {formatPrice(packageQty > 0 ? item.product.price / packageQty : item.product.price)}
                                   <span className="text-xs text-gray-600">/adet</span>
                                 </span>
+                                <span className="text-[10px] text-green-600 font-medium">+KDV (%20)</span>
                                 {/* Hesaplama */}
                                 {item.product.isWholesale && item.product.packageQuantity && (
                                   <span className="text-[10px] text-blue-600 font-medium">
-                                    {item.quantity} paket = {totalPieces} adet = {formatPrice(itemTotal)}
+                                    {item.quantity} paket = {totalPieces} adet = {formatPrice(itemTotal)} +KDV
                                   </span>
                                 )}
                               </div>
@@ -275,9 +276,12 @@ export default function CartPage() {
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
-                            <span className="text-sm font-bold">
-                              {formatPrice(itemTotal)}
-                            </span>
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm font-bold">
+                                {formatPrice(itemTotal)}
+                              </span>
+                              <span className="text-[10px] text-green-600">+KDV</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -322,6 +326,7 @@ export default function CartPage() {
                               {formatPrice(packageQty > 0 ? item.product.price / packageQty : item.product.price)}
                               <span className="text-sm text-gray-600">/adet</span>
                             </span>
+                            <span className="text-xs text-green-600 font-medium">+KDV (%20)</span>
                           </div>
                           
                           {/* Toplam Hesaplama */}
@@ -331,7 +336,7 @@ export default function CartPage() {
                                 {item.quantity} paket = {totalPieces} adet ürün
                               </div>
                               <div className="text-gray-700">
-                                {totalPieces} adet × {formatPrice(item.product.price / packageQty)} = <span className="font-bold text-blue-900">{formatPrice(itemTotal)}</span>
+                                {totalPieces} adet × {formatPrice(item.product.price / packageQty)} = <span className="font-bold text-blue-900">{formatPrice(itemTotal)}</span> <span className="text-green-600 text-xs">+KDV</span>
                               </div>
                             </div>
                           )}
@@ -389,6 +394,7 @@ export default function CartPage() {
                           <span className="text-lg font-bold">
                             {formatPrice(itemTotal)}
                           </span>
+                          <span className="text-[10px] text-green-600">+KDV</span>
                           {itemDiscount > 0 && (
                             <span className="text-sm text-green-600">
                               {formatPrice(itemDiscount)} tasarruf

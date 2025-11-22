@@ -188,9 +188,9 @@ async function sendEmail(to: string[], subject: string, body: string): Promise<b
     // E-mail gönder
     const info = await transporter.sendMail(mailOptions)
     
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
     console.log('📧 E-mail başarıyla gönderildi:', {
       messageId: info.messageId,
-      to: to,
       subject: subject
     })
     
@@ -200,8 +200,8 @@ async function sendEmail(to: string[], subject: string, body: string): Promise<b
     console.error('📧 E-mail gönderme hatası:', error)
     
     // Hata durumunda simülasyon yap
-    console.log('📧 Hata nedeniyle simülasyon:')
-    console.log('Alıcılar:', to)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('📧 Hata nedeniyle simülasyon')
     console.log('Konu:', subject)
     
     return false

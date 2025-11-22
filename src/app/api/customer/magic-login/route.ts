@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     const { email } = validationResult.data
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    console.log('🔑 Magic login link isteği:', email)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('🔑 Magic login link isteği')
 
     // Magic link oluştur
     const result = await generateMagicLoginLink(email, baseUrl)
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     // E-mail gönder
-    console.log('📧 Magic login link oluşturuldu:', result.loginUrl)
+    // Minimal log - hassas bilgi (login URL) log'lanmaz
+    console.log('📧 Magic login link oluşturuldu')
     
     // Magic login e-maili gönder
     const emailSent = await sendMagicLoginEmail(email, result.loginUrl!)

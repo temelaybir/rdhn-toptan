@@ -109,7 +109,8 @@ export async function getBanners(): Promise<Banner[]> {
     return validatedData
   } catch (error) {
     console.error('💥 getBanners() genel hatası:', error)
-    console.error('💥 Hata stack:', error instanceof Error ? error.stack : 'Stack yok')
+    // Minimal log - hassas bilgi (stack trace) log'lanmaz
+    console.error('💥 Hata:', error instanceof Error ? error.message : 'Bilinmeyen hata')
     
     // Fallback: boş array döndür
     console.warn('⚠️ Genel hata nedeniyle boş banner listesi döndürülüyor')

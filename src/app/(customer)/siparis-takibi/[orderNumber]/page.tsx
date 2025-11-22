@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
 
 import { 
   CheckCircle,
@@ -224,9 +225,81 @@ export default function OrderTrackingPage() {
     }
   }
 
+  // WCF Tracking ile kargo bilgisi çek (manuel güncelleme için)
+  const fetchCargoInfoFromWCF = async () => {
+    if (!order) return
+    
+    try {
+      setRefreshingCargo(true)
+      
+      // Önce tracking number varsa onunla dene
+      let response
+      if (order.trackingNumber) {
+        response = await fetch(`/api/shipping/track-hybrid?trackingNumber=${order.trackingNumber}`)
+      }
+      
+      // Eğer başarısız olursa veya tracking number yoksa, sipariş numarası ile dene
+      if (!response || !response.ok) {
+        // SIP- prefix'ini kaldır, sadece rakamlar
+        const integrationCode = order.orderNumber.replace('SIP-', '')
+        response = await fetch(`/api/shipping/track-hybrid?integrationCode=${integrationCode}`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.meta?.success && result.QueryResult?.Cargo) {
+        const cargo = result.QueryResult.Cargo
+        
+        // Kargo bilgilerini formatlayarak kaydet
+        const formattedCargoInfo: CargoInfo = {
+          trackingNumber: cargo.KARGO_TAKIP_NO,
+          company: 'ARAS' as any,
+          recipientName: cargo.ALICI || order.shippingAddress.fullName,
+          recipientPhone: order.shippingAddress.phone,
+          senderName: cargo.GONDERICI || 'Ardahan Ticaret',
+          currentStatus: cargo.DURUMU as any,
+          estimatedDeliveryDate: cargo.ISLEM_TARIHI,
+          movements: [{
+            id: '1',
+            date: new Date(cargo.CIKIS_TARIH).toISOString().split('T')[0],
+            time: new Date(cargo.ISLEM_TARIHI).toLocaleTimeString('tr-TR'),
+            location: `${cargo.CIKIS_SUBE} → ${cargo.VARIS_SUBE}`,
+            description: cargo.DURUMU,
+            status: cargo.DURUMU as any
+          }]
+        }
+        
+        setCargoInfo(formattedCargoInfo)
+        
+        // Order durumunu güncelle
+        const newOrderStatus = mapWCFStatusToOrderStatus(cargo.DURUMU)
+        setCurrentStatus(newOrderStatus)
+        
+        toast.success('Kargo bilgileri güncellendi')
+      } else {
+        console.warn('WCF API\'den kargo bilgisi alınamadı:', result)
+        toast.error('Kargo bilgisi henüz sisteme kaydedilmemiş')
+      }
+    } catch (error: any) {
+      console.error('WCF tracking hatası:', error)
+      toast.error('Kargo durumu güncellenemedi')
+    } finally {
+      setRefreshingCargo(false)
+    }
+  }
+
+  const mapWCFStatusToOrderStatus = (wcfStatus: string): string => {
+    if (wcfStatus.includes('TESLİM EDİLDİ')) return 'delivered'
+    if (wcfStatus.includes('DAĞITIM')) return 'shipped'
+    if (wcfStatus.includes('YOLDA')) return 'shipped'
+    if (wcfStatus.includes('ŞUBEDE')) return 'processing'
+    return 'processing'
+  }
+
   useEffect(() => {
     async function fetchCargoInfo() {
-      if (!order?.trackingNumber) {
+      // Tracking number veya sipariş numarası yoksa çık
+      if (!order?.trackingNumber && !order?.orderNumber) {
         setIsLoading(false)
         return
       }
@@ -234,61 +307,68 @@ export default function OrderTrackingPage() {
       try {
         setIsLoading(true)
         
-        // Gerçek Aras Kargo API'sinden kargo bilgisi çek
-        const response = await fetch('/api/cargo/tracking', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            trackingNumber: order.trackingNumber,
-            company: order.cargoCompany?.toLowerCase() || 'aras'
-          })
-        })
+        // ✅ WCF Hybrid API kullan
+        let response
+        
+        // Önce tracking number varsa onunla dene
+        if (order.trackingNumber) {
+          response = await fetch(`/api/shipping/track-hybrid?trackingNumber=${order.trackingNumber}`)
+        }
+        
+        // Eğer başarısız olursa veya tracking number yoksa, sipariş numarası ile dene
+        if (!response || !response.ok) {
+          // SIP- prefix'ini kaldır, sadece rakamlar
+          const integrationCode = order.orderNumber.replace('SIP-', '')
+          response = await fetch(`/api/shipping/track-hybrid?integrationCode=${integrationCode}`)
+        }
 
         const result = await response.json()
 
-        if (result.success && result.data) {
-          const cargoData = result.data
+        if (result.meta?.success && result.QueryResult?.Cargo) {
+          const cargo = result.QueryResult.Cargo
           
-          // API'den gelen veriyi component formatına dönüştür
+          // WCF API'den gelen veriyi component formatına dönüştür
           const cargoInfo: CargoInfo = {
-            trackingNumber: order.trackingNumber,
+            trackingNumber: cargo.KARGO_TAKIP_NO || order.trackingNumber,
             company: 'ARAS' as any,
-            recipientName: order.shippingAddress.fullName,
+            recipientName: cargo.ALICI || order.shippingAddress.fullName,
             recipientPhone: order.shippingAddress.phone,
-            senderName: 'Ardahan Ticaret',
-            currentStatus: cargoData.currentStatus || 'IN_TRANSIT' as any,
-            estimatedDeliveryDate: cargoData.estimatedDeliveryDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            movements: cargoData.movements || []
+            senderName: cargo.GONDERICI || 'Ardahan Ticaret',
+            currentStatus: cargo.DURUMU as any,
+            estimatedDeliveryDate: cargo.ISLEM_TARIHI || new Date().toISOString(),
+            movements: [{
+              id: '1',
+              date: new Date(cargo.CIKIS_TARIH).toISOString().split('T')[0],
+              time: new Date(cargo.ISLEM_TARIHI).toLocaleTimeString('tr-TR'),
+              location: `${cargo.CIKIS_SUBE} → ${cargo.VARIS_SUBE}`,
+              description: cargo.DURUMU,
+              status: cargo.DURUMU as any
+            }]
           }
           
           setCargoInfo(cargoInfo)
           
-          // Kargo durumuna göre sipariş durumunu güncelle
-          if (cargoData.currentStatus) {
-            const newStatus = mapCargoStatusToOrderStatus(cargoData.currentStatus)
-            setCurrentStatus(newStatus)
-            
-            // Kargo hareketlerine göre daha akıllı tahmini süre hesaplama
-            if (cargoData.estimatedDeliveryDate) {
-              const deliveryDate = new Date(cargoData.estimatedDeliveryDate)
-              const now = new Date()
-              const hoursUntilDelivery = Math.max(0, Math.ceil((deliveryDate.getTime() - now.getTime()) / (60 * 60 * 1000)))
-              setEstimatedTime(hoursUntilDelivery)
-            } else {
-              // Fallback: Varsayılan süreleri kullan
-              setEstimatedTime(estimatedDeliveryHours[newStatus as keyof typeof estimatedDeliveryHours] || 0)
-            }
+          // Order durumunu güncelle
+          const newOrderStatus = mapWCFStatusToOrderStatus(cargo.DURUMU)
+          setCurrentStatus(newOrderStatus)
+          
+          // Tahmini teslimat süresi hesaplama
+          if (cargo.ISLEM_TARIHI) {
+            const deliveryDate = new Date(cargo.ISLEM_TARIHI)
+            const now = new Date()
+            const hoursUntilDelivery = Math.max(0, Math.ceil((deliveryDate.getTime() - now.getTime()) / (60 * 60 * 1000)))
+            setEstimatedTime(hoursUntilDelivery)
+          } else {
+            // Fallback: Varsayılan süreleri kullan
+            setEstimatedTime(estimatedDeliveryHours[newOrderStatus as keyof typeof estimatedDeliveryHours] || 0)
           }
         } else {
           // API'den veri gelmezse veya kargo henüz sisteme girilmemişse boş bırak
           setCargoInfo(null)
-          console.log('Kargo takip bilgisi bulunamadı:', result.error || 'Henüz kargoya verilmemiş olabilir')
         }
       } catch (error) {
-        console.error('Kargo bilgisi alınamadı:', error)
-        // Hata durumunda boş bırak, kullanıcıya hata gösterme
+        console.error('❌ Kargo bilgisi alınamadı:', error)
+        // Hata durumunda boş bırak, kullanıcıya sessizce bildir
         setCargoInfo(null)
       } finally {
         setIsLoading(false)
@@ -687,21 +767,7 @@ export default function OrderTrackingPage() {
                   variant="outline" 
                   size="sm" 
                   className="w-full mt-4" 
-                  onClick={() => {
-                    setRefreshingCargo(true)
-                    setTimeout(() => setRefreshingCargo(false), 1000)
-                    // Kargo bilgilerini yeniden çek
-                    if (order) {
-                      setTimeout(() => {
-                        const interval = setInterval(() => {
-                          // fetchCargoInfo fonksiyonunu çağır
-                          setIsLoading(true)
-                          setTimeout(() => setIsLoading(false), Math.random() * 1000 + 500)
-                        }, 100)
-                        setTimeout(() => clearInterval(interval), 100)
-                      }, 100)
-                    }
-                  }} 
+                  onClick={fetchCargoInfoFromWCF} 
                   disabled={refreshingCargo}
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshingCargo ? 'animate-spin' : ''}`} />

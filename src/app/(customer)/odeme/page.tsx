@@ -64,7 +64,7 @@ declare global {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { cart, getTotalPrice, getSubtotal, getShippingCost, clearCart } = useCart()
+  const { cart, getTotalPrice, getSubtotal, getShippingCost, getFinalTotal, clearCart } = useCart()
   const items = cart.items || []
   
   // 3DS popup timer reference
@@ -254,10 +254,10 @@ export default function CheckoutPage() {
   }, [])
 
   // Price calculations
-  const subtotal = getSubtotal() // Zaten KDV dahil
+  const subtotal = getSubtotal() // KDV hariç
   const discount = 0 // İndirim sistemi henüz implement edilmedi
   const shipping = 0 // 🚚 Tüm ürünlerde ücretsiz kargo!
-  const total = getTotalPrice() + shipping // Zaten KDV dahil + kargo
+  const total = getFinalTotal() // KDV hariç + KDV + kargo
   
 
 
@@ -996,10 +996,10 @@ export default function CheckoutPage() {
         taxNumber: formData.taxNumber,
         taxOffice: formData.taxOffice,
         totalAmount: total,
-        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV dahil (quantity = paket sayısı)
+        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV hariç (quantity = paket sayısı)
         taxAmount: items.reduce((sum, item) => {
-          const itemTotal = item.product.price * item.quantity // Paket × fiyat
-          const taxAmount = itemTotal - (itemTotal / 1.2) // KDV tutarı
+          const itemTotal = item.product.price * item.quantity // Paket × fiyat (KDV hariç)
+          const taxAmount = itemTotal * 0.20 // KDV tutarı (%20)
           return sum + taxAmount
         }, 0),
         shippingAmount: 0, // 🚚 Ücretsiz kargo
@@ -1134,10 +1134,10 @@ export default function CheckoutPage() {
         taxNumber: formData.taxNumber,
         taxOffice: formData.taxOffice,
         totalAmount: total,
-        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // Paket × fiyat
+        subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV hariç (Paket × fiyat)
         taxAmount: items.reduce((sum, item) => {
-          const itemTotal = item.product.price * item.quantity // Paket bazlı
-          const taxAmount = itemTotal - (itemTotal / 1.2)
+          const itemTotal = item.product.price * item.quantity // Paket bazlı (KDV hariç)
+          const taxAmount = itemTotal * 0.20 // KDV tutarı (%20)
           return sum + taxAmount
         }, 0),
         shippingAmount: 0,
@@ -1787,10 +1787,10 @@ export default function CheckoutPage() {
                 email: formData.deliveryAddress.email,
                 phone: formData.deliveryAddress.phone,
                 totalAmount: total,
-                subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV dahil
+                subtotalAmount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), // KDV hariç
                 taxAmount: items.reduce((sum, item) => {
                   const itemTotal = item.product.price * item.quantity
-                  const taxAmount = itemTotal - (itemTotal / 1.2) // KDV tutarı
+                  const taxAmount = itemTotal * 0.20 // KDV tutarı (%20)
                   return sum + taxAmount
                 }, 0),
                 shippingAmount: 0, // 🚚 Ücretsiz kargo

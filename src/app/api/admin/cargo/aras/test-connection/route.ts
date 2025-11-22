@@ -1,138 +1,159 @@
 import { NextRequest, NextResponse } from 'next/server'
-// TEMPORARY FIX: aras-cargo-integration package not available
-// import { ArasCargoService } from '../../../../../../../packages/aras-cargo-integration/src/aras-cargo-service'
+import { ArasCargoService } from '@/aras-cargo/aras-cargo-service'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin-client'
+
+// Simple admin check for quick login compatibility  
+async function isAdminAuthenticated(request: NextRequest): Promise<boolean> {
+  try {
+    // 1. Direct cookie session token check
+    const sessionToken = request.cookies.get('admin_session_token')?.value ||
+                        request.headers.get('x-admin-session-token') ||
+                        request.headers.get('authorization')?.replace('Bearer ', '')
+
+    if (!sessionToken) {
+      return false
+    }
+
+    // 2. Session token'ı Supabase'de validate et
+    try {
+      const supabase = await createAdminSupabaseClient()
+      
+      const { data: session, error } = await supabase
+        .from('admin_sessions')
+        .select(`
+          *,
+          admin_users!inner(
+            id,
+            username,
+            email,
+            role,
+            is_active
+          )
+        `)
+        .eq('session_token', sessionToken)
+        .eq('is_active', true)
+        .gte('expires_at', new Date().toISOString())
+        .single()
+
+      if (!error && session && session.admin_users?.is_active) {
+        return true
+      }
+      
+      return false
+      
+    } catch (sessionError) {
+      return false
+    }
+  } catch (error) {
+    return false
+  }
+}
 
 export async function POST(request: NextRequest) {
-  // TEMPORARY: Service disabled until aras-cargo-integration is available
-  return NextResponse.json({ 
-    success: false, 
-    error: 'Aras Cargo integration temporarily disabled' 
-  }, { status: 503 })
-  
-  /* Original code - commented out
   try {
-    console.log('🔍 Request details:', {
-      method: request.method,
-      url: request.url,
-      headers: Object.fromEntries(request.headers.entries())
+    // Admin authentication check
+    const isAuthenticated = await isAdminAuthenticated(request)
+    
+    if (!isAuthenticated) {
+      return NextResponse.json({
+        success: false,
+        error: 'Yetkisiz erişim - Admin girişi gerekli'
+      }, { status: 401 })
+    }
+
+    console.log('🔍 Aras Kargo bağlantı testi başlatılıyor...')
+
+    // Environment variables'dan API bilgilerini al
+    const serviceUrl = process.env.ARAS_CARGO_SERVICE_URL || 'https://customerservices.araskargo.com.tr/arascargoservice/arascargoservice.asmx'
+    const username = process.env.ARAS_CARGO_USERNAME
+    const password = process.env.ARAS_CARGO_PASSWORD
+    const customerCode = process.env.ARAS_CARGO_CUSTOMER_CODE
+
+    // Proxy ayarları
+    const useProxy = process.env.ARAS_USE_PROXY === 'true'
+    const proxyHost = process.env.ARAS_PROXY_HOST || 'api2.plante.biz'
+    const proxyPort = process.env.ARAS_PROXY_PORT || '3128'
+
+    if (!username || !password || !customerCode) {
+      return NextResponse.json({
+        success: false,
+        error: 'Aras Kargo API bilgileri eksik',
+        details: 'Environment variables (ARAS_CARGO_USERNAME, ARAS_CARGO_PASSWORD, ARAS_CARGO_CUSTOMER_CODE) ayarlanmalı',
+        required: {
+          ARAS_CARGO_USERNAME: !!username,
+          ARAS_CARGO_PASSWORD: !!password,
+          ARAS_CARGO_CUSTOMER_CODE: !!customerCode
+        }
+      }, { status: 500 })
+    }
+
+    console.log('🔧 Aras Kargo konfigürasyonu:', {
+      serviceUrl,
+      username: username.substring(0, 3) + '***',
+      hasPassword: !!password,
+      hasCustomerCode: !!customerCode,
+      useProxy,
+      proxyHost,
+      proxyPort
     })
 
-    // Enhanced request body parsing with detailed logging
-    let requestBody
-    try {
-      const bodyText = await request.text()
-      console.log('📄 Raw request body:', {
-        length: bodyText.length,
-        content: bodyText.substring(0, 200) + (bodyText.length > 200 ? '...' : ''),
-        isEmpty: !bodyText || bodyText.trim() === ''
-      })
-
-      if (!bodyText || bodyText.trim() === '') {
-        return NextResponse.json(
-          { 
-            error: 'Request body is empty',
-            received: bodyText,
-            expectedFormat: { serviceUrl: 'string', username: 'string', password: 'string' }
-          },
-          { status: 400 }
-        )
-      }
-
-      requestBody = JSON.parse(bodyText)
-    } catch (parseError) {
-      console.error('📥 JSON parse error:', parseError)
-      return NextResponse.json(
-        { 
-          error: 'Invalid JSON in request body',
-          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
-          receivedType: typeof bodyText
-        },
-        { status: 400 }
-      )
-    }
-
-    const { serviceUrl, username, password } = requestBody
-
-    // Basic validation
-    if (!serviceUrl || !username || !password) {
-      return NextResponse.json(
-        { 
-          error: 'Missing required fields',
-          received: { serviceUrl: !!serviceUrl, username: !!username, password: !!password },
-          required: ['serviceUrl', 'username', 'password']
-        },
-        { status: 400 }
-      )
-    }
-
-    console.log('🔌 Testing Aras Kargo connection...', {
+    // Aras Kargo servisini oluştur
+    const arasService = new ArasCargoService({
       serviceUrl,
       username,
-      hasPassword: !!password
+      password,
+      customerCode
     })
 
-    // Prioritize environment variables over form input
-    const config = {
-      serviceUrl: process.env.ARAS_CARGO_SERVICE_URL || serviceUrl || 'https://customerservicestest.araskargo.com.tr/arascargoservice/arascargoservice.asmx',
-      username: process.env.ARAS_CARGO_USERNAME || username || 'test',
-      password: process.env.ARAS_CARGO_PASSWORD || password || 'test',
-      customerCode: process.env.ARAS_CARGO_CUSTOMER_CODE || 'test'
-    }
-    
-    console.log('🔧 Using config (env vars prioritized):', {
-      serviceUrl: config.serviceUrl,
-      username: config.username,
-      hasPassword: !!config.password,
-      hasEnvUsername: !!process.env.ARAS_CARGO_USERNAME,
-      hasEnvPassword: !!process.env.ARAS_CARGO_PASSWORD
-    })
-
-    const arasService = new ArasCargoService(config)
-    
-    // Test connection using the new testConnection method
+    // Test bağlantısı yap
+    console.log('🚀 Test bağlantısı gönderiliyor...')
     const result = await arasService.testConnection()
 
-    console.log('✅ Connection test result:', result)
+    console.log('📊 Test sonucu:', {
+      success: result.success,
+      resultCode: result.resultCode,
+      resultMessage: result.resultMessage,
+      hasError: !!result.error
+    })
 
-    if (result.success) {
+    if (result.success || result.resultCode === '0') {
       return NextResponse.json({
         success: true,
         message: 'Aras Kargo bağlantısı başarılı!',
-        data: result.data,
-        config: {
-          serviceUrl: config.serviceUrl,
-          username: config.username,
-          customerCode: config.customerCode,
-          environment: process.env.NODE_ENV
-        }
+        data: {
+          resultCode: result.resultCode,
+          resultMessage: result.resultMessage,
+          serviceUrl,
+          proxyUsed: useProxy,
+          proxyInfo: useProxy ? {
+            host: proxyHost,
+            port: proxyPort
+          } : null
+        },
+        timestamp: new Date().toISOString()
       })
     } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Bağlantı başarısız',
-          details: result.error,
-          config: {
-            serviceUrl: config.serviceUrl,
-            username: config.username,
-            customerCode: config.customerCode
-          }
-        },
-        { status: 500 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: 'Aras Kargo bağlantısı başarısız',
+        details: result.resultMessage || result.error || 'Bilinmeyen hata',
+        resultCode: result.resultCode,
+        config: {
+          serviceUrl,
+          useProxy
+        }
+      }, { status: 400 })
     }
 
   } catch (error) {
-    console.error('💥 Connection test error:', error)
+    // Minimal log - hassas bilgi yok
+    console.error('💥 Bağlantı test hatası:', error instanceof Error ? error.message : 'Bilinmeyen hata')
     
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Bağlantı test hatası',
-        details: error instanceof Error ? error.message : 'Bilinmeyen hata'
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: false,
+      error: 'Bağlantı test hatası',
+      details: error instanceof Error ? error.message : 'Bilinmeyen hata',
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
-  */
-} 
+}

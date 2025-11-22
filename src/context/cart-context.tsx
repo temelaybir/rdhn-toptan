@@ -319,7 +319,10 @@ export function CartProvider({ children }: CartProviderProps) {
       
       // Success message
       openCart()
-      toast.success(`${product.name} sepete eklendi`)
+      const packageInfo = product.isWholesale && product.packageQuantity 
+        ? ` (${safeQuantity} paket = ${safeQuantity * product.packageQuantity} adet)`
+        : ` (${safeQuantity} adet)`
+      toast.success(`${product.name}${packageInfo} sepete eklendi (+KDV)`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Ürün sepete eklenirken hata oluştu')
       console.error('Error adding to cart:', error)
@@ -414,21 +417,20 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
   const getTax = (): number => {
-    // ⚠️ ÜRÜN FİYATLARI ZATEN KDV DAHİL!
-    // KDV tutarı = KDV dahil fiyat - KDV hariç fiyat
-    // KDV hariç fiyat = KDV dahil fiyat / 1.2
-    const priceWithoutTax = state.cart.subtotal / 1.2
-    return state.cart.subtotal - priceWithoutTax
+    // ✅ ÜRÜN FİYATLARI KDV HARİÇ! (+KDV %20)
+    // KDV tutarı = KDV hariç fiyat × %20
+    const taxRate = 0.20 // %20
+    return state.cart.subtotal * taxRate
   }
 
   const getTaxInclusivePrice = (): number => {
-    // ⚠️ ÜRÜN FİYATLARI ZATEN KDV DAHİL!
-    // Subtotal zaten KDV dahil fiyat
-    return state.cart.subtotal
+    // ✅ ÜRÜN FİYATLARI KDV HARİÇ!
+    // KDV dahil toplam = KDV hariç fiyat + KDV tutarı
+    return state.cart.subtotal + getTax()
   }
 
   const getFinalTotal = (): number => {
-    // Son toplam (Ürünler zaten KDV dahil + Kargo)
+    // Son toplam (KDV hariç fiyat + KDV + Kargo)
     return getTaxInclusivePrice() + getShippingCost()
   }
 
@@ -443,13 +445,14 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
   const getTaxInfo = () => {
-    const totalWithTax = state.cart.subtotal // Ürün fiyatları zaten KDV dahil
+    // ✅ ÜRÜN FİYATLARI KDV HARİÇ! (+KDV %20)
+    const priceBeforeTax = state.cart.subtotal // KDV hariç fiyat (ürünlerin toplamı)
     const taxRate = 0.20 // %20
-    const priceBeforeTax = totalWithTax / (1 + taxRate) // KDV hariç fiyat
-    const taxAmount = totalWithTax - priceBeforeTax // KDV tutarı
+    const taxAmount = priceBeforeTax * taxRate // KDV tutarı
+    const totalWithTax = priceBeforeTax + taxAmount // KDV dahil toplam
     
     return {
-      subtotal: totalWithTax, // KDV dahil toplam (ürünler)
+      subtotal: priceBeforeTax, // KDV hariç toplam (ürünler)
       taxAmount, // KDV tutarı
       taxRate: taxRate * 100, // Yüzde olarak (20)
       totalWithTax, // KDV dahil toplam

@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export function MiniCart() {
-  const { cart, isOpen, closeCart, updateQuantity, removeFromCart, clearCart } = useCart()
+  const { cart, isOpen, closeCart, updateQuantity, removeFromCart, clearCart, getTaxInfo } = useCart()
   const { formatPrice } = useCurrency()
   const [mounted, setMounted] = useState(false)
 
@@ -128,6 +128,7 @@ export function MiniCart() {
                           ? (item.product.price || 0) / item.product.packageQuantity 
                           : (item.product.price || 0))}
                         <span className="text-xs text-gray-600">/adet</span>
+                        <span className="text-xs text-green-600 ml-1">+KDV (%20)</span>
                       </div>
 
                       {/* Toplam Adet ve Hesaplama */}
@@ -135,7 +136,7 @@ export function MiniCart() {
                         <div className="text-xs text-blue-600 font-medium mb-2 space-y-0.5">
                           <div>{item.quantity} paket = {item.quantity * item.product.packageQuantity} adet</div>
                           <div className="text-gray-700">
-                            {item.quantity * item.product.packageQuantity} adet × {formatPrice((item.product.price || 0) / item.product.packageQuantity)} = {formatPrice(item.product.price * item.quantity)}
+                            {item.quantity * item.product.packageQuantity} adet × {formatPrice((item.product.price || 0) / item.product.packageQuantity)} = {formatPrice(item.product.price * item.quantity)} <span className="text-green-600">+KDV</span>
                           </div>
                         </div>
                       )}
@@ -205,17 +206,31 @@ export function MiniCart() {
               {/* Cart Summary */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Ara Toplam</span>
+                  <span>Ara Toplam (KDV Hariç)</span>
                   <span>{formatPrice(cart.subtotal || 0)}</span>
                 </div>
+                {(() => {
+                  const taxInfo = getTaxInfo()
+                  return (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span>KDV (%20)</span>
+                        <span>{formatPrice(taxInfo.taxAmount)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold">
+                        <span>Toplam</span>
+                        <div className="text-right">
+                          <div>{formatPrice(taxInfo.totalWithTax)}</div>
+                          <div className="text-[10px] text-green-600 font-normal">+KDV dahil</div>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Kargo</span>
-                  <span>Ücretsiz</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Toplam</span>
-                  <span>{formatPrice(cart.totalPrice || 0)}</span>
+                  <span>Alıcı Öder</span>
                 </div>
               </div>
 

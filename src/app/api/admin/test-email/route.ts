@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`📧 Testing SMTP email to: ${email}`)
+    // Minimal log - hassas bilgi (email adresi) log'lanmaz
+    console.log('📧 Testing SMTP email')
 
     // Test magic login email
     const testLoginUrl = 'http://localhost:3000/auth/magic-login?token=test-token-123'
