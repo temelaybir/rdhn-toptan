@@ -384,6 +384,59 @@ function OrderSuccessContent() {
                   </span>
                 </div>
               )}
+
+              {/* Alternatif Hesaplar */}
+              {bankTransferSettings.alternative_accounts && 
+               bankTransferSettings.alternative_accounts.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Alternatif Hesaplar:</h3>
+                  <div className="space-y-3">
+                    {bankTransferSettings.alternative_accounts.map((account: any, index: number) => (
+                      <div key={index} className="bg-white border-2 border-blue-200 rounded-lg p-4">
+                        {/* IBAN - En önemli bilgi üstte */}
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-600 font-semibold mb-2">IBAN Numarası</p>
+                          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-3 rounded-lg relative">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-mono font-bold text-white text-sm tracking-wider break-all select-all">
+                                {account.iban}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(account.iban)
+                                  toast.success('IBAN kopyalandı!')
+                                }}
+                                className="flex-shrink-0 bg-white hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition-colors"
+                                title="Kopyala"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Banka Bilgileri */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2 bg-gray-50 rounded">
+                            <p className="text-xs text-gray-500 mb-0.5">Banka</p>
+                            <p className="text-sm font-bold text-gray-900">{account.bank_name}</p>
+                          </div>
+                          <div className="p-2 bg-gray-50 rounded">
+                            <p className="text-xs text-gray-500 mb-0.5">Hesap Sahibi</p>
+                            <p className="text-sm font-bold text-gray-900">{account.account_holder}</p>
+                          </div>
+                          {account.account_number && (
+                            <div className="p-2 bg-gray-50 rounded col-span-2">
+                              <p className="text-xs text-gray-500 mb-0.5">Hesap No</p>
+                              <p className="text-sm font-mono font-semibold text-gray-900">{account.account_number}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

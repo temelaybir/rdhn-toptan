@@ -498,6 +498,14 @@ export default function BankTransferAdminPage() {
                               placeholder="TR12 3456 7890 1234 5678 9012 34"
                             />
                           </div>
+                          <div className="space-y-2">
+                            <Label>Hesap Numarası</Label>
+                            <Input
+                              value={account.account_number || ''}
+                              onChange={(e) => updateAlternativeAccount(account.id, 'account_number', e.target.value)}
+                              placeholder="Hesap numarası"
+                            />
+                          </div>
                           <div className="space-y-2 flex items-end">
                             <Button
                               type="button"

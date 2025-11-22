@@ -25,7 +25,8 @@ import {
   Banknote,
   ShieldCheck,
   Loader2,
-  LogIn
+  LogIn,
+  Copy
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/context/cart-context'
@@ -2740,19 +2741,49 @@ export default function CheckoutPage() {
                         {/* Alternatif Hesaplar */}
                         {bankTransferSettings.alternative_accounts && 
                          bankTransferSettings.alternative_accounts.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="font-medium text-blue-900 mb-2">Alternatif Hesaplar:</h4>
-                            <div className="space-y-2">
+                          <div className="mt-4 pt-4 border-t border-blue-200">
+                            <h4 className="font-medium text-blue-900 mb-3">Alternatif Hesaplar:</h4>
+                            <div className="space-y-3">
                               {bankTransferSettings.alternative_accounts.map((account: any, index: number) => (
-                                <div key={index} className="p-3 bg-white rounded border border-blue-100">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div key={index} className="p-4 bg-white rounded-lg border-2 border-blue-200 shadow-sm">
+                                  {/* IBAN */}
+                                  <div className="mb-3">
+                                    <p className="text-xs text-gray-600 font-semibold mb-1">IBAN Numarası</p>
+                                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-2 rounded relative">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <p className="font-mono font-bold text-white text-xs tracking-wider break-all select-all">
+                                          {account.iban}
+                                        </p>
+                                        <button
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(account.iban)
+                                            toast.success('IBAN kopyalandı!')
+                                          }}
+                                          className="flex-shrink-0 bg-white hover:bg-blue-50 text-blue-600 p-1 rounded transition-colors"
+                                          title="Kopyala"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Banka Bilgileri */}
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
                                     <div>
-                                      <span className="text-gray-600">{account.bank_name} - </span>
-                                      <span className="font-medium">{account.account_holder}</span>
+                                      <span className="text-gray-500 text-xs">Banka:</span>
+                                      <p className="font-semibold text-gray-900">{account.bank_name}</p>
                                     </div>
-                                    <div className="font-mono text-blue-800">
-                                      {account.iban}
+                                    <div>
+                                      <span className="text-gray-500 text-xs">Hesap Sahibi:</span>
+                                      <p className="font-semibold text-gray-900">{account.account_holder}</p>
                                     </div>
+                                    {account.account_number && (
+                                      <div className="col-span-2">
+                                        <span className="text-gray-500 text-xs">Hesap No:</span>
+                                        <p className="font-mono font-semibold text-gray-900">{account.account_number}</p>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               ))}

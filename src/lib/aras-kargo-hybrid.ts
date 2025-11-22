@@ -131,25 +131,56 @@ class ArasKargoHybridService {
    */
   private parseSOAPResponse(xmlResponse: string): any {
     try {
+      console.log('🔍 SOAP Response parse ediliyor...')
+      console.log('📄 Response uzunluğu:', xmlResponse.length)
+      console.log('📄 İlk 500 karakter:', xmlResponse.substring(0, 500))
+      
       // GetQueryJSONResult tag'i içindeki JSON'ı bul
-      const jsonMatch = xmlResponse.match(/<GetQueryJSONResult>(.*?)<\/GetQueryJSONResult>/s)
+      const jsonMatch = xmlResponse.match(/<GetQueryJSONResult[^>]*>(.*?)<\/GetQueryJSONResult>/s)
       if (!jsonMatch) {
-        throw new Error('GetQueryJSONResult bulunamadı')
+        console.warn('⚠️ GetQueryJSONResult bulunamadı, alternatif formatlar deneniyor...')
+        
+        // Alternatif: GetQueryJSONResult olmadan direkt JSON olabilir
+        const jsonMatch2 = xmlResponse.match(/\{[\s\S]*\}/)
+        if (jsonMatch2) {
+          console.log('✅ Alternatif JSON formatı bulundu')
+          return JSON.parse(jsonMatch2[0])
+        }
+        
+        throw new Error('GetQueryJSONResult bulunamadı ve alternatif JSON formatı da yok')
       }
 
       // XML entities decode et
-      let jsonString = jsonMatch[1]
+      let jsonString = jsonMatch[1].trim()
+      
+      // Eğer zaten decode edilmişse direkt parse et
+      if (jsonString.startsWith('{') || jsonString.startsWith('[')) {
+        console.log('✅ JSON string zaten decode edilmiş')
+        return JSON.parse(jsonString)
+      }
+      
+      // XML entities decode et
       jsonString = jsonString
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'")
         .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ')
+
+      console.log('📝 Decode edilmiş JSON string:', jsonString.substring(0, 200))
 
       // JSON parse et
-      return JSON.parse(jsonString)
+      const parsed = JSON.parse(jsonString)
+      console.log('✅ JSON parse başarılı:', {
+        hasQueryResult: !!parsed.QueryResult,
+        keys: Object.keys(parsed)
+      })
+      
+      return parsed
     } catch (error: any) {
       console.error('❌ SOAP Response parse hatası:', error.message)
+      console.error('❌ Error stack:', error.stack)
       throw new Error(`SOAP Response parse edilemedi: ${error.message}`)
     }
   }
@@ -239,9 +270,18 @@ class ArasKargoHybridService {
       }
 
       console.log('✅ SOAP Response alındı')
+      console.log('📄 Ham SOAP Response (ilk 1000 karakter):', response.data?.substring(0, 1000))
 
       // SOAP Response'u parse et
       const parsed = this.parseSOAPResponse(response.data)
+      
+      console.log('📦 Parse edilmiş response:', {
+        hasQueryResult: !!parsed.QueryResult,
+        QueryResultType: typeof parsed.QueryResult,
+        QueryResultIsNull: parsed.QueryResult === null,
+        parsedKeys: Object.keys(parsed),
+        parsedFull: JSON.stringify(parsed).substring(0, 500)
+      })
       
       return parsed
       

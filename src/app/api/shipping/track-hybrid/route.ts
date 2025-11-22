@@ -194,18 +194,59 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Hybrid tracking başarılı')
+    console.log('📦 TrackingResult yapısı:', {
+      hasQueryResult: !!trackingResult.QueryResult,
+      QueryResultType: typeof trackingResult.QueryResult,
+      QueryResultIsNull: trackingResult.QueryResult === null,
+      QueryResultKeys: trackingResult.QueryResult ? Object.keys(trackingResult.QueryResult) : [],
+      hasCargo: !!trackingResult.QueryResult?.Cargo,
+      CargoKeys: trackingResult.QueryResult?.Cargo ? Object.keys(trackingResult.QueryResult.Cargo) : [],
+      trackingResultKeys: Object.keys(trackingResult),
+      trackingResultFull: JSON.stringify(trackingResult).substring(0, 500)
+    })
 
-    // Response formatla
+    // Response formatla - QueryResult yapısını düzelt
+    let responseQueryResult = null
+    
+    // 1. Eğer trackingResult.QueryResult varsa ve null değilse
+    if (trackingResult.QueryResult && trackingResult.QueryResult !== null) {
+      // Eğer QueryResult içinde QueryResult varsa (nested), onu kullan
+      if (trackingResult.QueryResult.QueryResult) {
+        responseQueryResult = trackingResult.QueryResult.QueryResult
+        console.log('📝 Nested QueryResult.QueryResult kullanılıyor')
+      } else {
+        responseQueryResult = trackingResult.QueryResult
+        console.log('📝 trackingResult.QueryResult kullanılıyor')
+      }
+    }
+    // 2. Eğer QueryResult yoksa ama direkt alanlar varsa
+    else if (trackingResult.DURUMU || trackingResult.KARGO_TAKIP_NO || trackingResult.MUSTERI_OZEL_KODU) {
+      responseQueryResult = {
+        Cargo: trackingResult
+      }
+      console.log('📝 Direkt alanlar QueryResult.Cargo olarak eklendi')
+    }
+    // 3. trackingResult'un kendisi QueryResult formatında olabilir
+    else if (trackingResult.Cargo || trackingResult.DURUMU) {
+      responseQueryResult = trackingResult
+      console.log('📝 trackingResult direkt kullanılıyor')
+    }
+    // 4. Hiçbiri yoksa boş QueryResult
+    else {
+      responseQueryResult = { QueryResult: null }
+      console.warn('⚠️ QueryResult bulunamadı, boş response döndürülüyor')
+    }
+
     const response = {
-      ...trackingResult,
+      QueryResult: responseQueryResult,
       meta: {
-        ...trackingResult.meta,
         success: true,
         message: 'Hybrid WCF tracking query successful',
         queriedAt: new Date().toISOString(),
         service: 'WCF GetQueryJSON',
         integrationCode: integrationCode || undefined,
-        trackingNumber: trackingNumber || undefined
+        trackingNumber: trackingNumber || undefined,
+        hasDirectFields: !!(trackingResult.DURUMU || trackingResult.KARGO_TAKIP_NO)
       }
     }
 

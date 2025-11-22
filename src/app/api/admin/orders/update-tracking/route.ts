@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { orderId, trackingNumber, cargoStatus, cargoData } = body
+    const { orderId, trackingNumber, cargoStatus, cargoData, integrationCode, isManualLink, queriedBarcode } = body
 
     if (!orderId) {
       return NextResponse.json({
@@ -32,9 +32,41 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createAdminSupabaseClient()
 
+    // Sipariş numarasını temizle (SIP- prefix'ini kaldır)
+    const cleanOrderId = orderId.toString().replace(/^SIP-/, '').trim()
+
+    // Önce siparişin var olup olmadığını kontrol et
+    const { data: existingOrder, error: checkError } = await supabase
+      .from('orders')
+      .select('order_number, id')
+      .or(`order_number.eq.${cleanOrderId},order_number.eq.SIP-${cleanOrderId},id.eq.${cleanOrderId}`)
+      .limit(1)
+      .single()
+
+    if (checkError || !existingOrder) {
+      console.error('❌ Sipariş bulunamadı:', cleanOrderId)
+      return NextResponse.json({
+        success: false,
+        error: `Sipariş bulunamadı: ${cleanOrderId}`,
+        details: checkError?.message || 'Sipariş numarası geçersiz veya sipariş mevcut değil'
+      }, { status: 404 })
+    }
+
     // Güncellenecek veriler
     const updateData: any = {
       updated_at: new Date().toISOString()
+    }
+
+    // IntegrationCode'u kargo_talepno olarak kaydet (manuel sorgulama için önemli)
+    if (integrationCode) {
+      updateData.kargo_talepno = integrationCode
+      console.log('📝 IntegrationCode kaydediliyor:', integrationCode)
+    }
+
+    // Manuel sorgulanan barkod/takip numarasını da kaydet
+    if (queriedBarcode && isManualLink) {
+      console.log('📝 Manuel sorgulanan kod kaydediliyor:', queriedBarcode)
+      // Bu bilgiyi not olarak saklayabiliriz veya ayrı bir alana kaydedebiliriz
     }
 
     // Tracking number güncelle
@@ -69,14 +101,17 @@ export async function POST(request: NextRequest) {
       updateData.fulfillment_status = 'fulfilled'
     }
 
-    console.log('📦 Sipariş güncelleniyor:', orderId)
+    console.log('📦 Sipariş güncelleniyor:', existingOrder.order_number)
     console.log('📋 Güncelleme verileri:', updateData)
+    if (isManualLink) {
+      console.log('🔗 Manuel eşleştirme yapılıyor')
+    }
 
-    // Veritabanı güncellemesi
+    // Veritabanı güncellemesi - order_number veya id ile güncelle
     const { data, error } = await supabase
       .from('orders')
       .update(updateData)
-      .eq('order_number', orderId)
+      .eq('order_number', existingOrder.order_number)
       .select()
       .single()
 
